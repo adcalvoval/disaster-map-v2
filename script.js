@@ -9,6 +9,7 @@ class DisasterMap {
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
         this.showHealthFacilities = false;
+        this.selectedCountry = ''; // Add country filter state
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -26,6 +27,7 @@ class DisasterMap {
     init() {
         this.initMap();
         this.initEventListeners();
+        this.initializeDateInputs();
         this.loadDisasterData();
         this.loadHealthFacilities();
         this.initIfrcDocuments();
@@ -43,6 +45,10 @@ class DisasterMap {
     initEventListeners() {
         document.getElementById('refreshData').addEventListener('click', () => {
             this.loadDisasterData();
+        });
+
+        document.getElementById('searchByDate').addEventListener('click', () => {
+            this.searchEventsByDate();
         });
 
         document.getElementById('alertLevel').addEventListener('change', (e) => {
@@ -82,8 +88,60 @@ class DisasterMap {
             this.loadIfrcDocuments();
         });
 
+        // Health facilities country filter
+        document.getElementById('healthCountryFilter').addEventListener('change', (e) => {
+            this.selectedHealthCountry = e.target.value;
+            this.filterHealthFacilities();
+        });
+
+        // Health facilities functionality filter
+        document.getElementById('healthFunctionalityFilter').addEventListener('change', (e) => {
+            this.selectedHealthFunctionality = e.target.value;
+            this.filterHealthFacilities();
+        });
+
         // Add event listeners for individual facility type checkboxes
         this.initFacilityTypeListeners();
+        // Note: initHealthFacilityCountryFilter() is called after health facilities are loaded
+    }
+
+    initializeDateInputs() {
+        // Set default date range to last 2 months
+        const toDate = new Date();
+        const fromDate = new Date();
+        fromDate.setMonth(fromDate.getMonth() - 2);
+
+        document.getElementById('dateFrom').value = fromDate.toISOString().split('T')[0];
+        document.getElementById('dateTo').value = toDate.toISOString().split('T')[0];
+        
+        console.log(`Initialized date range: ${fromDate.toISOString().split('T')[0]} to ${toDate.toISOString().split('T')[0]}`);
+    }
+
+    async searchEventsByDate() {
+        const fromDateValue = document.getElementById('dateFrom').value;
+        const toDateValue = document.getElementById('dateTo').value;
+        
+        if (!fromDateValue || !toDateValue) {
+            alert('Please select both start and end dates for your search.');
+            return;
+        }
+
+        if (new Date(fromDateValue) > new Date(toDateValue)) {
+            alert('Start date must be before end date.');
+            return;
+        }
+
+        console.log(`Searching events from ${fromDateValue} to ${toDateValue}`);
+        
+        // Show loading state
+        document.getElementById('eventList').innerHTML = '<div class="loading">Searching disaster events...</div>';
+        
+        try {
+            await this.loadDisasterDataWithDates(fromDateValue, toDateValue);
+        } catch (error) {
+            console.error('Error searching events:', error);
+            document.getElementById('eventList').innerHTML = '<div class="error">Error loading events. Please try again.</div>';
+        }
     }
 
     async loadDisasterData() {
@@ -112,6 +170,26 @@ class DisasterMap {
             if (this.showAffectedAreas) {
                 this.addAffectedAreasToMap(sampleData);
             }
+        }
+    }
+
+    async loadDisasterDataWithDates(fromDate, toDate) {
+        try {
+            document.getElementById('eventList').innerHTML = '<div class="loading">Loading disaster events from GDACS...</div>';
+            this.clearMarkers();
+            this.clearAffectedAreas();
+            
+            const events = await this.fetchGDACSDataWithDates(fromDate, toDate);
+            this.disasterEvents = events;
+            this.filteredEvents = [...events];
+            this.addMarkersToMap(events);
+            this.displayEvents(this.filteredEvents);
+            this.addAffectedAreasToMap(events);
+            
+            console.log(`Loaded ${events.length} disaster events for date range ${fromDate} to ${toDate}`);
+        } catch (error) {
+            console.error('Error loading disaster data with dates:', error);
+            document.getElementById('eventList').innerHTML = '<div class="error">Error loading events. Please try again.</div>';
         }
     }
 
@@ -152,6 +230,37 @@ class DisasterMap {
         }
     }
 
+    async fetchGDACSDataWithDates(fromDate, toDate) {
+        try {
+            // Use backend proxy to fetch GDACS data with custom dates
+            const alertLevel = document.getElementById('alertLevel').value;
+            
+            const params = new URLSearchParams({
+                source: 'ALL',
+                from: fromDate,
+                to: toDate,
+                ...(alertLevel && { alertLevel })
+            });
+
+            const response = await fetch(`/api/disasters?${params}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.events) {
+                console.log(`Loaded ${result.count} disaster events from backend for date range ${fromDate} to ${toDate}`);
+                return result.events;
+            } else {
+                throw new Error(result.error || 'No events received');
+            }
+        } catch (error) {
+            console.error('Error fetching GDACS data with dates:', error);
+            throw error;
+        }
+    }
 
     getSampleData() {
         return [
@@ -224,6 +333,15 @@ class DisasterMap {
         ];
     }
 
+    sortEventsByAlertLevel(events) {
+        const alertPriority = { 'RED': 0, 'ORANGE': 1, 'GREEN': 2 };
+        return events.slice().sort((a, b) => {
+            const priorityA = alertPriority[a.alertLevel] !== undefined ? alertPriority[a.alertLevel] : 3;
+            const priorityB = alertPriority[b.alertLevel] !== undefined ? alertPriority[b.alertLevel] : 3;
+            return priorityA - priorityB;
+        });
+    }
+
     displayEvents(events) {
         const eventList = document.getElementById('eventList');
         if (events.length === 0) {
@@ -231,7 +349,10 @@ class DisasterMap {
             return;
         }
 
-        const eventsHTML = events.map(event => `
+        // Sort events by alert level: RED first, then ORANGE, then GREEN
+        const sortedEvents = this.sortEventsByAlertLevel(events);
+
+        const eventsHTML = sortedEvents.map(event => `
             <div class="event-item ${event.alertLevel.toLowerCase()}" onclick="app.focusOnEvent('${event.id}')">
                 <div class="event-title">${event.title}</div>
                 <div class="event-details">
@@ -418,6 +539,8 @@ class DisasterMap {
             if (result.success && result.facilities) {
                 console.log(`Loaded ${result.count} health facilities`);
                 this.healthFacilities = result.facilities;
+                this.populateCountryFilter();
+                this.initHealthFacilityCountryFilter(); // Initialize after data is loaded
                 this.updateLegendCounts();
             } else {
                 throw new Error(result.error || 'No health facilities received');
@@ -429,11 +552,31 @@ class DisasterMap {
     }
 
     addHealthFacilitiesToMap() {
+        let addedCount = 0;
+        let filteredByType = 0;
+        let filteredByCountry = 0;
+        let filteredByFunctionality = 0;
+        
         this.healthFacilities.forEach(facility => {
             // Only add facilities that are visible based on type selection
             if (!this.facilityTypeVisibility[facility.type]) {
+                filteredByType++;
                 return;
             }
+            
+            // Filter by country if a country is selected
+            if (this.selectedHealthCountry && facility.country !== this.selectedHealthCountry) {
+                filteredByCountry++;
+                return;
+            }
+            
+            // Filter by functionality if a functionality level is selected
+            if (!this.matchesFunctionalityFilter(facility.functionality)) {
+                filteredByFunctionality++;
+                return;
+            }
+            
+            addedCount++;
             
             const color = this.getHealthFacilityColor(facility.type);
             const icon = this.createHealthFacilityIcon(color, facility.type);
@@ -444,7 +587,7 @@ class DisasterMap {
                     <div>
                         <h4>${facility.name}</h4>
                         <p><strong>Type:</strong> ${facility.type}</p>
-                        <p><strong>Functionality:</strong> ${facility.functionality}</p>
+                        <p><strong>Functionality:</strong> <span style="color: ${this.getFunctionalityColor(facility.functionality)}; font-weight: bold;">${facility.functionality}</span></p>
                         <p><strong>Country:</strong> ${facility.country}</p>
                         ${facility.district ? `<p><strong>District:</strong> ${facility.district}</p>` : ''}
                         ${facility.speciality ? `<p><strong>Speciality:</strong> ${facility.speciality}</p>` : ''}
@@ -455,6 +598,47 @@ class DisasterMap {
             marker.facilityType = facility.type;
             this.healthFacilityMarkers.push(marker);
         });
+        
+        console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by functionality: ${filteredByFunctionality}`);
+        if (this.selectedHealthCountry) {
+            console.log(`Applied country filter: "${this.selectedHealthCountry}"`);
+        }
+        if (this.selectedHealthFunctionality) {
+            console.log(`Applied functionality filter: "${this.selectedHealthFunctionality}"`);
+        }
+    }
+
+    getFunctionalityColor(functionality) {
+        if (!functionality) return '#666'; // Default gray for unknown status
+        
+        const status = functionality.toLowerCase();
+        if (status.includes('fully functional') || status.includes('fully functioning') || status === 'functional') {
+            return '#27ae60'; // Green
+        } else if (status.includes('partially functional') || status.includes('partially functioning') || status.includes('partial')) {
+            return '#f39c12'; // Orange
+        } else if (status.includes('not functional') || status.includes('non-functional') || status.includes('damaged') || status.includes('closed')) {
+            return '#e74c3c'; // Red
+        } else {
+            return '#666'; // Default gray for unknown status
+        }
+    }
+
+    matchesFunctionalityFilter(functionality) {
+        if (!this.selectedHealthFunctionality) return true; // No filter selected
+        if (!functionality) return false; // No functionality data
+        
+        const status = functionality.toLowerCase();
+        
+        switch (this.selectedHealthFunctionality) {
+            case 'fully':
+                return status.includes('fully functional') || status.includes('fully functioning') || status === 'functional';
+            case 'partially':
+                return status.includes('partially functional') || status.includes('partially functioning') || status.includes('partial');
+            case 'not':
+                return status.includes('not functional') || status.includes('non-functional') || status.includes('damaged') || status.includes('closed');
+            default:
+                return true;
+        }
     }
 
     createHealthFacilityIcon(color, type) {
@@ -552,6 +736,51 @@ class DisasterMap {
         });
     }
 
+    populateCountryFilter() {
+        const countrySelect = document.getElementById('healthCountryFilter');
+        if (!countrySelect) return;
+        
+        // Get unique countries from health facilities
+        const countries = [...new Set(this.healthFacilities.map(facility => facility.country))]
+            .filter(country => country) // Remove empty countries
+            .sort();
+        
+        // Clear existing options except "All Countries"
+        countrySelect.innerHTML = '<option value="">All Countries</option>';
+        
+        // Add country options
+        countries.forEach(country => {
+            const option = document.createElement('option');
+            option.value = country;
+            option.textContent = country;
+            countrySelect.appendChild(option);
+        });
+        
+        console.log(`Populated country filter with ${countries.length} countries`);
+    }
+
+    initHealthFacilityCountryFilter() {
+        const countrySelect = document.getElementById('healthCountryFilter');
+        if (!countrySelect) return;
+        
+        // Remove any existing event listeners to prevent duplicates
+        countrySelect.onchange = null;
+        
+        countrySelect.addEventListener('change', (e) => {
+            this.selectedHealthCountry = e.target.value;
+            console.log(`Selected country: "${this.selectedHealthCountry}"`);
+            console.log(`Total health facilities: ${this.healthFacilities.length}`);
+            
+            // Debug: Show some sample countries from the data
+            const sampleCountries = this.healthFacilities.slice(0, 10).map(f => f.country);
+            console.log(`Sample countries:`, sampleCountries);
+            
+            this.updateHealthFacilitiesDisplay();
+            this.updateLegendCounts(); // Update counts after filtering
+            console.log(`Filtering health facilities by country: ${this.selectedHealthCountry || 'All Countries'}`);
+        });
+    }
+
     updateHealthFacilitiesDisplay() {
         if (this.showHealthFacilities) {
             // Remove all current markers
@@ -559,6 +788,12 @@ class DisasterMap {
             // Add back only the visible ones
             this.addHealthFacilitiesToMap();
         }
+    }
+
+    filterHealthFacilities() {
+        console.log(`Filtering health facilities by country: ${this.selectedHealthCountry || 'All Countries'}`);
+        this.updateHealthFacilitiesDisplay();
+        this.updateLegendCounts(); // Update counts after filtering
     }
 
     getFacilityTypeCounts() {
@@ -575,6 +810,11 @@ class DisasterMap {
         };
 
         this.healthFacilities.forEach(facility => {
+            // Apply country filter when counting
+            if (this.selectedCountry && facility.country !== this.selectedCountry) {
+                return;
+            }
+            
             if (counts.hasOwnProperty(facility.type)) {
                 counts[facility.type]++;
             }

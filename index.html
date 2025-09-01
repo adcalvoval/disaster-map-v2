@@ -11,21 +11,30 @@
     <div class="header">
         <h1>Global Disaster Alert and Coordination System</h1>
         <div class="controls">
-            <select id="alertLevel">
-                <option value="">All Alert Levels</option>
-                <option value="GREEN">Green</option>
-                <option value="ORANGE">Orange</option>
-                <option value="RED">Red</option>
-            </select>
-            <label class="checkbox-label">
-                <input type="checkbox" id="showAffectedAreas" checked>
-                Show Affected Areas
-            </label>
-            <label class="checkbox-label">
-                <input type="checkbox" id="showHealthFacilities" checked>
-                Show Health Facilities
-            </label>
-            <button id="refreshData">Refresh Data</button>
+            <div class="date-controls">
+                <label class="date-label">From:</label>
+                <input type="date" id="dateFrom" class="date-input">
+                <label class="date-label">To:</label>
+                <input type="date" id="dateTo" class="date-input">
+                <button id="searchByDate">Search Events</button>
+            </div>
+            <div class="filter-controls">
+                <select id="alertLevel">
+                    <option value="">All Alert Levels</option>
+                    <option value="GREEN">Green</option>
+                    <option value="ORANGE">Orange</option>
+                    <option value="RED">Red</option>
+                </select>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showAffectedAreas" checked>
+                    Show Affected Areas
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showHealthFacilities">
+                    Show Health Facilities
+                </label>
+                <button id="refreshData">Refresh Data</button>
+            </div>
         </div>
     </div>
     
@@ -33,6 +42,15 @@
     <div id="healthFacilitiesControls" class="health-controls" style="display: block;">
         <div class="controls-header">
             <h4>Health Facilities</h4>
+            <select id="healthCountryFilter" class="country-filter">
+                <option value="">All Countries</option>
+            </select>
+            <select id="healthFunctionalityFilter" class="country-filter" style="margin-top: 5px;">
+                <option value="">All Functionality Levels</option>
+                <option value="fully">Fully Functional</option>
+                <option value="partially">Partially Functional</option>
+                <option value="not">Not Functional</option>
+            </select>
         </div>
         <div class="facility-legend">
             <div class="legend-item">

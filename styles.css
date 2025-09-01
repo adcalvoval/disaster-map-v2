@@ -32,8 +32,40 @@ body {
 
 .controls {
     display: flex;
+    flex-direction: row;
+    gap: 15px;
+    align-items: center;
+}
+
+.date-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.filter-controls {
+    display: flex;
     gap: 10px;
     align-items: center;
+}
+
+.date-label {
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.date-input {
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    background: white;
+    color: #333;
 }
 
 .checkbox-label {
@@ -249,6 +281,28 @@ body {
     color: white;
     font-size: 0.9rem;
     margin: 0;
+}
+
+.country-filter {
+    padding: 4px 8px;
+    border: 1px solid #5a6c7d;
+    border-radius: 4px;
+    background: #2c3e50;
+    color: white;
+    font-size: 0.8rem;
+    margin-top: 5px;
+    width: 100%;
+    cursor: pointer;
+}
+
+.country-filter:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.country-filter option {
+    background: #2c3e50;
+    color: white;
 }
 
 .health-controls .facility-legend {

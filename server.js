@@ -231,7 +231,7 @@ class GDACSProxy {
 
     async fetchGDACSData(source = 'ALL', alertLevel = '', fromDate = '', toDate = '') {
         try {
-            const sources = source === 'ALL' ? ['DFO', 'GPM', 'DFOMERGE'] : [source];
+            const sources = source === 'ALL' ? [] : [source]; // Removed problematic flood APIs
             const allEvents = [];
 
             // Try different approaches for GDACS flood data
