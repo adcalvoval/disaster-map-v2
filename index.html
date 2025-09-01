@@ -88,7 +88,13 @@
     <div class="sidebar">
         <!-- Disaster Events Section -->
         <div class="events-section">
-            <h3>Disaster Events</h3>
+            <div class="section-header">
+                <h3>Disaster Events</h3>
+                <div class="search-container">
+                    <input type="text" id="eventSearch" placeholder="Search events..." class="search-input">
+                    <button id="clearEventSearch" class="clear-search-btn" style="display: none;">×</button>
+                </div>
+            </div>
             <div id="eventList">
                 Loading disaster events...
             </div>

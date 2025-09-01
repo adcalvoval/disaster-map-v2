@@ -4,6 +4,7 @@ class DisasterMap {
         this.markers = [];
         this.affectedAreas = [];
         this.disasterEvents = [];
+        this.filteredEvents = [];
         this.showAffectedAreas = true;
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
@@ -60,6 +61,15 @@ class DisasterMap {
             // Show/hide the health facilities controls
             const controls = document.getElementById('healthFacilitiesControls');
             controls.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Event search functionality
+        document.getElementById('eventSearch').addEventListener('input', (e) => {
+            this.searchEvents(e.target.value);
+        });
+
+        document.getElementById('clearEventSearch').addEventListener('click', () => {
+            this.clearEventSearch();
         });
 
         // IFRC Documents event listeners
@@ -681,6 +691,82 @@ class DisasterMap {
         }).join('');
         
         documentsList.innerHTML = documentsHTML;
+    }
+
+    // Event search functionality
+    searchEvents(query) {
+        const searchInput = document.getElementById('eventSearch');
+        const clearBtn = document.getElementById('clearEventSearch');
+        
+        // Show/hide clear button
+        clearBtn.style.display = query.trim() ? 'block' : 'none';
+        
+        if (!query.trim()) {
+            // Show all events if search is empty
+            this.showAllEvents();
+            return;
+        }
+        
+        // Filter events based on search query
+        const filteredEvents = this.disasterEvents.filter(event => {
+            const searchTerm = query.toLowerCase();
+            return (
+                event.title.toLowerCase().includes(searchTerm) ||
+                event.type.toLowerCase().includes(searchTerm) ||
+                event.alertLevel.toLowerCase().includes(searchTerm) ||
+                event.source.toLowerCase().includes(searchTerm) ||
+                (event.description && event.description.toLowerCase().includes(searchTerm))
+            );
+        });
+        
+        // Update display
+        this.displayFilteredEvents(filteredEvents);
+        
+        // Update map markers to show only filtered events
+        this.clearMarkers();
+        this.addMarkersToMap(filteredEvents);
+        
+        if (this.showAffectedAreas) {
+            this.clearAffectedAreas();
+            this.addAffectedAreasToMap(filteredEvents);
+        }
+    }
+    
+    clearEventSearch() {
+        const searchInput = document.getElementById('eventSearch');
+        const clearBtn = document.getElementById('clearEventSearch');
+        
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        
+        // Show all events
+        this.showAllEvents();
+    }
+    
+    showAllEvents() {
+        // Display all events
+        this.displayEvents(this.disasterEvents);
+        
+        // Update map markers to show all events
+        this.clearMarkers();
+        this.addMarkersToMap(this.disasterEvents);
+        
+        if (this.showAffectedAreas) {
+            this.clearAffectedAreas();
+            this.addAffectedAreasToMap(this.disasterEvents);
+        }
+    }
+    
+    displayFilteredEvents(events) {
+        const eventList = document.getElementById('eventList');
+        
+        if (events.length === 0) {
+            eventList.innerHTML = '<div class="search-no-results">No events match your search criteria.</div>';
+            return;
+        }
+        
+        // Use the existing displayEvents method
+        this.displayEvents(events);
     }
 }
 
