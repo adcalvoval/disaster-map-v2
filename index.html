@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Disaster Alert Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Global Disaster Alert and Coordination System</h1>
+        <div class="controls">
+            <select id="alertLevel">
+                <option value="">All Alert Levels</option>
+                <option value="GREEN">Green</option>
+                <option value="ORANGE">Orange</option>
+                <option value="RED">Red</option>
+            </select>
+            <label class="checkbox-label">
+                <input type="checkbox" id="showAffectedAreas" checked>
+                Show Affected Areas
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="showHealthFacilities" checked>
+                Show Health Facilities
+            </label>
+            <button id="refreshData">Refresh Data</button>
+        </div>
+    </div>
+    
+    <!-- Health Facilities Controls -->
+    <div id="healthFacilitiesControls" class="health-controls" style="display: block;">
+        <div class="controls-header">
+            <h4>Health Facilities</h4>
+        </div>
+        <div class="facility-legend">
+            <div class="legend-item">
+                <input type="checkbox" id="show-primary-health" checked>
+                <span class="legend-icon" style="background: #1e3a8a;">🏥</span>
+                <label for="show-primary-health">Primary Health Care (912)</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="show-hospitals" checked>
+                <span class="legend-icon" style="background: #fbbf24; color: #000;">🏨</span>
+                <label for="show-hospitals">Hospitals (253)</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="show-ambulance" checked>
+                <span class="legend-icon" style="background: #166534;">🚑</span>
+                <label for="show-ambulance">Ambulance Stations (2,157)</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="show-blood" checked>
+                <span class="legend-icon" style="background: #8b0000;">🩸</span>
+                <label for="show-blood">Blood Centres (876)</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="show-pharmacies" checked>
+                <span class="legend-icon" style="background: #84cc16;">💊</span>
+                <label for="show-pharmacies">Pharmacies (139)</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="show-training" checked>
+                <span class="legend-icon" style="background: #ea580c;">🎓</span>
+                <label for="show-training">Training Facilities (268)</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="show-specialized" checked>
+                <span class="legend-icon" style="background: #a16207;">🔬</span>
+                <label for="show-specialized">Specialized Services (129)</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="show-residential" checked>
+                <span class="legend-icon" style="background: #7dd3fc; color: #000;">🏠</span>
+                <label for="show-residential">Residential Facilities (171)</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="show-other" checked>
+                <span class="legend-icon" style="background: #374151;">⚕️</span>
+                <label for="show-other">Other (630)</label>
+            </div>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div class="sidebar">
+        <h3>Disaster Events</h3>
+        <div id="eventList">
+            Loading disaster events...
+        </div>
+        
+        <!-- IFRC Documents Panel -->
+        <div id="ifrcDocumentsSection" class="documents-section">
+            <div class="section-header">
+                <h3>IFRC Documents</h3>
+                <div class="section-controls">
+                    <select id="countryFilter" class="country-select">
+                        <option value="">All Countries</option>
+                    </select>
+                    <button id="refreshIfrcDocs" class="refresh-btn">↻</button>
+                </div>
+            </div>
+            <div id="ifrcDocumentsList" class="documents-list">
+                Loading IFRC documents...
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

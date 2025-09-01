@@ -1,0 +1,691 @@
+class DisasterMap {
+    constructor() {
+        this.map = null;
+        this.markers = [];
+        this.affectedAreas = [];
+        this.disasterEvents = [];
+        this.showAffectedAreas = true;
+        this.healthFacilityMarkers = [];
+        this.healthFacilities = [];
+        this.showHealthFacilities = false;
+        this.facilityTypeVisibility = {
+            'Primary Health Care Centres': true,
+            'Ambulance Stations': true,
+            'Blood Centres': true,
+            'Hospitals': true,
+            'Pharmacies': true,
+            'Training Facilities': true,
+            'Specialized Services': true,
+            'Residential Facilities': true,
+            'Other': true
+        };
+        this.init();
+    }
+
+    init() {
+        this.initMap();
+        this.initEventListeners();
+        this.loadDisasterData();
+        this.loadHealthFacilities();
+        this.initIfrcDocuments();
+    }
+
+    initMap() {
+        this.map = L.map('map').setView([20, 0], 2);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+        }).addTo(this.map);
+    }
+
+    initEventListeners() {
+        document.getElementById('refreshData').addEventListener('click', () => {
+            this.loadDisasterData();
+        });
+
+        document.getElementById('alertLevel').addEventListener('change', (e) => {
+            this.filterByAlertLevel(e.target.value);
+        });
+
+        document.getElementById('showAffectedAreas').addEventListener('change', (e) => {
+            this.showAffectedAreas = e.target.checked;
+            this.toggleAffectedAreas();
+        });
+
+        document.getElementById('showHealthFacilities').addEventListener('change', (e) => {
+            this.showHealthFacilities = e.target.checked;
+            this.toggleHealthFacilities();
+            
+            // Show/hide the health facilities controls
+            const controls = document.getElementById('healthFacilitiesControls');
+            controls.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // IFRC Documents event listeners
+        document.getElementById('refreshIfrcDocs').addEventListener('click', () => {
+            this.loadIfrcDocuments();
+        });
+
+        document.getElementById('countryFilter').addEventListener('change', (e) => {
+            this.selectedCountry = e.target.value;
+            this.loadIfrcDocuments();
+        });
+
+        // Add event listeners for individual facility type checkboxes
+        this.initFacilityTypeListeners();
+    }
+
+    async loadDisasterData() {
+        try {
+            document.getElementById('eventList').innerHTML = '<div class="loading">Loading real disaster events from GDACS...</div>';
+            this.clearMarkers();
+            this.clearAffectedAreas();
+
+            const data = await this.fetchGDACSData();
+            
+            this.disasterEvents = data;
+            this.displayEvents(data);
+            this.addMarkersToMap(data);
+            if (this.showAffectedAreas) {
+                this.addAffectedAreasToMap(data);
+            }
+            
+        } catch (error) {
+            console.error('Error loading disaster data:', error);
+            document.getElementById('eventList').innerHTML = '<div class="loading">Error loading data from backend. Using sample data...</div>';
+            
+            const sampleData = this.getSampleData();
+            this.disasterEvents = sampleData;
+            this.displayEvents(sampleData);
+            this.addMarkersToMap(sampleData);
+            if (this.showAffectedAreas) {
+                this.addAffectedAreasToMap(sampleData);
+            }
+        }
+    }
+
+    async fetchGDACSData() {
+        try {
+            // Use backend proxy to fetch GDACS data
+            const alertLevel = document.getElementById('alertLevel').value;
+            const params = new URLSearchParams({
+                source: 'ALL',
+                ...(alertLevel && { alertLevel })
+            });
+
+            const response = await fetch(`/api/disasters?${params}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.events) {
+                console.log(`Loaded ${result.count} disaster events from backend`);
+                return result.events;
+            } else {
+                throw new Error(result.error || 'No events received from backend');
+            }
+        } catch (error) {
+            console.error('Backend proxy fetch failed:', error);
+            throw error;
+        }
+    }
+
+
+    getSampleData() {
+        return [
+            {
+                id: 'sample_1',
+                title: 'Flood Alert - Bangladesh',
+                type: 'Flood',
+                alertLevel: 'RED',
+                latitude: 23.6850,
+                longitude: 90.3563,
+                date: '2024-12-01',
+                description: 'Severe flooding in central Bangladesh affecting multiple districts.',
+                affectedRadius: 75,
+                affectedPopulation: 2500000,
+                impactDescription: '2.5M people affected'
+            },
+            {
+                id: 'sample_2',
+                title: 'Earthquake - Turkey',
+                type: 'Earthquake',
+                alertLevel: 'ORANGE',
+                latitude: 39.9334,
+                longitude: 32.8597,
+                date: '2024-11-30',
+                description: 'Moderate earthquake detected in central Turkey region.',
+                magnitude: 5.8,
+                affectedRadius: 50,
+                affectedPopulation: 850000,
+                impactDescription: '850K people affected, Magnitude 5.8'
+            },
+            {
+                id: 'sample_3',
+                title: 'Cyclone Watch - Philippines',
+                type: 'Cyclone',
+                alertLevel: 'ORANGE',
+                latitude: 14.5995,
+                longitude: 120.9842,
+                date: '2024-12-02',
+                description: 'Tropical cyclone approaching the Philippines archipelago.',
+                affectedRadius: 150,
+                affectedPopulation: 3200000,
+                impactDescription: '3.2M people affected, Intensity 3'
+            },
+            {
+                id: 'sample_4',
+                title: 'Wildfire - California',
+                type: 'Wildfire',
+                alertLevel: 'RED',
+                latitude: 34.0522,
+                longitude: -118.2437,
+                date: '2024-11-29',
+                description: 'Large wildfire burning in Southern California.',
+                affectedRadius: 20,
+                affectedPopulation: 125000,
+                impactDescription: '125K people affected'
+            },
+            {
+                id: 'sample_5',
+                title: 'Volcano Alert - Indonesia',
+                type: 'Volcano',
+                alertLevel: 'GREEN',
+                latitude: -7.5360,
+                longitude: 110.4978,
+                date: '2024-11-28',
+                description: 'Volcanic activity monitoring in Java island.',
+                affectedRadius: 25,
+                affectedPopulation: 45000,
+                impactDescription: '45K people affected'
+            }
+        ];
+    }
+
+    displayEvents(events) {
+        const eventList = document.getElementById('eventList');
+        if (events.length === 0) {
+            eventList.innerHTML = '<div class="loading">No disaster events found.</div>';
+            return;
+        }
+
+        const eventsHTML = events.map(event => `
+            <div class="event-item ${event.alertLevel.toLowerCase()}" onclick="app.focusOnEvent('${event.id}')">
+                <div class="event-title">${event.title}</div>
+                <div class="event-details">
+                    Type: ${event.type}<br>
+                    Date: ${event.date}<br>
+                    Location: ${event.latitude.toFixed(4)}, ${event.longitude.toFixed(4)}<br>
+                    ${event.source ? `Source: ${event.source}` : ''}
+                    ${event.magnitude ? `<br>Magnitude: ${event.magnitude}` : ''}
+                </div>
+                <span class="alert-badge alert-${event.alertLevel.toLowerCase()}">${event.alertLevel}</span>
+            </div>
+        `).join('');
+
+        eventList.innerHTML = eventsHTML;
+    }
+
+    addMarkersToMap(events) {
+        events.forEach(event => {
+            const color = this.getAlertColor(event.alertLevel);
+            const icon = this.createCustomIcon(color, event.type);
+            
+            const marker = L.marker([event.latitude, event.longitude], { icon })
+                .addTo(this.map)
+                .bindPopup(`
+                    <div>
+                        <h4>${event.title}</h4>
+                        <p><strong>Type:</strong> ${event.type}</p>
+                        <p><strong>Alert Level:</strong> ${event.alertLevel}</p>
+                        <p><strong>Date:</strong> ${event.date}</p>
+                        <p><strong>Description:</strong> ${event.description}</p>
+                    </div>
+                `);
+
+            marker.eventId = event.id;
+            this.markers.push(marker);
+        });
+    }
+
+    createCustomIcon(color, type) {
+        const iconSymbol = this.getDisasterSymbol(type);
+        
+        return L.divIcon({
+            className: 'custom-div-icon',
+            html: `
+                <div style="
+                    background-color: ${color};
+                    color: white;
+                    border-radius: 50%;
+                    width: 30px;
+                    height: 30px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 16px;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                ">${iconSymbol}</div>
+            `,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+    }
+
+    getDisasterSymbol(type) {
+        const symbols = {
+            'Flood': '🌊',
+            'Earthquake': '🌍',
+            'Cyclone': '🌀',
+            'Volcano': '🌋',
+            'Wildfire': '🔥',
+            'Precipitation': '🌧️'
+        };
+        return symbols[type] || '⚠️';
+    }
+
+    getAlertColor(alertLevel) {
+        const colors = {
+            'GREEN': '#27ae60',
+            'ORANGE': '#f39c12',
+            'RED': '#e74c3c'
+        };
+        return colors[alertLevel] || '#3498db';
+    }
+
+    clearMarkers() {
+        this.markers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.markers = [];
+    }
+
+    clearAffectedAreas() {
+        this.affectedAreas.forEach(area => {
+            this.map.removeLayer(area);
+        });
+        this.affectedAreas = [];
+    }
+
+    addAffectedAreasToMap(events) {
+        events.forEach(event => {
+            if (event.affectedRadius && event.affectedRadius > 0) {
+                const color = this.getAlertColor(event.alertLevel);
+                const circle = L.circle([event.latitude, event.longitude], {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.1,
+                    radius: event.affectedRadius * 1000, // Convert km to meters
+                    weight: 2,
+                    opacity: 0.6
+                }).addTo(this.map);
+
+                circle.bindPopup(`
+                    <div>
+                        <h4>Affected Area</h4>
+                        <p><strong>Event:</strong> ${event.title}</p>
+                        <p><strong>Type:</strong> ${event.type}</p>
+                        <p><strong>Radius:</strong> ${event.affectedRadius} km</p>
+                        ${event.affectedPopulation ? `<p><strong>Population:</strong> ${this.formatPopulation(event.affectedPopulation)}</p>` : ''}
+                        ${event.impactDescription ? `<p><strong>Impact:</strong> ${event.impactDescription}</p>` : ''}
+                    </div>
+                `);
+
+                circle.eventId = event.id;
+                this.affectedAreas.push(circle);
+            }
+        });
+    }
+
+    formatPopulation(population) {
+        if (population >= 1000000) {
+            return `${(population / 1000000).toFixed(1)}M people`;
+        } else if (population >= 1000) {
+            return `${(population / 1000).toFixed(0)}K people`;
+        } else {
+            return `${population} people`;
+        }
+    }
+
+    toggleAffectedAreas() {
+        if (this.showAffectedAreas) {
+            this.addAffectedAreasToMap(this.disasterEvents);
+        } else {
+            this.clearAffectedAreas();
+        }
+    }
+
+    filterByAlertLevel(alertLevel) {
+        const filteredEvents = alertLevel ? 
+            this.disasterEvents.filter(event => event.alertLevel === alertLevel) : 
+            this.disasterEvents;
+        
+        this.clearMarkers();
+        this.clearAffectedAreas();
+        this.displayEvents(filteredEvents);
+        this.addMarkersToMap(filteredEvents);
+        if (this.showAffectedAreas) {
+            this.addAffectedAreasToMap(filteredEvents);
+        }
+    }
+
+    focusOnEvent(eventId) {
+        const event = this.disasterEvents.find(e => e.id === eventId);
+        const marker = this.markers.find(m => m.eventId === eventId);
+        
+        if (event && marker) {
+            this.map.setView([event.latitude, event.longitude], 8);
+            marker.openPopup();
+        }
+    }
+
+    // Health Facilities Methods
+    async loadHealthFacilities() {
+        try {
+            console.log('Loading health facilities...');
+            const response = await fetch('/api/health-facilities');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.facilities) {
+                console.log(`Loaded ${result.count} health facilities`);
+                this.healthFacilities = result.facilities;
+                this.updateLegendCounts();
+            } else {
+                throw new Error(result.error || 'No health facilities received');
+            }
+        } catch (error) {
+            console.error('Error loading health facilities:', error);
+            this.healthFacilities = [];
+        }
+    }
+
+    addHealthFacilitiesToMap() {
+        this.healthFacilities.forEach(facility => {
+            // Only add facilities that are visible based on type selection
+            if (!this.facilityTypeVisibility[facility.type]) {
+                return;
+            }
+            
+            const color = this.getHealthFacilityColor(facility.type);
+            const icon = this.createHealthFacilityIcon(color, facility.type);
+            
+            const marker = L.marker([facility.latitude, facility.longitude], { icon })
+                .addTo(this.map)
+                .bindPopup(`
+                    <div>
+                        <h4>${facility.name}</h4>
+                        <p><strong>Type:</strong> ${facility.type}</p>
+                        <p><strong>Functionality:</strong> ${facility.functionality}</p>
+                        <p><strong>Country:</strong> ${facility.country}</p>
+                        ${facility.district ? `<p><strong>District:</strong> ${facility.district}</p>` : ''}
+                        ${facility.speciality ? `<p><strong>Speciality:</strong> ${facility.speciality}</p>` : ''}
+                    </div>
+                `);
+
+            marker.facilityId = facility.id;
+            marker.facilityType = facility.type;
+            this.healthFacilityMarkers.push(marker);
+        });
+    }
+
+    createHealthFacilityIcon(color, type) {
+        const iconSymbol = this.getHealthFacilitySymbol(type);
+        
+        return L.divIcon({
+            className: 'health-facility-icon',
+            html: `
+                <div style="
+                    background-color: ${color};
+                    color: white;
+                    border-radius: 4px;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 12px;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                ">${iconSymbol}</div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+    }
+
+    getHealthFacilitySymbol(type) {
+        const symbols = {
+            'Primary Health Care Centres': '🏥',
+            'Hospitals': '🏨',
+            'Blood Centres': '🩸',
+            'Ambulance Stations': '🚑',
+            'Pharmacies': '💊',
+            'Training Facilities': '🎓',
+            'Specialized Services': '🔬',
+            'Residential Facilities': '🏠',
+            'Other': '⚕️'
+        };
+        return symbols[type] || '⚕️';
+    }
+
+    getHealthFacilityColor(type) {
+        const colors = {
+            'Primary Health Care Centres': '#1e3a8a',    // Dark Blue
+            'Hospitals': '#fbbf24',                      // Yellow
+            'Ambulance Stations': '#166534',             // Dark Green
+            'Blood Centres': '#8b0000',                  // Dark Red
+            'Pharmacies': '#84cc16',                     // Light Green
+            'Training Facilities': '#ea580c',            // Orange
+            'Specialized Services': '#a16207',           // Brown
+            'Residential Facilities': '#7dd3fc',         // Light Blue
+            'Other': '#374151'                           // Dark Gray
+        };
+        return colors[type] || '#374151';
+    }
+
+    clearHealthFacilityMarkers() {
+        this.healthFacilityMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.healthFacilityMarkers = [];
+    }
+
+    toggleHealthFacilities() {
+        if (this.showHealthFacilities) {
+            this.addHealthFacilitiesToMap();
+        } else {
+            this.clearHealthFacilityMarkers();
+        }
+    }
+
+    initFacilityTypeListeners() {
+        const typeMapping = {
+            'show-primary-health': 'Primary Health Care Centres',
+            'show-ambulance': 'Ambulance Stations', 
+            'show-blood': 'Blood Centres',
+            'show-hospitals': 'Hospitals',
+            'show-pharmacies': 'Pharmacies',
+            'show-training': 'Training Facilities',
+            'show-specialized': 'Specialized Services',
+            'show-residential': 'Residential Facilities',
+            'show-other': 'Other'
+        };
+
+        Object.entries(typeMapping).forEach(([checkboxId, facilityType]) => {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    this.facilityTypeVisibility[facilityType] = e.target.checked;
+                    this.updateHealthFacilitiesDisplay();
+                });
+            }
+        });
+    }
+
+    updateHealthFacilitiesDisplay() {
+        if (this.showHealthFacilities) {
+            // Remove all current markers
+            this.clearHealthFacilityMarkers();
+            // Add back only the visible ones
+            this.addHealthFacilitiesToMap();
+        }
+    }
+
+    getFacilityTypeCounts() {
+        const counts = {
+            'Primary Health Care Centres': 0,
+            'Ambulance Stations': 0,
+            'Blood Centres': 0,
+            'Hospitals': 0,
+            'Pharmacies': 0,
+            'Training Facilities': 0,
+            'Specialized Services': 0,
+            'Residential Facilities': 0,
+            'Other': 0
+        };
+
+        this.healthFacilities.forEach(facility => {
+            if (counts.hasOwnProperty(facility.type)) {
+                counts[facility.type]++;
+            }
+        });
+
+        return counts;
+    }
+
+    updateLegendCounts() {
+        const counts = this.getFacilityTypeCounts();
+        const labelMapping = {
+            'show-primary-health': 'Primary Health Care Centres',
+            'show-ambulance': 'Ambulance Stations', 
+            'show-blood': 'Blood Centres',
+            'show-hospitals': 'Hospitals',
+            'show-pharmacies': 'Pharmacies',
+            'show-training': 'Training Facilities',
+            'show-specialized': 'Specialized Services',
+            'show-residential': 'Residential Facilities',
+            'show-other': 'Other'
+        };
+
+        Object.entries(labelMapping).forEach(([checkboxId, facilityType]) => {
+            const label = document.querySelector(`label[for="${checkboxId}"]`);
+            if (label && counts[facilityType] !== undefined) {
+                const baseName = facilityType === 'Primary Health Care Centres' ? 'Primary Health Care' : 
+                                facilityType === 'Ambulance Stations' ? 'Ambulance Stations' :
+                                facilityType === 'Blood Centres' ? 'Blood Centres' :
+                                facilityType === 'Training Facilities' ? 'Training Facilities' :
+                                facilityType === 'Specialized Services' ? 'Specialized Services' :
+                                facilityType === 'Residential Facilities' ? 'Residential Facilities' :
+                                facilityType;
+                
+                label.textContent = `${baseName} (${counts[facilityType].toLocaleString()})`;
+            }
+        });
+    }
+
+    // IFRC Documents functionality
+    async initIfrcDocuments() {
+        this.selectedCountry = '';
+        await this.loadCountries();
+        await this.loadIfrcDocuments();
+    }
+
+    async loadCountries() {
+        try {
+            const response = await fetch('/api/ifrc-countries');
+            const data = await response.json();
+            
+            const countrySelect = document.getElementById('countryFilter');
+            countrySelect.innerHTML = '<option value="">All Countries</option>';
+            
+            if (data.results) {
+                data.results.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.id;
+                    option.textContent = country.name;
+                    countrySelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading countries:', error);
+        }
+    }
+
+    async loadIfrcDocuments() {
+        try {
+            const documentsList = document.getElementById('ifrcDocumentsList');
+            documentsList.innerHTML = '<div class="loading-ifrc">Loading IFRC documents...</div>';
+            
+            const params = new URLSearchParams({
+                limit: '10'
+            });
+            
+            if (this.selectedCountry) {
+                params.append('country', this.selectedCountry);
+            }
+            
+            const response = await fetch(`/api/ifrc-documents?${params}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.displayIfrcDocuments(data.results || []);
+            } else {
+                throw new Error(data.message || 'Failed to fetch documents');
+            }
+            
+        } catch (error) {
+            console.error('Error loading IFRC documents:', error);
+            const documentsList = document.getElementById('ifrcDocumentsList');
+            documentsList.innerHTML = `<div class="error-ifrc">Error loading documents: ${error.message}</div>`;
+        }
+    }
+
+    displayIfrcDocuments(documents) {
+        const documentsList = document.getElementById('ifrcDocumentsList');
+        
+        if (documents.length === 0) {
+            documentsList.innerHTML = '<div class="loading-ifrc">No documents found</div>';
+            return;
+        }
+        
+        const documentsHTML = documents.map(doc => {
+            const date = new Date(doc.created_at).toLocaleDateString();
+            const countryName = doc.country_name || 'Unknown';
+            const disasterType = doc.disaster_type || 'General';
+            
+            return `
+                <div class="document-item" onclick="window.open('${doc.document}', '_blank')">
+                    <div class="document-title">${doc.name || 'Unnamed Document'}</div>
+                    <div class="document-meta">
+                        <span class="document-country">${countryName}</span>
+                        <span class="document-date">${date}</span>
+                    </div>
+                    <div class="document-meta">
+                        <span class="document-type">${disasterType}</span>
+                        <span class="document-date">${doc.appeal_code || ''}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        documentsList.innerHTML = documentsHTML;
+    }
+}
+
+// Initialize the application when the page loads
+let app;
+document.addEventListener('DOMContentLoaded', () => {
+    app = new DisasterMap();
+});
