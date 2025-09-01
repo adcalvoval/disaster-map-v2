@@ -1044,6 +1044,15 @@ async function fetchFromIfrcGo(endpoint, params = {}) {
 // Get IFRC documents by country
 app.get('/api/ifrc-documents', async (req, res) => {
     try {
+        // Check if IFRC API is configured
+        if (!IFRC_GO_API_TOKEN || IFRC_GO_API_TOKEN === 'your_token_here') {
+            return res.status(501).json({
+                success: false,
+                error: 'IFRC GO API not configured. Please set IFRC_GO_API_TOKEN in .env file.',
+                message: 'To use IFRC documents, obtain an API token from https://goadmin.ifrc.org/ and add it to your .env file.'
+            });
+        }
+
         const { country, limit = 10, offset = 0 } = req.query;
         
         // First, get appeals/events for the country
@@ -1103,6 +1112,15 @@ app.get('/api/ifrc-documents', async (req, res) => {
 // Get IFRC countries list
 app.get('/api/ifrc-countries', async (req, res) => {
     try {
+        // Check if IFRC API is configured
+        if (!IFRC_GO_API_TOKEN || IFRC_GO_API_TOKEN === 'your_token_here') {
+            return res.status(501).json({
+                success: false,
+                error: 'IFRC GO API not configured. Please set IFRC_GO_API_TOKEN in .env file.',
+                message: 'To use IFRC countries, obtain an API token from https://goadmin.ifrc.org/ and add it to your .env file.'
+            });
+        }
+
         const countriesData = await fetchFromIfrcGo('/country/', {
             limit: 300, // Get all countries
             ordering: 'name'

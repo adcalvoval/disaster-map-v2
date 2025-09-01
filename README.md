@@ -34,7 +34,13 @@ A web application that displays real-time disaster events from the Global Disast
    npm run dev
    ```
 
-3. **Access the application:**
+3. **Configure environment variables (optional):**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your IFRC GO API token if you want to use IFRC features
+   ```
+
+4. **Access the application:**
    Open your browser and go to: `http://localhost:3003`
 
 ## API Endpoints
@@ -48,6 +54,30 @@ A web application that displays real-time disaster events from the Global Disast
     - `to`: End date (YYYY-MM-DD)
 - `GET /api/disasters/sample` - Get sample disaster events for testing
 - `GET /api/health` - Health check
+- `GET /api/health-facilities` - Health facilities data
+- `GET /api/ifrc-documents` - IFRC humanitarian documents (requires API token)
+- `GET /api/ifrc-countries` - IFRC countries list (requires API token)
+
+## IFRC GO API Integration (Optional)
+
+This application can integrate with the IFRC GO API to provide humanitarian response documents and country information.
+
+### Setup IFRC Integration:
+
+1. **Get an API token:**
+   - Visit [https://goadmin.ifrc.org/](https://goadmin.ifrc.org/)
+   - Create an account and obtain an API token
+
+2. **Configure the token:**
+   - Copy `.env` file in the project root
+   - Set `IFRC_GO_API_TOKEN=your_actual_token_here`
+
+3. **Features enabled with IFRC API:**
+   - Access to humanitarian response documents
+   - Country-specific disaster appeals
+   - Enhanced disaster response information
+
+**Note:** The application works fully without IFRC integration. IFRC features are optional enhancements.
 
 ## Data Sources
 
