@@ -1,5 +1,5 @@
-const axios = require('axios');
-const xml2js = require('xml2js');
+import axios from 'axios';
+import xml2js from 'xml2js';
 
 const parser = new xml2js.Parser();
 
@@ -135,7 +135,7 @@ async function fetchGDACSRSSData() {
     }
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -188,4 +188,4 @@ module.exports = async (req, res) => {
             events: []
         });
     }
-};
+}

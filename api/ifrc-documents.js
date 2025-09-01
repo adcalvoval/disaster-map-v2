@@ -1,9 +1,9 @@
-const axios = require('axios');
+import axios from 'axios';
 
 const IFRC_GO_API_TOKEN = process.env.IFRC_GO_API_TOKEN;
 const IFRC_GO_API_BASE_URL = process.env.IFRC_GO_API_BASE_URL || 'https://goadmin.ifrc.org/api/v2';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -80,4 +80,4 @@ module.exports = async (req, res) => {
             documents: []
         });
     }
-};
+}
