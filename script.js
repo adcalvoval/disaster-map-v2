@@ -119,8 +119,16 @@ class DisasterMap {
         try {
             // Use backend proxy to fetch GDACS data
             const alertLevel = document.getElementById('alertLevel').value;
+            
+            // Default to last 2 months of data
+            const toDate = new Date();
+            const fromDate = new Date();
+            fromDate.setMonth(fromDate.getMonth() - 2);
+            
             const params = new URLSearchParams({
                 source: 'ALL',
+                from: fromDate.toISOString().split('T')[0], // YYYY-MM-DD format
+                to: toDate.toISOString().split('T')[0],
                 ...(alertLevel && { alertLevel })
             });
 
@@ -675,8 +683,12 @@ class DisasterMap {
             const countryName = doc.country_name || 'Unknown';
             const disasterType = doc.disaster_type || 'General';
             
+            // Check if document has a valid URL
+            const documentUrl = doc.document_url || doc.document || doc.file || doc.url;
+            const hasValidUrl = documentUrl && documentUrl !== 'null' && documentUrl.startsWith('http');
+            
             return `
-                <div class="document-item" onclick="window.open('${doc.document}', '_blank')">
+                <div class="document-item ${hasValidUrl ? '' : 'no-url'}" ${hasValidUrl ? `onclick="window.open('${documentUrl}', '_blank')"` : ''}>
                     <div class="document-title">${doc.name || 'Unnamed Document'}</div>
                     <div class="document-meta">
                         <span class="document-country">${countryName}</span>
@@ -686,6 +698,7 @@ class DisasterMap {
                         <span class="document-type">${disasterType}</span>
                         <span class="document-date">${doc.appeal_code || ''}</span>
                     </div>
+                    ${!hasValidUrl ? '<div class="no-url-indicator">⚠️ Document URL not available</div>' : ''}
                 </div>
             `;
         }).join('');

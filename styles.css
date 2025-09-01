@@ -435,6 +435,24 @@ body {
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
+.document-item.no-url {
+    opacity: 0.6;
+    cursor: default;
+    background: #f8f9fa;
+}
+
+.document-item.no-url:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.no-url-indicator {
+    font-size: 0.7rem;
+    color: #e74c3c;
+    margin-top: 4px;
+    font-style: italic;
+}
+
 .document-title {
     font-weight: bold;
     color: #2c3e50;

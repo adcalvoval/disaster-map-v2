@@ -350,7 +350,7 @@ class GDACSProxy {
         }
     }
 
-    async fetchRSSData() {
+    async fetchRSSData(fromDate = '', toDate = '') {
         try {
             console.log('Fetching RSS data from:', this.rssUrl);
             const response = await axios.get(this.rssUrl, { 
@@ -361,7 +361,25 @@ class GDACSProxy {
             });
             const result = await parser.parseStringPromise(response.data);
             
-            const events = await this.transformRSSData(result);
+            let events = await this.transformRSSData(result);
+            
+            // Filter events by date range if provided
+            if (fromDate || toDate) {
+                const fromDateObj = fromDate ? new Date(fromDate) : null;
+                const toDateObj = toDate ? new Date(toDate) : null;
+                
+                events = events.filter(event => {
+                    const eventDate = new Date(event.date);
+                    
+                    if (fromDateObj && eventDate < fromDateObj) return false;
+                    if (toDateObj && eventDate > toDateObj) return false;
+                    
+                    return true;
+                });
+                
+                console.log(`Filtered ${events.length} events within date range ${fromDate || 'any'} to ${toDate || 'any'}`);
+            }
+            
             console.log(`Successfully parsed ${events.length} events from RSS with population estimates`);
             return events;
         } catch (error) {
@@ -859,7 +877,7 @@ app.get('/api/disasters', async (req, res) => {
 
         if (events.length === 0) {
             try {
-                const rssEvents = await gdacsProxy.fetchRSSData();
+                const rssEvents = await gdacsProxy.fetchRSSData(from, to);
                 events.push(...rssEvents);
                 console.log(`Fetched ${rssEvents.length} events from RSS feed`);
             } catch (rssError) {
@@ -1077,13 +1095,19 @@ app.get('/api/ifrc-documents', async (req, res) => {
                         ordering: '-created_at'
                     });
                     if (appealDocs.results) {
+                        // Log the first document structure for debugging
+                        if (appealDocs.results.length > 0) {
+                            console.log('Sample IFRC document structure:', JSON.stringify(appealDocs.results[0], null, 2));
+                        }
                         documents.push(...appealDocs.results.map(doc => ({
                             ...doc,
                             appeal_name: appeal.name,
                             appeal_code: appeal.code,
                             country_name: appeal.country?.name,
                             disaster_type: appeal.dtype?.name,
-                            start_date: appeal.start_date
+                            start_date: appeal.start_date,
+                            // Try to find the correct document URL field
+                            document_url: doc.document_url || doc.file || doc.url || doc.document_file || doc.document || null
                         })));
                     }
                 } catch (docError) {
