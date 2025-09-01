@@ -1,1485 +1,691 @@
-class MovieLibrary {
+class DisasterMap {
     constructor() {
-        this.apiKey = '55f0ddaef40cc8b23ea0c0f194f13b56';
-        this.bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI1NWYwZGRhZWY0MGNjOGIyM2VhMGMwZjE5NGYxM2I1NiIsIm5iZiI6MTc1NTc2NjIzOS41Niwic3ViIjoiNjhhNmRkZGY2N2FmOWRkNjE1ZmQyYjc2Iiwic2NvcGVzIjpbImFwaV9yZWFkIl0sInZlcnNpb24iOjF9.A6_7zOdwRMEPvuCXuAz8Wzem3Md9lIDU85j7dtDh1fU';
-        this.baseUrl = 'https://api.themoviedb.org/3';
-        this.imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
-        
-        // Initialize Supabase client if available
-        this.supabaseClient = null;
-        this.currentUser = null;
-        this.isOnline = navigator.onLine;
-        
-        // Initialize wishlists
-        this.movieWishlist = [];
-        this.tvWishlist = [];
-        this.searchResults = [];
-        this.currentSort = 'title';
-        this.activeTab = 'movies';
-        this.activeGenreFilter = null;
-        
+        this.map = null;
+        this.markers = [];
+        this.affectedAreas = [];
+        this.disasterEvents = [];
+        this.showAffectedAreas = true;
+        this.healthFacilityMarkers = [];
+        this.healthFacilities = [];
+        this.showHealthFacilities = false;
+        this.facilityTypeVisibility = {
+            'Primary Health Care Centres': true,
+            'Ambulance Stations': true,
+            'Blood Centres': true,
+            'Hospitals': true,
+            'Pharmacies': true,
+            'Training Facilities': true,
+            'Specialized Services': true,
+            'Residential Facilities': true,
+            'Other': true
+        };
         this.init();
     }
 
-    async init() {
-        // Initialize Supabase client
-        await this.initializeSupabase();
+    init() {
+        this.initMap();
+        this.initEventListeners();
+        this.loadDisasterData();
+        this.loadHealthFacilities();
+        this.initIfrcDocuments();
+    }
+
+    initMap() {
+        this.map = L.map('map').setView([20, 0], 2);
         
-        // Load data (from Supabase if authenticated, otherwise localStorage)
-        await this.loadData();
-        
-        // Setup UI
-        this.renderMovieWishlist();
-        this.renderTvWishlist();
-        this.setupEventListeners();
-        this.setupTabs();
-        this.updateAuthUI();
-        
-        // Setup online/offline listeners
-        window.addEventListener('online', () => {
-            this.isOnline = true;
-            this.updateAuthUI();
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+        }).addTo(this.map);
+    }
+
+    initEventListeners() {
+        document.getElementById('refreshData').addEventListener('click', () => {
+            this.loadDisasterData();
         });
-        
-        window.addEventListener('offline', () => {
-            this.isOnline = false;
-            this.updateAuthUI();
+
+        document.getElementById('alertLevel').addEventListener('change', (e) => {
+            this.filterByAlertLevel(e.target.value);
         });
-    }
 
-    async initializeSupabase() {
-        try {
-            if (typeof SupabaseClient !== 'undefined') {
-                this.supabaseClient = new SupabaseClient();
-                this.currentUser = await this.supabaseClient.getCurrentUser();
-            }
-        } catch (error) {
-            console.error('Supabase initialization error:', error);
-        }
-    }
-
-    async loadData() {
-        if (this.currentUser && this.supabaseClient) {
-            // Load from Supabase
-            try {
-                const movieData = await this.supabaseClient.getMovieWishlist();
-                const tvData = await this.supabaseClient.getTvWishlist();
-                
-                // Map database field names to expected field names
-                this.movieWishlist = movieData.map(movie => ({
-                    ...movie,
-                    poster: movie.poster_url,
-                    id: movie.tmdb_id
-                }));
-                
-                this.tvWishlist = tvData.map(show => ({
-                    ...show,
-                    poster: show.poster_url,
-                    id: show.tmdb_id
-                }));
-            } catch (error) {
-                console.error('Error loading from Supabase:', error);
-                // Fallback to localStorage
-                this.loadFromLocalStorage();
-            }
-        } else {
-            // Load from localStorage
-            this.loadFromLocalStorage();
-        }
-    }
-
-    loadFromLocalStorage() {
-        this.movieWishlist = this.loadMovieWishlist();
-        this.tvWishlist = this.loadTvWishlist();
-        
-        // Add dateAdded field to existing items that don't have it
-        const defaultDate = new Date('2024-01-01').toISOString(); // Default date for existing items
-        
-        this.movieWishlist.forEach(movie => {
-            if (!movie.dateAdded) {
-                movie.dateAdded = defaultDate;
-            }
+        document.getElementById('showAffectedAreas').addEventListener('change', (e) => {
+            this.showAffectedAreas = e.target.checked;
+            this.toggleAffectedAreas();
         });
-        
-        this.tvWishlist.forEach(show => {
-            if (!show.dateAdded) {
-                show.dateAdded = defaultDate;
-            }
-        });
-    }
 
-    updateAuthUI() {
-        const authSection = document.getElementById('authSection');
-        if (!authSection) return;
-
-        if (this.currentUser) {
-            authSection.innerHTML = `
-                <span class="sync-status ${this.isOnline ? 'online' : 'offline'}">
-                    ${this.isOnline ? '🟢 Synced' : '🔴 Offline'}
-                </span>
-                <span>Welcome, ${this.currentUser.email}</span>
-                <button class="auth-btn secondary" onclick="movieLibrary.signOut()">Sign Out</button>
-            `;
-        } else {
-            authSection.innerHTML = `
-                <span class="sync-status offline">🔴 Local Only</span>
-                <button class="auth-btn" onclick="movieLibrary.showAuth()">Sign In</button>
-            `;
-        }
-    }
-
-    async showAuth() {
-        // Simple prompt-based auth for now
-        const action = prompt('Enter "signin" to sign in or "signup" to create account:');
-        if (!action) return;
-
-        const email = prompt('Enter your email:');
-        if (!email) return;
-
-        const password = prompt('Enter your password:');
-        if (!password) return;
-
-        try {
-            if (action === 'signup') {
-                await this.supabaseClient.signUp(email, password);
-                alert('Check your email for verification link!');
-            } else {
-                await this.supabaseClient.signIn(email, password);
-                this.currentUser = await this.supabaseClient.getCurrentUser();
-                
-                // Migrate existing data
-                await this.migrateLocalData();
-                
-                // Reload data from Supabase
-                await this.loadData();
-                this.renderMovieWishlist();
-                this.renderTvWishlist();
-                this.updateAuthUI();
-            }
-        } catch (error) {
-            alert('Error: ' + error.message);
-        }
-    }
-
-    async signOut() {
-        if (this.supabaseClient) {
-            await this.supabaseClient.signOut();
-            this.currentUser = null;
-            this.updateAuthUI();
+        document.getElementById('showHealthFacilities').addEventListener('change', (e) => {
+            this.showHealthFacilities = e.target.checked;
+            this.toggleHealthFacilities();
             
-            // Reload from localStorage
-            this.loadFromLocalStorage();
-            this.renderMovieWishlist();
-            this.renderTvWishlist();
-        }
+            // Show/hide the health facilities controls
+            const controls = document.getElementById('healthFacilitiesControls');
+            controls.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // IFRC Documents event listeners
+        document.getElementById('refreshIfrcDocs').addEventListener('click', () => {
+            this.loadIfrcDocuments();
+        });
+
+        document.getElementById('countryFilter').addEventListener('change', (e) => {
+            this.selectedCountry = e.target.value;
+            this.loadIfrcDocuments();
+        });
+
+        // Add event listeners for individual facility type checkboxes
+        this.initFacilityTypeListeners();
     }
 
-    async migrateLocalData() {
-        if (!this.supabaseClient || !this.currentUser) return;
-        
+    async loadDisasterData() {
         try {
-            await this.supabaseClient.migrateLocalStorageData();
-            alert('Your existing wishlist data has been migrated to the cloud!');
-        } catch (error) {
-            console.error('Migration error:', error);
-        }
-    }
+            document.getElementById('eventList').innerHTML = '<div class="loading">Loading real disaster events from GDACS...</div>';
+            this.clearMarkers();
+            this.clearAffectedAreas();
 
-    setupEventListeners() {
-        const searchBtn = document.getElementById('searchBtn');
-        const searchInput = document.getElementById('movieSearch');
-        const movieSortSelect = document.getElementById('movieSortSelect');
-        const tvSortSelect = document.getElementById('tvSortSelect');
-
-        searchBtn.addEventListener('click', () => this.searchContent());
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.searchContent();
+            const data = await this.fetchGDACSData();
+            
+            this.disasterEvents = data;
+            this.displayEvents(data);
+            this.addMarkersToMap(data);
+            if (this.showAffectedAreas) {
+                this.addAffectedAreasToMap(data);
             }
-        });
-        
-        movieSortSelect.addEventListener('change', (e) => {
-            this.currentSort = e.target.value;
-            this.renderMovieWishlist();
-        });
-        
-        tvSortSelect.addEventListener('change', (e) => {
-            this.currentSort = e.target.value;
-            this.renderTvWishlist();
-        });
-    }
-
-    setupTabs() {
-        // Content tabs
-        const contentTabs = document.querySelectorAll('.content-tab');
-        contentTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                const tabType = e.target.dataset.tab;
-                this.switchContentTab(tabType);
-            });
-        });
-
-        // Search type tabs
-        const searchTabs = document.querySelectorAll('.search-tab');
-        searchTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                const searchType = e.target.dataset.type;
-                this.switchSearchType(searchType);
-            });
-        });
-    }
-
-    switchContentTab(tabType) {
-        // Update active tab
-        document.querySelectorAll('.content-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tab === tabType);
-        });
-
-        // Show/hide sections
-        document.getElementById('movies-section').classList.toggle('hidden', tabType !== 'movies');
-        document.getElementById('tv-section').classList.toggle('hidden', tabType !== 'tv');
-        
-        this.activeTab = tabType;
-    }
-
-    switchSearchType(searchType) {
-        // Update active search tab
-        document.querySelectorAll('.search-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.type === searchType);
-        });
-        
-        // Update placeholder
-        const searchInput = document.getElementById('movieSearch');
-        if (searchType === 'movies') {
-            searchInput.placeholder = 'Search for movies...';
-        } else {
-            searchInput.placeholder = 'Search for TV shows...';
+            
+        } catch (error) {
+            console.error('Error loading disaster data:', error);
+            document.getElementById('eventList').innerHTML = '<div class="loading">Error loading data from backend. Using sample data...</div>';
+            
+            const sampleData = this.getSampleData();
+            this.disasterEvents = sampleData;
+            this.displayEvents(sampleData);
+            this.addMarkersToMap(sampleData);
+            if (this.showAffectedAreas) {
+                this.addAffectedAreasToMap(sampleData);
+            }
         }
     }
 
-    async searchContent() {
-        const searchInput = document.getElementById('movieSearch');
-        const query = searchInput.value.trim();
-        
-        if (!query) {
-            this.showError('Please enter a search term');
+    async fetchGDACSData() {
+        try {
+            // Use backend proxy to fetch GDACS data
+            const alertLevel = document.getElementById('alertLevel').value;
+            const params = new URLSearchParams({
+                source: 'ALL',
+                ...(alertLevel && { alertLevel })
+            });
+
+            const response = await fetch(`/api/disasters?${params}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.events) {
+                console.log(`Loaded ${result.count} disaster events from backend`);
+                return result.events;
+            } else {
+                throw new Error(result.error || 'No events received from backend');
+            }
+        } catch (error) {
+            console.error('Backend proxy fetch failed:', error);
+            throw error;
+        }
+    }
+
+
+    getSampleData() {
+        return [
+            {
+                id: 'sample_1',
+                title: 'Flood Alert - Bangladesh',
+                type: 'Flood',
+                alertLevel: 'RED',
+                latitude: 23.6850,
+                longitude: 90.3563,
+                date: '2024-12-01',
+                description: 'Severe flooding in central Bangladesh affecting multiple districts.',
+                affectedRadius: 75,
+                affectedPopulation: 2500000,
+                impactDescription: '2.5M people affected'
+            },
+            {
+                id: 'sample_2',
+                title: 'Earthquake - Turkey',
+                type: 'Earthquake',
+                alertLevel: 'ORANGE',
+                latitude: 39.9334,
+                longitude: 32.8597,
+                date: '2024-11-30',
+                description: 'Moderate earthquake detected in central Turkey region.',
+                magnitude: 5.8,
+                affectedRadius: 50,
+                affectedPopulation: 850000,
+                impactDescription: '850K people affected, Magnitude 5.8'
+            },
+            {
+                id: 'sample_3',
+                title: 'Cyclone Watch - Philippines',
+                type: 'Cyclone',
+                alertLevel: 'ORANGE',
+                latitude: 14.5995,
+                longitude: 120.9842,
+                date: '2024-12-02',
+                description: 'Tropical cyclone approaching the Philippines archipelago.',
+                affectedRadius: 150,
+                affectedPopulation: 3200000,
+                impactDescription: '3.2M people affected, Intensity 3'
+            },
+            {
+                id: 'sample_4',
+                title: 'Wildfire - California',
+                type: 'Wildfire',
+                alertLevel: 'RED',
+                latitude: 34.0522,
+                longitude: -118.2437,
+                date: '2024-11-29',
+                description: 'Large wildfire burning in Southern California.',
+                affectedRadius: 20,
+                affectedPopulation: 125000,
+                impactDescription: '125K people affected'
+            },
+            {
+                id: 'sample_5',
+                title: 'Volcano Alert - Indonesia',
+                type: 'Volcano',
+                alertLevel: 'GREEN',
+                latitude: -7.5360,
+                longitude: 110.4978,
+                date: '2024-11-28',
+                description: 'Volcanic activity monitoring in Java island.',
+                affectedRadius: 25,
+                affectedPopulation: 45000,
+                impactDescription: '45K people affected'
+            }
+        ];
+    }
+
+    displayEvents(events) {
+        const eventList = document.getElementById('eventList');
+        if (events.length === 0) {
+            eventList.innerHTML = '<div class="loading">No disaster events found.</div>';
             return;
         }
 
-        // Determine search type from active tab
-        const activeSearchTab = document.querySelector('.search-tab.active');
-        const searchType = activeSearchTab.dataset.type; // 'movies' or 'tv'
-        
-        if (searchType === 'movies') {
-            await this.searchMovies(query);
-        } else {
-            await this.searchTvShows(query);
-        }
-    }
-
-    async searchMovies(query) {
-        this.showLoading();
-        
-        try {
-            // First, search for movies by the full query
-            const searchResponse = await fetch(
-                `${this.baseUrl}/search/movie?query=${encodeURIComponent(query)}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.bearerToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            const searchData = await searchResponse.json();
-
-            // If no direct movie results, try searching by person (actor/director)
-            if (!searchData.results || searchData.results.length === 0) {
-                const personResults = await this.searchMoviesByPerson(query);
-                if (personResults.length > 0) {
-                    const rankedResults = this.rankSearchResults(personResults, query);
-                    this.searchResults = rankedResults;
-                    this.displaySearchResults(rankedResults);
-                    return;
-                }
-            }
-
-            if (searchData.results && searchData.results.length > 0) {
-                // Get detailed info for multiple results to enable smart matching
-                const detailedResults = await Promise.all(
-                    searchData.results.slice(0, 10).map(async (movie) => {
-                        try {
-                            const detailsResponse = await fetch(
-                                `${this.baseUrl}/movie/${movie.id}?append_to_response=credits`,
-                                {
-                                    headers: {
-                                        'Authorization': `Bearer ${this.bearerToken}`,
-                                        'Content-Type': 'application/json'
-                                    }
-                                }
-                            );
-                            const movieDetails = await detailsResponse.json();
-
-                            return {
-                                id: movieDetails.id,
-                                title: movieDetails.title,
-                                year: new Date(movieDetails.release_date).getFullYear() || 'Unknown',
-                                poster: movieDetails.poster_path ? `${this.imageBaseUrl}${movieDetails.poster_path}` : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIFBvc3RlcjwvdGV4dD48L3N2Zz4=',
-                                director: this.getDirector(movieDetails.credits.crew),
-                                actors: this.getMainActors(movieDetails.credits.cast),
-                                genres: this.getGenres(movieDetails.genres),
-                                overview: movieDetails.overview,
-                                credits: movieDetails.credits
-                            };
-                        } catch (error) {
-                            console.error(`Error fetching details for movie ${movie.id}:`, error);
-                            return null;
-                        }
-                    })
-                );
-
-                const validResults = detailedResults.filter(result => result !== null);
-                
-                if (validResults.length > 0) {
-                    // Apply smart matching to find the best results
-                    const rankedResults = this.rankSearchResults(validResults, query);
-                    this.searchResults = rankedResults; // Store for later use
-                    this.displaySearchResults(rankedResults);
-                } else {
-                    this.showError('No movies found. Please try a different search.');
-                }
-            } else {
-                this.showError('No movies found. Please try a different search.');
-            }
-        } catch (error) {
-            console.error('Error searching for movies:', error);
-            this.showError('Error searching for movies. Please try again.');
-        }
-    }
-
-    async searchTvShows(query) {
-        this.showLoading();
-        
-        try {
-            // Search for TV shows
-            const searchResponse = await fetch(
-                `${this.baseUrl}/search/tv?query=${encodeURIComponent(query)}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.bearerToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            const searchData = await searchResponse.json();
-
-            // If no direct TV results, try searching by person (actor/creator)
-            if (!searchData.results || searchData.results.length === 0) {
-                const personResults = await this.searchTvShowsByPerson(query);
-                if (personResults.length > 0) {
-                    const rankedResults = this.rankTvSearchResults(personResults, query);
-                    this.searchResults = rankedResults;
-                    this.displayTvSearchResults(rankedResults);
-                    return;
-                }
-            }
-
-            if (searchData.results && searchData.results.length > 0) {
-                // Get detailed info for multiple results
-                const detailedResults = await Promise.all(
-                    searchData.results.slice(0, 10).map(async (show) => {
-                        try {
-                            const detailsResponse = await fetch(
-                                `${this.baseUrl}/tv/${show.id}?append_to_response=credits`,
-                                {
-                                    headers: {
-                                        'Authorization': `Bearer ${this.bearerToken}`,
-                                        'Content-Type': 'application/json'
-                                    }
-                                }
-                            );
-                            const showDetails = await detailsResponse.json();
-
-                            return {
-                                id: showDetails.id,
-                                title: showDetails.name,
-                                first_air_year: new Date(showDetails.first_air_date).getFullYear() || 'Unknown',
-                                poster: showDetails.poster_path ? `${this.imageBaseUrl}${showDetails.poster_path}` : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIFBvc3RlcjwvdGV4dD48L3N2Zz4=',
-                                creator: this.getCreator(showDetails.created_by),
-                                genres: this.getGenres(showDetails.genres),
-                                seasons: showDetails.number_of_seasons || 'Unknown',
-                                overview: showDetails.overview,
-                                credits: showDetails.credits,
-                                type: 'tv'
-                            };
-                        } catch (error) {
-                            console.error(`Error fetching details for TV show ${show.id}:`, error);
-                            return null;
-                        }
-                    })
-                );
-
-                const validResults = detailedResults.filter(result => result !== null);
-                
-                if (validResults.length > 0) {
-                    // Apply smart matching to find the best results
-                    const rankedResults = this.rankTvSearchResults(validResults, query);
-                    this.searchResults = rankedResults; // Store for later use
-                    this.displayTvSearchResults(rankedResults);
-                } else {
-                    this.showError('No TV shows found. Please try a different search.');
-                }
-            } else {
-                this.showError('No TV shows found. Please try a different search.');
-            }
-        } catch (error) {
-            console.error('Error searching for TV shows:', error);
-            this.showError('Error searching for TV shows. Please try again.');
-        }
-    }
-
-    rankSearchResults(results, query) {
-        const searchTerms = query.toLowerCase().split(/\s+/);
-        
-        return results.map(movie => {
-            let score = 0;
-            let matchReasons = [];
-            
-            // Title matching (highest weight)
-            const titleWords = movie.title.toLowerCase().split(/\s+/);
-            const titleMatches = searchTerms.filter(term => 
-                titleWords.some(word => word.includes(term))
-            ).length;
-            score += titleMatches * 10;
-            if (titleMatches > 0) {
-                matchReasons.push('title');
-            }
-            
-            // Director matching
-            const directorMatch = searchTerms.some(term => 
-                movie.director.toLowerCase().includes(term)
-            );
-            if (directorMatch) {
-                score += 5;
-                matchReasons.push('director');
-            }
-            
-            // Actor matching
-            const actorMatch = searchTerms.some(term => {
-                return movie.credits.cast.some(actor => 
-                    actor.name.toLowerCase().includes(term)
-                );
-            });
-            if (actorMatch) {
-                score += 3;
-                matchReasons.push('actor');
-            }
-            
-            // Year matching
-            const yearMatch = searchTerms.some(term => 
-                term === movie.year.toString()
-            );
-            if (yearMatch) {
-                score += 2;
-                matchReasons.push('year');
-            }
-            
-            return {
-                ...movie,
-                score,
-                matchReasons: matchReasons.length > 0 ? matchReasons : ['title similarity']
-            };
-        }).sort((a, b) => b.score - a.score);
-    }
-
-    displaySearchResults(results) {
-        const searchResults = document.getElementById('searchResults');
-        
-        if (results.length === 0) {
-            searchResults.innerHTML = '<div class="error">No matching movies found.</div>';
-            return;
-        }
-
-        searchResults.innerHTML = results.map(movie => `
-            <div class="search-result-item">
-                <img src="${movie.poster}" alt="${movie.title}" class="search-result-poster" />
-                <div class="search-result-info">
-                    <div class="search-result-title">${movie.title} (${movie.year})</div>
-                    <div class="search-result-details">Director: ${movie.director}</div>
-                    <div class="search-result-details">Starring: ${movie.actors}</div>
-                    <div class="search-result-match">Match: ${movie.matchReasons.join(', ')}</div>
+        const eventsHTML = events.map(event => `
+            <div class="event-item ${event.alertLevel.toLowerCase()}" onclick="app.focusOnEvent('${event.id}')">
+                <div class="event-title">${event.title}</div>
+                <div class="event-details">
+                    Type: ${event.type}<br>
+                    Date: ${event.date}<br>
+                    Location: ${event.latitude.toFixed(4)}, ${event.longitude.toFixed(4)}<br>
+                    ${event.source ? `Source: ${event.source}` : ''}
+                    ${event.magnitude ? `<br>Magnitude: ${event.magnitude}` : ''}
                 </div>
-                <button class="wishlist-btn" onclick="movieLibrary.addToWishlistById(${movie.id})">
-                    <span class="wishlist-btn-icon">+</span>
-                    <span class="wishlist-btn-text">Add to Wishlist</span>
-                </button>
+                <span class="alert-badge alert-${event.alertLevel.toLowerCase()}">${event.alertLevel}</span>
             </div>
         `).join('');
+
+        eventList.innerHTML = eventsHTML;
     }
 
-    async addToWishlistById(movieId) {
-        const movieData = this.searchResults.find(m => m.id === movieId);
-        if (!movieData) {
-            this.showError('Movie not found in search results.');
-            return;
-        }
-        
-        // Check if movie already exists in wishlist
-        if (this.movieWishlist.find(m => m.id === movieData.id)) {
-            this.showError('Movie already in your wishlist!');
-            return;
-        }
-        
-        // Add dateAdded field
-        movieData.dateAdded = new Date().toISOString();
-        this.movieWishlist.push(movieData);
-        
-        // Save to Supabase if authenticated, otherwise localStorage
-        if (this.currentUser && this.supabaseClient) {
-            try {
-                await this.supabaseClient.addMovieToWishlist(movieData);
-            } catch (error) {
-                console.error('Error saving to Supabase:', error);
-                // Fallback to localStorage
-                this.saveMovieWishlist();
-            }
-        } else {
-            this.saveMovieWishlist();
-        }
-        
-        this.renderMovieWishlist();
-        this.clearSearchResults();
-        document.getElementById('movieSearch').value = '';
-    }
-
-    async addToTvWishlistById(tvId) {
-        const tvData = this.searchResults.find(t => t.id === tvId);
-        if (!tvData) {
-            this.showError('TV show not found in search results.');
-            return;
-        }
-        
-        // Check if TV show already exists in wishlist
-        if (this.tvWishlist.find(t => t.id === tvData.id)) {
-            this.showError('TV show already in your wishlist!');
-            return;
-        }
-        
-        // Add dateAdded field
-        tvData.dateAdded = new Date().toISOString();
-        this.tvWishlist.push(tvData);
-        
-        // Save to Supabase if authenticated, otherwise localStorage
-        if (this.currentUser && this.supabaseClient) {
-            try {
-                await this.supabaseClient.addTvToWishlist(tvData);
-            } catch (error) {
-                console.error('Error saving to Supabase:', error);
-                // Fallback to localStorage
-                this.saveTvWishlist();
-            }
-        } else {
-            this.saveTvWishlist();
-        }
-        
-        this.renderTvWishlist();
-        this.clearSearchResults();
-        document.getElementById('movieSearch').value = '';
-    }
-
-    addToWishlist(movieId, encodedMovieData) {
-        try {
-            const movieData = JSON.parse(decodeURIComponent(encodedMovieData));
+    addMarkersToMap(events) {
+        events.forEach(event => {
+            const color = this.getAlertColor(event.alertLevel);
+            const icon = this.createCustomIcon(color, event.type);
             
-            // Check if movie already exists in wishlist
-            if (this.movieWishlist.find(m => m.id === movieData.id)) {
-                this.showError('Movie already in your wishlist!');
+            const marker = L.marker([event.latitude, event.longitude], { icon })
+                .addTo(this.map)
+                .bindPopup(`
+                    <div>
+                        <h4>${event.title}</h4>
+                        <p><strong>Type:</strong> ${event.type}</p>
+                        <p><strong>Alert Level:</strong> ${event.alertLevel}</p>
+                        <p><strong>Date:</strong> ${event.date}</p>
+                        <p><strong>Description:</strong> ${event.description}</p>
+                    </div>
+                `);
+
+            marker.eventId = event.id;
+            this.markers.push(marker);
+        });
+    }
+
+    createCustomIcon(color, type) {
+        const iconSymbol = this.getDisasterSymbol(type);
+        
+        return L.divIcon({
+            className: 'custom-div-icon',
+            html: `
+                <div style="
+                    background-color: ${color};
+                    color: white;
+                    border-radius: 50%;
+                    width: 30px;
+                    height: 30px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 16px;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                ">${iconSymbol}</div>
+            `,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+    }
+
+    getDisasterSymbol(type) {
+        const symbols = {
+            'Flood': '🌊',
+            'Earthquake': '🌍',
+            'Cyclone': '🌀',
+            'Volcano': '🌋',
+            'Wildfire': '🔥',
+            'Precipitation': '🌧️'
+        };
+        return symbols[type] || '⚠️';
+    }
+
+    getAlertColor(alertLevel) {
+        const colors = {
+            'GREEN': '#27ae60',
+            'ORANGE': '#f39c12',
+            'RED': '#e74c3c'
+        };
+        return colors[alertLevel] || '#3498db';
+    }
+
+    clearMarkers() {
+        this.markers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.markers = [];
+    }
+
+    clearAffectedAreas() {
+        this.affectedAreas.forEach(area => {
+            this.map.removeLayer(area);
+        });
+        this.affectedAreas = [];
+    }
+
+    addAffectedAreasToMap(events) {
+        events.forEach(event => {
+            if (event.affectedRadius && event.affectedRadius > 0) {
+                const color = this.getAlertColor(event.alertLevel);
+                const circle = L.circle([event.latitude, event.longitude], {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.1,
+                    radius: event.affectedRadius * 1000, // Convert km to meters
+                    weight: 2,
+                    opacity: 0.6
+                }).addTo(this.map);
+
+                circle.bindPopup(`
+                    <div>
+                        <h4>Affected Area</h4>
+                        <p><strong>Event:</strong> ${event.title}</p>
+                        <p><strong>Type:</strong> ${event.type}</p>
+                        <p><strong>Radius:</strong> ${event.affectedRadius} km</p>
+                        ${event.affectedPopulation ? `<p><strong>Population:</strong> ${this.formatPopulation(event.affectedPopulation)}</p>` : ''}
+                        ${event.impactDescription ? `<p><strong>Impact:</strong> ${event.impactDescription}</p>` : ''}
+                    </div>
+                `);
+
+                circle.eventId = event.id;
+                this.affectedAreas.push(circle);
+            }
+        });
+    }
+
+    formatPopulation(population) {
+        if (population >= 1000000) {
+            return `${(population / 1000000).toFixed(1)}M people`;
+        } else if (population >= 1000) {
+            return `${(population / 1000).toFixed(0)}K people`;
+        } else {
+            return `${population} people`;
+        }
+    }
+
+    toggleAffectedAreas() {
+        if (this.showAffectedAreas) {
+            this.addAffectedAreasToMap(this.disasterEvents);
+        } else {
+            this.clearAffectedAreas();
+        }
+    }
+
+    filterByAlertLevel(alertLevel) {
+        const filteredEvents = alertLevel ? 
+            this.disasterEvents.filter(event => event.alertLevel === alertLevel) : 
+            this.disasterEvents;
+        
+        this.clearMarkers();
+        this.clearAffectedAreas();
+        this.displayEvents(filteredEvents);
+        this.addMarkersToMap(filteredEvents);
+        if (this.showAffectedAreas) {
+            this.addAffectedAreasToMap(filteredEvents);
+        }
+    }
+
+    focusOnEvent(eventId) {
+        const event = this.disasterEvents.find(e => e.id === eventId);
+        const marker = this.markers.find(m => m.eventId === eventId);
+        
+        if (event && marker) {
+            this.map.setView([event.latitude, event.longitude], 8);
+            marker.openPopup();
+        }
+    }
+
+    // Health Facilities Methods
+    async loadHealthFacilities() {
+        try {
+            console.log('Loading health facilities...');
+            const response = await fetch('/api/health-facilities');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.facilities) {
+                console.log(`Loaded ${result.count} health facilities`);
+                this.healthFacilities = result.facilities;
+                this.updateLegendCounts();
+            } else {
+                throw new Error(result.error || 'No health facilities received');
+            }
+        } catch (error) {
+            console.error('Error loading health facilities:', error);
+            this.healthFacilities = [];
+        }
+    }
+
+    addHealthFacilitiesToMap() {
+        this.healthFacilities.forEach(facility => {
+            // Only add facilities that are visible based on type selection
+            if (!this.facilityTypeVisibility[facility.type]) {
                 return;
             }
             
-            // Add dateAdded field
-            movieData.dateAdded = new Date().toISOString();
-            this.movieWishlist.push(movieData);
-            this.saveMovieWishlist();
-            this.renderMovieWishlist();
-            this.clearSearchResults();
-            document.getElementById('movieSearch').value = '';
-        } catch (error) {
-            console.error('Error adding movie to wishlist:', error);
-            this.showError('Error adding movie to wishlist. Please try again.');
+            const color = this.getHealthFacilityColor(facility.type);
+            const icon = this.createHealthFacilityIcon(color, facility.type);
+            
+            const marker = L.marker([facility.latitude, facility.longitude], { icon })
+                .addTo(this.map)
+                .bindPopup(`
+                    <div>
+                        <h4>${facility.name}</h4>
+                        <p><strong>Type:</strong> ${facility.type}</p>
+                        <p><strong>Functionality:</strong> ${facility.functionality}</p>
+                        <p><strong>Country:</strong> ${facility.country}</p>
+                        ${facility.district ? `<p><strong>District:</strong> ${facility.district}</p>` : ''}
+                        ${facility.speciality ? `<p><strong>Speciality:</strong> ${facility.speciality}</p>` : ''}
+                    </div>
+                `);
+
+            marker.facilityId = facility.id;
+            marker.facilityType = facility.type;
+            this.healthFacilityMarkers.push(marker);
+        });
+    }
+
+    createHealthFacilityIcon(color, type) {
+        const iconSymbol = this.getHealthFacilitySymbol(type);
+        
+        return L.divIcon({
+            className: 'health-facility-icon',
+            html: `
+                <div style="
+                    background-color: ${color};
+                    color: white;
+                    border-radius: 4px;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 12px;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                ">${iconSymbol}</div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+    }
+
+    getHealthFacilitySymbol(type) {
+        const symbols = {
+            'Primary Health Care Centres': '🏥',
+            'Hospitals': '🏨',
+            'Blood Centres': '🩸',
+            'Ambulance Stations': '🚑',
+            'Pharmacies': '💊',
+            'Training Facilities': '🎓',
+            'Specialized Services': '🔬',
+            'Residential Facilities': '🏠',
+            'Other': '⚕️'
+        };
+        return symbols[type] || '⚕️';
+    }
+
+    getHealthFacilityColor(type) {
+        const colors = {
+            'Primary Health Care Centres': '#1e3a8a',    // Dark Blue
+            'Hospitals': '#fbbf24',                      // Yellow
+            'Ambulance Stations': '#166534',             // Dark Green
+            'Blood Centres': '#8b0000',                  // Dark Red
+            'Pharmacies': '#84cc16',                     // Light Green
+            'Training Facilities': '#ea580c',            // Orange
+            'Specialized Services': '#a16207',           // Brown
+            'Residential Facilities': '#7dd3fc',         // Light Blue
+            'Other': '#374151'                           // Dark Gray
+        };
+        return colors[type] || '#374151';
+    }
+
+    clearHealthFacilityMarkers() {
+        this.healthFacilityMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.healthFacilityMarkers = [];
+    }
+
+    toggleHealthFacilities() {
+        if (this.showHealthFacilities) {
+            this.addHealthFacilitiesToMap();
+        } else {
+            this.clearHealthFacilityMarkers();
         }
     }
 
+    initFacilityTypeListeners() {
+        const typeMapping = {
+            'show-primary-health': 'Primary Health Care Centres',
+            'show-ambulance': 'Ambulance Stations', 
+            'show-blood': 'Blood Centres',
+            'show-hospitals': 'Hospitals',
+            'show-pharmacies': 'Pharmacies',
+            'show-training': 'Training Facilities',
+            'show-specialized': 'Specialized Services',
+            'show-residential': 'Residential Facilities',
+            'show-other': 'Other'
+        };
 
-    clearSearchResults() {
-        const searchResults = document.getElementById('searchResults');
-        searchResults.innerHTML = '';
-    }
-
-    getDirector(crew) {
-        const director = crew.find(person => person.job === 'Director');
-        return director ? director.name : 'Unknown Director';
-    }
-
-    getMainActors(cast) {
-        return cast.slice(0, 3).map(actor => actor.name).join(', ');
-    }
-
-    getGenres(genres) {
-        if (!genres || genres.length === 0) return [];
-        return genres.map(genre => genre.name);
-    }
-
-    getGenresString(genres) {
-        if (!genres || genres.length === 0) return 'Unknown';
-        return genres.join(', ');
-    }
-
-    getCreator(createdBy) {
-        if (!createdBy || createdBy.length === 0) return 'Unknown Creator';
-        return createdBy[0].name;
-    }
-
-    rankTvSearchResults(results, query) {
-        const searchTerms = query.toLowerCase().split(/\s+/);
-        
-        return results.map(show => {
-            let score = 0;
-            let matchReasons = [];
-            
-            // Title matching (highest weight)
-            const titleWords = show.title.toLowerCase().split(/\s+/);
-            const titleMatches = searchTerms.filter(term => 
-                titleWords.some(word => word.includes(term))
-            ).length;
-            score += titleMatches * 10;
-            if (titleMatches > 0) {
-                matchReasons.push('title');
+        Object.entries(typeMapping).forEach(([checkboxId, facilityType]) => {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    this.facilityTypeVisibility[facilityType] = e.target.checked;
+                    this.updateHealthFacilitiesDisplay();
+                });
             }
-            
-            // Creator matching
-            const creatorMatch = searchTerms.some(term => 
-                show.creator.toLowerCase().includes(term)
-            );
-            if (creatorMatch) {
-                score += 5;
-                matchReasons.push('creator');
+        });
+    }
+
+    updateHealthFacilitiesDisplay() {
+        if (this.showHealthFacilities) {
+            // Remove all current markers
+            this.clearHealthFacilityMarkers();
+            // Add back only the visible ones
+            this.addHealthFacilitiesToMap();
+        }
+    }
+
+    getFacilityTypeCounts() {
+        const counts = {
+            'Primary Health Care Centres': 0,
+            'Ambulance Stations': 0,
+            'Blood Centres': 0,
+            'Hospitals': 0,
+            'Pharmacies': 0,
+            'Training Facilities': 0,
+            'Specialized Services': 0,
+            'Residential Facilities': 0,
+            'Other': 0
+        };
+
+        this.healthFacilities.forEach(facility => {
+            if (counts.hasOwnProperty(facility.type)) {
+                counts[facility.type]++;
             }
+        });
+
+        return counts;
+    }
+
+    updateLegendCounts() {
+        const counts = this.getFacilityTypeCounts();
+        const labelMapping = {
+            'show-primary-health': 'Primary Health Care Centres',
+            'show-ambulance': 'Ambulance Stations', 
+            'show-blood': 'Blood Centres',
+            'show-hospitals': 'Hospitals',
+            'show-pharmacies': 'Pharmacies',
+            'show-training': 'Training Facilities',
+            'show-specialized': 'Specialized Services',
+            'show-residential': 'Residential Facilities',
+            'show-other': 'Other'
+        };
+
+        Object.entries(labelMapping).forEach(([checkboxId, facilityType]) => {
+            const label = document.querySelector(`label[for="${checkboxId}"]`);
+            if (label && counts[facilityType] !== undefined) {
+                const baseName = facilityType === 'Primary Health Care Centres' ? 'Primary Health Care' : 
+                                facilityType === 'Ambulance Stations' ? 'Ambulance Stations' :
+                                facilityType === 'Blood Centres' ? 'Blood Centres' :
+                                facilityType === 'Training Facilities' ? 'Training Facilities' :
+                                facilityType === 'Specialized Services' ? 'Specialized Services' :
+                                facilityType === 'Residential Facilities' ? 'Residential Facilities' :
+                                facilityType;
+                
+                label.textContent = `${baseName} (${counts[facilityType].toLocaleString()})`;
+            }
+        });
+    }
+
+    // IFRC Documents functionality
+    async initIfrcDocuments() {
+        this.selectedCountry = '';
+        await this.loadCountries();
+        await this.loadIfrcDocuments();
+    }
+
+    async loadCountries() {
+        try {
+            const response = await fetch('/api/ifrc-countries');
+            const data = await response.json();
             
-            // Actor matching (from credits)
-            const actorMatch = searchTerms.some(term => {
-                return show.credits.cast.some(actor => 
-                    actor.name.toLowerCase().includes(term)
-                );
+            const countrySelect = document.getElementById('countryFilter');
+            countrySelect.innerHTML = '<option value="">All Countries</option>';
+            
+            if (data.results) {
+                data.results.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.id;
+                    option.textContent = country.name;
+                    countrySelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading countries:', error);
+        }
+    }
+
+    async loadIfrcDocuments() {
+        try {
+            const documentsList = document.getElementById('ifrcDocumentsList');
+            documentsList.innerHTML = '<div class="loading-ifrc">Loading IFRC documents...</div>';
+            
+            const params = new URLSearchParams({
+                limit: '10'
             });
-            if (actorMatch) {
-                score += 3;
-                matchReasons.push('actor');
+            
+            if (this.selectedCountry) {
+                params.append('country', this.selectedCountry);
             }
             
-            // Year matching
-            const yearMatch = searchTerms.some(term => 
-                term === show.first_air_year.toString()
-            );
-            if (yearMatch) {
-                score += 2;
-                matchReasons.push('year');
+            const response = await fetch(`/api/ifrc-documents?${params}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.displayIfrcDocuments(data.results || []);
+            } else {
+                throw new Error(data.message || 'Failed to fetch documents');
             }
             
-            return {
-                ...show,
-                score,
-                matchReasons: matchReasons.length > 0 ? matchReasons : ['title similarity']
-            };
-        }).sort((a, b) => b.score - a.score);
-    }
-
-    displayTvSearchResults(results) {
-        const searchResults = document.getElementById('searchResults');
-        
-        if (results.length === 0) {
-            searchResults.innerHTML = '<div class="error">No matching TV shows found.</div>';
-            return;
-        }
-
-        searchResults.innerHTML = results.map(show => `
-            <div class="search-result-item">
-                <img src="${show.poster}" alt="${show.title}" class="search-result-poster" />
-                <div class="search-result-info">
-                    <div class="search-result-title">${show.title} (${show.first_air_year})</div>
-                    <div class="search-result-details">Creator: ${show.creator}</div>
-                    <div class="search-result-details">Seasons: ${show.seasons}</div>
-                    <div class="search-result-match">Match: ${show.matchReasons.join(', ')}</div>
-                </div>
-                <button class="wishlist-btn" onclick="movieLibrary.addToTvWishlistById(${show.id})">
-                    <span class="wishlist-btn-icon">+</span>
-                    <span class="wishlist-btn-text">Add to Wishlist</span>
-                </button>
-            </div>
-        `).join('');
-    }
-
-    async searchMoviesByPerson(personName) {
-        try {
-            // Search for the person first
-            const personSearchResponse = await fetch(
-                `${this.baseUrl}/search/person?query=${encodeURIComponent(personName)}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.bearerToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            const personSearchData = await personSearchResponse.json();
-
-            if (!personSearchData.results || personSearchData.results.length === 0) {
-                return [];
-            }
-
-            // Get the most relevant person (first result)
-            const person = personSearchData.results[0];
-
-            // Get their movie credits
-            const creditsResponse = await fetch(
-                `${this.baseUrl}/person/${person.id}/movie_credits`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.bearerToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            const creditsData = await creditsResponse.json();
-
-            // Combine cast and crew movies, prioritizing cast
-            let movies = [...(creditsData.cast || []), ...(creditsData.crew || [])];
-            
-            // Remove duplicates and sort by popularity
-            const uniqueMovies = movies.reduce((acc, movie) => {
-                if (!acc.find(m => m.id === movie.id)) {
-                    acc.push(movie);
-                }
-                return acc;
-            }, []);
-
-            // Sort by popularity and take top 10
-            uniqueMovies.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-            const topMovies = uniqueMovies.slice(0, 10);
-
-            // Get detailed info for these movies
-            const detailedResults = await Promise.all(
-                topMovies.map(async (movie) => {
-                    try {
-                        const detailsResponse = await fetch(
-                            `${this.baseUrl}/movie/${movie.id}?append_to_response=credits`,
-                            {
-                                headers: {
-                                    'Authorization': `Bearer ${this.bearerToken}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            }
-                        );
-                        const movieDetails = await detailsResponse.json();
-
-                        return {
-                            id: movieDetails.id,
-                            title: movieDetails.title,
-                            year: new Date(movieDetails.release_date).getFullYear() || 'Unknown',
-                            poster: movieDetails.poster_path ? `${this.imageBaseUrl}${movieDetails.poster_path}` : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIFBvc3RlcjwvdGV4dD48L3N2Zz4=',
-                            director: this.getDirector(movieDetails.credits.crew),
-                            actors: this.getMainActors(movieDetails.credits.cast),
-                            genres: this.getGenres(movieDetails.genres),
-                            overview: movieDetails.overview,
-                            credits: movieDetails.credits
-                        };
-                    } catch (error) {
-                        console.error(`Error fetching details for movie ${movie.id}:`, error);
-                        return null;
-                    }
-                })
-            );
-
-            return detailedResults.filter(result => result !== null);
         } catch (error) {
-            console.error('Error searching movies by person:', error);
-            return [];
+            console.error('Error loading IFRC documents:', error);
+            const documentsList = document.getElementById('ifrcDocumentsList');
+            documentsList.innerHTML = `<div class="error-ifrc">Error loading documents: ${error.message}</div>`;
         }
     }
 
-    async searchTvShowsByPerson(personName) {
-        try {
-            // Search for the person first
-            const personSearchResponse = await fetch(
-                `${this.baseUrl}/search/person?query=${encodeURIComponent(personName)}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.bearerToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            const personSearchData = await personSearchResponse.json();
-
-            if (!personSearchData.results || personSearchData.results.length === 0) {
-                return [];
-            }
-
-            // Get the most relevant person (first result)
-            const person = personSearchData.results[0];
-
-            // Get their TV credits
-            const creditsResponse = await fetch(
-                `${this.baseUrl}/person/${person.id}/tv_credits`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.bearerToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            const creditsData = await creditsResponse.json();
-
-            // Combine cast and crew shows, prioritizing cast
-            let shows = [...(creditsData.cast || []), ...(creditsData.crew || [])];
-            
-            // Remove duplicates and sort by popularity
-            const uniqueShows = shows.reduce((acc, show) => {
-                if (!acc.find(s => s.id === show.id)) {
-                    acc.push(show);
-                }
-                return acc;
-            }, []);
-
-            // Sort by popularity and take top 10
-            uniqueShows.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-            const topShows = uniqueShows.slice(0, 10);
-
-            // Get detailed info for these shows
-            const detailedResults = await Promise.all(
-                topShows.map(async (show) => {
-                    try {
-                        const detailsResponse = await fetch(
-                            `${this.baseUrl}/tv/${show.id}?append_to_response=credits`,
-                            {
-                                headers: {
-                                    'Authorization': `Bearer ${this.bearerToken}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            }
-                        );
-                        const showDetails = await detailsResponse.json();
-
-                        return {
-                            id: showDetails.id,
-                            title: showDetails.name,
-                            first_air_year: new Date(showDetails.first_air_date).getFullYear() || 'Unknown',
-                            poster: showDetails.poster_path ? `${this.imageBaseUrl}${showDetails.poster_path}` : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIFBvc3RlcjwvdGV4dD48L3N2Zz4=',
-                            creator: this.getCreator(showDetails.created_by),
-                            genres: this.getGenres(showDetails.genres),
-                            seasons: showDetails.number_of_seasons || 'Unknown',
-                            overview: showDetails.overview,
-                            credits: showDetails.credits,
-                            type: 'tv'
-                        };
-                    } catch (error) {
-                        console.error(`Error fetching details for TV show ${show.id}:`, error);
-                        return null;
-                    }
-                })
-            );
-
-            return detailedResults.filter(result => result !== null);
-        } catch (error) {
-            console.error('Error searching TV shows by person:', error);
-            return [];
-        }
-    }
-
-
-    sortWishlist(movies, sortBy) {
-        const sortedMovies = [...movies];
+    displayIfrcDocuments(documents) {
+        const documentsList = document.getElementById('ifrcDocumentsList');
         
-        switch(sortBy) {
-            case 'title':
-                return sortedMovies.sort((a, b) => a.title.localeCompare(b.title));
-            case 'title-desc':
-                return sortedMovies.sort((a, b) => b.title.localeCompare(a.title));
-            case 'year':
-                return sortedMovies.sort((a, b) => a.year - b.year);
-            case 'year-desc':
-                return sortedMovies.sort((a, b) => b.year - a.year);
-            case 'genre':
-                return sortedMovies.sort((a, b) => {
-                    const aGenre = Array.isArray(a.genres) && a.genres.length > 0 ? a.genres[0] : '';
-                    const bGenre = Array.isArray(b.genres) && b.genres.length > 0 ? b.genres[0] : '';
-                    return aGenre.localeCompare(bGenre);
-                });
-            case 'genre-desc':
-                return sortedMovies.sort((a, b) => {
-                    const aGenre = Array.isArray(a.genres) && a.genres.length > 0 ? a.genres[0] : '';
-                    const bGenre = Array.isArray(b.genres) && b.genres.length > 0 ? b.genres[0] : '';
-                    return bGenre.localeCompare(aGenre);
-                });
-            case 'date-added':
-                return sortedMovies.sort((a, b) => {
-                    const aDate = new Date(a.dateAdded || '2024-01-01');
-                    const bDate = new Date(b.dateAdded || '2024-01-01');
-                    return aDate - bDate;
-                });
-            case 'date-added-desc':
-                return sortedMovies.sort((a, b) => {
-                    const aDate = new Date(a.dateAdded || '2024-01-01');
-                    const bDate = new Date(b.dateAdded || '2024-01-01');
-                    return bDate - aDate;
-                });
-            default:
-                return sortedMovies;
-        }
-    }
-
-    showLoading() {
-        const searchResults = document.getElementById('searchResults');
-        searchResults.innerHTML = '<div class="loading">Searching for movies...</div>';
-    }
-
-    hideLoading() {
-        // Loading will be hidden when renderMovies is called
-    }
-
-    showError(message) {
-        const searchResults = document.getElementById('searchResults');
-        searchResults.innerHTML = `<div class="error">${message}</div>`;
-        setTimeout(() => {
-            this.clearSearchResults();
-        }, 3000);
-    }
-
-    // Legacy support - migrate old wishlist to movie wishlist
-    loadMovieWishlist() {
-        let stored = localStorage.getItem('movieWishlist');
-        if (!stored) {
-            // Check for old wishlist data
-            const oldWishlist = localStorage.getItem('movieWishlist');
-            if (oldWishlist) {
-                stored = oldWishlist;
-                localStorage.setItem('movieWishlist', stored);
-            }
-        }
-        return stored ? JSON.parse(stored) : [];
-    }
-
-    loadTvWishlist() {
-        const stored = localStorage.getItem('tvWishlist');
-        return stored ? JSON.parse(stored) : [];
-    }
-
-    saveMovieWishlist() {
-        localStorage.setItem('movieWishlist', JSON.stringify(this.movieWishlist));
-    }
-
-    saveTvWishlist() {
-        localStorage.setItem('tvWishlist', JSON.stringify(this.tvWishlist));
-    }
-
-    renderMovieWishlist() {
-        const wishlistElement = document.getElementById('movieWishlist');
-        this.renderWishlist(wishlistElement, this.movieWishlist, 'movie');
-        this.updateMovieCount();
-    }
-
-    renderTvWishlist() {
-        const wishlistElement = document.getElementById('tvWishlist');
-        this.renderWishlist(wishlistElement, this.tvWishlist, 'tv');
-        this.updateTvCount();
-    }
-
-    renderWishlist(element, wishlist, type) {
-        if (wishlist.length === 0) {
-            const contentType = type === 'movie' ? 'movies' : 'TV shows';
-            element.innerHTML = `<p class="empty-message">No ${contentType} in your wishlist yet. Search to add some!</p>`;
+        if (documents.length === 0) {
+            documentsList.innerHTML = '<div class="loading-ifrc">No documents found</div>';
             return;
         }
-
-        // Filter by genre if active
-        let filteredItems = wishlist;
-        if (this.activeGenreFilter) {
-            filteredItems = wishlist.filter(item => 
-                Array.isArray(item.genres) && item.genres.some(genre => 
-                    genre.toLowerCase() === this.activeGenreFilter.toLowerCase()
-                )
-            );
-        }
-
-        // Show filter status and clear option
-        if (this.activeGenreFilter) {
-            const filterInfo = document.createElement('div');
-            filterInfo.className = 'genre-filter-info';
-            filterInfo.innerHTML = `
-                <div class="filter-active">
-                    <span>Filtering by: <strong>${this.activeGenreFilter}</strong> (${filteredItems.length} items)</span>
-                    <button class="clear-filter-btn" onclick="movieLibrary.clearGenreFilter()">✕ Clear Filter</button>
-                </div>
-            `;
-            element.parentNode.insertBefore(filterInfo, element);
-        }
-
-        if (filteredItems.length === 0 && this.activeGenreFilter) {
-            element.innerHTML = `<p class="empty-message">No items found with genre "${this.activeGenreFilter}". <button class="clear-filter-btn" onclick="movieLibrary.clearGenreFilter()">Clear filter</button> to see all items.</p>`;
-            return;
-        }
-
-        const sortedItems = this.sortWishlist(filteredItems, this.currentSort);
-
-        element.innerHTML = sortedItems.map(item => {
-            const genreBadges = Array.isArray(item.genres) && item.genres.length > 0 
-                ? item.genres.map(genre => {
-                    const isActive = this.activeGenreFilter && genre.toLowerCase() === this.activeGenreFilter.toLowerCase();
-                    return `<span class="genre-badge ${isActive ? 'active' : ''}" onclick="movieLibrary.filterByGenre('${genre}')" title="Click to filter by ${genre}">${genre}</span>`;
-                }).join('')
-                : '<span class="genre-badge no-genre">Unknown Genre</span>';
-            
-            const removeFunction = type === 'movie' ? 'removeFromMovieWishlist' : 'removeFromTvWishlist';
-            const year = type === 'movie' ? item.year : item.first_air_year;
-            const extraInfo = type === 'movie' 
-                ? `<div class="movie-director"><strong>Director:</strong> ${item.director}</div>
-                   <div class="movie-actors"><strong>Starring:</strong> ${item.actors}</div>`
-                : `<div class="movie-director"><strong>Creator:</strong> ${item.creator}</div>
-                   <div class="movie-actors"><strong>Seasons:</strong> ${item.seasons}</div>`;
+        
+        const documentsHTML = documents.map(doc => {
+            const date = new Date(doc.created_at).toLocaleDateString();
+            const countryName = doc.country_name || 'Unknown';
+            const disasterType = doc.disaster_type || 'General';
             
             return `
-                <div class="movie-card">
-                    <button class="remove-btn" onclick="movieLibrary.${removeFunction}(${item.id})">×</button>
-                    <img src="${item.poster}" alt="${item.title}" class="movie-poster" />
-                    <div class="movie-info">
-                        <div class="movie-title">${item.title}</div>
-                        <div class="movie-year">${year}</div>
-                        <div class="movie-genres">
-                            <div class="genre-label">Genres:</div>
-                            <div class="genre-badges">${genreBadges}</div>
-                        </div>
-                        ${extraInfo}
+                <div class="document-item" onclick="window.open('${doc.document}', '_blank')">
+                    <div class="document-title">${doc.name || 'Unnamed Document'}</div>
+                    <div class="document-meta">
+                        <span class="document-country">${countryName}</span>
+                        <span class="document-date">${date}</span>
+                    </div>
+                    <div class="document-meta">
+                        <span class="document-type">${disasterType}</span>
+                        <span class="document-date">${doc.appeal_code || ''}</span>
                     </div>
                 </div>
             `;
         }).join('');
+        
+        documentsList.innerHTML = documentsHTML;
     }
-
-    async removeFromMovieWishlist(movieId) {
-        this.movieWishlist = this.movieWishlist.filter(movie => movie.id !== movieId);
-        
-        // Remove from Supabase if authenticated, otherwise localStorage
-        if (this.currentUser && this.supabaseClient) {
-            try {
-                await this.supabaseClient.removeMovieFromWishlist(movieId);
-            } catch (error) {
-                console.error('Error removing from Supabase:', error);
-                // Fallback to localStorage
-                this.saveMovieWishlist();
-            }
-        } else {
-            this.saveMovieWishlist();
-        }
-        
-        this.renderMovieWishlist();
-    }
-
-    async removeFromTvWishlist(tvId) {
-        this.tvWishlist = this.tvWishlist.filter(show => show.id !== tvId);
-        
-        // Remove from Supabase if authenticated, otherwise localStorage
-        if (this.currentUser && this.supabaseClient) {
-            try {
-                await this.supabaseClient.removeTvFromWishlist(tvId);
-            } catch (error) {
-                console.error('Error removing from Supabase:', error);
-                // Fallback to localStorage
-                this.saveTvWishlist();
-            }
-        } else {
-            this.saveTvWishlist();
-        }
-        
-        this.renderTvWishlist();
-    }
-
-    filterByGenre(genre) {
-        // Clear any existing filter info elements
-        this.clearFilterInfoElements();
-        
-        if (this.activeGenreFilter === genre) {
-            // If clicking the same genre, clear the filter
-            this.clearGenreFilter();
-        } else {
-            // Set new genre filter
-            this.activeGenreFilter = genre;
-            this.renderMovieWishlist();
-            this.renderTvWishlist();
-        }
-    }
-
-    clearGenreFilter() {
-        this.activeGenreFilter = null;
-        this.clearFilterInfoElements();
-        this.renderMovieWishlist();
-        this.renderTvWishlist();
-    }
-
-    clearFilterInfoElements() {
-        // Remove any existing filter info elements
-        const filterInfos = document.querySelectorAll('.genre-filter-info');
-        filterInfos.forEach(info => info.remove());
-    }
-
-    exportToCSV() {
-        // Combine both wishlists
-        const combinedData = [];
-        
-        // Add movies with type indicator
-        this.movieWishlist.forEach(movie => {
-            combinedData.push({
-                type: 'Movie',
-                title: movie.title,
-                director: movie.director,
-                year: movie.year,
-                genres: Array.isArray(movie.genres) ? movie.genres.join('; ') : 'Unknown'
-            });
-        });
-        
-        // Add TV shows with type indicator
-        this.tvWishlist.forEach(show => {
-            combinedData.push({
-                type: 'TV Show',
-                title: show.title,
-                director: show.creator, // Use creator for TV shows
-                year: show.first_air_year,
-                genres: Array.isArray(show.genres) ? show.genres.join('; ') : 'Unknown'
-            });
-        });
-        
-        if (combinedData.length === 0) {
-            this.showError('No items in your wishlists to export!');
-            return;
-        }
-        
-        // Create CSV content
-        const headers = ['Type', 'Title', 'Director/Creator', 'Year', 'Genres'];
-        const csvContent = [headers.join(',')];
-        
-        combinedData.forEach(item => {
-            // Escape commas and quotes in data
-            const row = [
-                `"${item.type}"`,
-                `"${item.title.replace(/"/g, '""')}"`,
-                `"${item.director.replace(/"/g, '""')}"`,
-                `"${item.year}"`,
-                `"${item.genres.replace(/"/g, '""')}"`
-            ];
-            csvContent.push(row.join(','));
-        });
-        
-        // Create and download file
-        const csvString = csvContent.join('\n');
-        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `movie-tv-wishlist-${new Date().toISOString().split('T')[0]}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Show success message
-            const searchResults = document.getElementById('searchResults');
-            searchResults.innerHTML = `<div class="loading">✅ Exported ${combinedData.length} items to CSV file!</div>`;
-            setTimeout(() => {
-                this.clearSearchResults();
-            }, 3000);
-        }
-    }
-
-    async importFromCSV(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-            this.showError('Please select a valid CSV file.');
-            return;
-        }
-
-        this.showLoading();
-        const searchResults = document.getElementById('searchResults');
-        searchResults.innerHTML = '<div class="loading">📤 Importing CSV data...</div>';
-
-        try {
-            const text = await this.readFileAsText(file);
-            const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-            
-            if (lines.length < 2) {
-                this.showError('CSV file appears to be empty or invalid.');
-                return;
-            }
-
-            // Parse header and validate format
-            const headers = this.parseCSVLine(lines[0]);
-            const expectedHeaders = ['Type', 'Title', 'Director/Creator', 'Year', 'Genres'];
-            
-            if (headers.length < 4 || !headers.includes('Title') || !headers.includes('Type')) {
-                this.showError('Invalid CSV format. Expected headers: Type, Title, Director/Creator, Year, Genres');
-                return;
-            }
-
-            // Parse data rows
-            const dataRows = [];
-            for (let i = 1; i < lines.length; i++) {
-                const row = this.parseCSVLine(lines[i]);
-                if (row.length >= 4) {
-                    const item = {
-                        type: row[0]?.trim(),
-                        title: row[1]?.trim(),
-                        director: row[2]?.trim(),
-                        year: row[3]?.trim(),
-                        genres: row[4]?.trim() || 'Unknown'
-                    };
-                    
-                    if (item.title && item.type) {
-                        dataRows.push(item);
-                    }
-                }
-            }
-
-            if (dataRows.length === 0) {
-                this.showError('No valid data found in CSV file.');
-                return;
-            }
-
-            // Process imported items
-            await this.processImportedItems(dataRows);
-
-        } catch (error) {
-            console.error('Import error:', error);
-            this.showError('Error reading CSV file. Please check the file format.');
-        }
-
-        // Reset file input
-        event.target.value = '';
-    }
-
-    parseCSVLine(line) {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-        let i = 0;
-
-        while (i < line.length) {
-            const char = line[i];
-            
-            if (char === '"') {
-                if (inQuotes && line[i + 1] === '"') {
-                    // Escaped quote
-                    current += '"';
-                    i += 2;
-                } else {
-                    // Toggle quote state
-                    inQuotes = !inQuotes;
-                    i++;
-                }
-            } else if (char === ',' && !inQuotes) {
-                result.push(current);
-                current = '';
-                i++;
-            } else {
-                current += char;
-                i++;
-            }
-        }
-        
-        result.push(current);
-        return result;
-    }
-
-    async processImportedItems(dataRows) {
-        const results = { added: 0, duplicates: 0, errors: 0 };
-        
-        const searchResults = document.getElementById('searchResults');
-        searchResults.innerHTML = `<div class="loading">🔍 Looking up ${dataRows.length} items...</div>`;
-
-        for (let i = 0; i < dataRows.length; i++) {
-            const item = dataRows[i];
-            
-            try {
-                let found = false;
-                
-                if (item.type === 'Movie') {
-                    found = await this.searchMovieForImport(item);
-                } else if (item.type === 'TV Show') {
-                    found = await this.searchTvShowForImport(item);
-                }
-                
-                if (found) {
-                    results.added++;
-                } else {
-                    results.errors++;
-                }
-                
-                // Update progress
-                if ((i + 1) % 5 === 0 || i === dataRows.length - 1) {
-                    searchResults.innerHTML = `<div class="loading">🔍 Processed ${i + 1}/${dataRows.length} items...</div>`;
-                }
-                
-            } catch (error) {
-                console.error(`Error processing item: ${item.title}`, error);
-                results.errors++;
-            }
-        }
-
-        this.displayImportResults(results);
-        this.renderMovieWishlist();
-        this.renderTvWishlist();
-    }
-
-    async searchMovieForImport(item) {
-        try {
-            const response = await fetch(`${this.baseUrl}/search/movie?query=${encodeURIComponent(item.title)}&api_key=${this.apiKey}&language=en-US&page=1`);
-            const data = await response.json();
-
-            if (data.results && data.results.length > 0) {
-                // Find best match (preferably by year if provided)
-                let bestMatch = data.results[0];
-                
-                if (item.year && item.year !== 'Unknown') {
-                    const yearMatch = data.results.find(movie => {
-                        const movieYear = movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '';
-                        return movieYear === item.year;
-                    });
-                    if (yearMatch) bestMatch = yearMatch;
-                }
-
-                // Check for duplicates
-                const exists = this.movieWishlist.some(movie => movie.id === bestMatch.id);
-                if (exists) return false;
-
-                // Get detailed movie info
-                const detailsResponse = await fetch(`${this.baseUrl}/movie/${bestMatch.id}?api_key=${this.apiKey}&append_to_response=credits`);
-                const details = await detailsResponse.json();
-
-                const movie = {
-                    id: details.id,
-                    title: details.title,
-                    poster: details.poster_path ? `${this.imageBaseUrl}${details.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image',
-                    year: details.release_date ? new Date(details.release_date).getFullYear() : 'Unknown',
-                    genres: details.genres ? details.genres.map(g => g.name) : [],
-                    director: details.credits?.crew?.find(person => person.job === 'Director')?.name || 'Unknown',
-                    actors: details.credits?.cast?.slice(0, 5).map(actor => actor.name).join(', ') || 'Unknown',
-                    dateAdded: new Date().toISOString()
-                };
-
-                this.movieWishlist.push(movie);
-                this.saveMovieWishlist();
-                return true;
-            }
-        } catch (error) {
-            console.error('Movie search error:', error);
-        }
-        return false;
-    }
-
-    async searchTvShowForImport(item) {
-        try {
-            const response = await fetch(`${this.baseUrl}/search/tv?query=${encodeURIComponent(item.title)}&api_key=${this.apiKey}&language=en-US&page=1`);
-            const data = await response.json();
-
-            if (data.results && data.results.length > 0) {
-                // Find best match
-                let bestMatch = data.results[0];
-                
-                if (item.year && item.year !== 'Unknown') {
-                    const yearMatch = data.results.find(show => {
-                        const showYear = show.first_air_date ? new Date(show.first_air_date).getFullYear().toString() : '';
-                        return showYear === item.year;
-                    });
-                    if (yearMatch) bestMatch = yearMatch;
-                }
-
-                // Check for duplicates
-                const exists = this.tvWishlist.some(show => show.id === bestMatch.id);
-                if (exists) return false;
-
-                // Get detailed TV show info
-                const detailsResponse = await fetch(`${this.baseUrl}/tv/${bestMatch.id}?api_key=${this.apiKey}&append_to_response=credits`);
-                const details = await detailsResponse.json();
-
-                const tvShow = {
-                    id: details.id,
-                    title: details.name,
-                    poster: details.poster_path ? `${this.imageBaseUrl}${details.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image',
-                    first_air_year: details.first_air_date ? new Date(details.first_air_date).getFullYear() : 'Unknown',
-                    genres: details.genres ? details.genres.map(g => g.name) : [],
-                    creator: details.created_by?.length > 0 ? details.created_by.map(c => c.name).join(', ') : 'Unknown',
-                    seasons: details.number_of_seasons || 'Unknown',
-                    dateAdded: new Date().toISOString()
-                };
-
-                this.tvWishlist.push(tvShow);
-                this.saveTvWishlist();
-                return true;
-            }
-        } catch (error) {
-            console.error('TV show search error:', error);
-        }
-        return false;
-    }
-
-    displayImportResults(results) {
-        const searchResults = document.getElementById('searchResults');
-        const total = results.added + results.duplicates + results.errors;
-        
-        let message = `<div class="loading">✅ Import Complete!<br>`;
-        message += `📊 ${results.added} items added to wishlists<br>`;
-        
-        if (results.errors > 0) {
-            message += `❌ ${results.errors} items could not be found<br>`;
-        }
-        
-        message += `📈 Total processed: ${total}</div>`;
-        
-        searchResults.innerHTML = message;
-        
-        setTimeout(() => {
-            this.clearSearchResults();
-        }, 5000);
-    }
-
-    readFileAsText(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsText(file);
-        });
-    }
-
-    updateMovieCount() {
-        const movieCountElement = document.getElementById('movie-count');
-        if (movieCountElement) {
-            movieCountElement.textContent = `(${this.movieWishlist.length})`;
-        }
-    }
-
-    updateTvCount() {
-        const tvCountElement = document.getElementById('tv-count');
-        if (tvCountElement) {
-            tvCountElement.textContent = `(${this.tvWishlist.length})`;
-        }
-    }
-
 }
 
-// Initialize the app when page loads
-let movieLibrary;
+// Initialize the application when the page loads
+let app;
 document.addEventListener('DOMContentLoaded', () => {
-    movieLibrary = new MovieLibrary();
+    app = new DisasterMap();
 });

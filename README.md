@@ -1,132 +1,78 @@
-# Movie Wishlist with Supabase Integration
+# Global Disaster Alert Map
 
-A modern web application for managing your movie and TV show wishlist with cross-device synchronization.
+A web application that displays real-time disaster events from the Global Disaster Alert and Coordination System (GDACS) on an interactive OpenStreetMap.
 
-## ✨ Features
+## Features
 
-### 🎬 Movie & TV Show Management
-- Search movies and TV shows using The Movie Database (TMDB) API
-- Smart search by title, actor, or director
-- Separate wishlists for movies and TV shows
-- Detailed information including posters, cast, director, and genres
+- **Real-time disaster data** from GDACS API via backend proxy
+- **Interactive map** with OpenStreetMap and custom markers
+- **Alert level filtering** (Green, Orange, Red)
+- **Multiple data sources** (DFO, GPM, DFOMERGE, RSS)
+- **Responsive design** for desktop and mobile
+- **Event details** with location, type, and alert levels
 
-### 🔄 Cross-Device Sync
-- **Supabase Integration**: Your data syncs across all devices
-- **Offline Support**: Works without internet, syncs when back online
-- **Data Migration**: Existing localStorage data automatically migrated
-- **Real-time Status**: Visual indicators show sync status
+## Setup Instructions
 
-### 🎨 User Experience
-- Responsive design for desktop and mobile
-- Genre filtering and multiple sorting options
-- CSV export/import functionality
-- Clean, modern interface with smooth animations
+### Prerequisites
+- Node.js (v14 or higher)
+- npm
 
-## 🚀 Quick Start
+### Installation
 
-### 1. Set Up Supabase (Optional)
-1. Create account at [supabase.com](https://supabase.com)
-2. Create new project
-3. Go to **SQL Editor** and run the schema from `../supabase-schema.sql`
-4. Get your Project URL and anon key from **Settings → API**
-5. Update credentials in `supabase.js`
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-### 2. Run the App
-1. Open `index.html` in your browser
-2. Start searching for movies and TV shows!
-3. Sign in to enable cross-device sync
+2. **Start the backend server:**
+   ```bash
+   npm start
+   ```
+   
+   Or for development with auto-reload:
+   ```bash
+   npm run dev
+   ```
 
-## 🔧 Configuration
+3. **Access the application:**
+   Open your browser and go to: `http://localhost:3003`
 
-### Without Supabase
-The app works perfectly with just localStorage - your data stays on your device.
+## API Endpoints
 
-### With Supabase
-Update these values in `supabase.js`:
-```javascript
-const SUPABASE_URL = 'your-project-url'
-const SUPABASE_ANON_KEY = 'your-anon-key'
-```
+- `GET /` - Frontend application
+- `GET /api/disasters` - Get disaster events (tries GDACS API, falls back to sample data)
+  - Query parameters:
+    - `source`: Data source (DFO, GPM, DFOMERGE, ALL)
+    - `alertLevel`: Filter by alert level (GREEN, ORANGE, RED)
+    - `from`: Start date (YYYY-MM-DD)
+    - `to`: End date (YYYY-MM-DD)
+- `GET /api/disasters/sample` - Get sample disaster events for testing
+- `GET /api/health` - Health check
 
-## 📱 How It Works
+## Data Sources
 
-### Local Mode (Default)
-- Data stored in browser localStorage
-- Works offline
-- Device-specific storage
+- **GDACS Flood Data API** - Real-time flood and precipitation data
+- **GDACS RSS Feed** - General disaster events (earthquakes, cyclones, etc.)
+- **Fallback sample data** - For demonstration when APIs are unavailable
 
-### Cloud Mode (With Supabase)
-- Sign up/in with email and password
-- Data synced to Supabase database
-- Access from any device
-- Offline support with sync when online
+## Technology Stack
 
-## 🎯 Usage
+- **Frontend**: HTML5, CSS3, JavaScript, Leaflet.js
+- **Backend**: Node.js, Express.js
+- **APIs**: GDACS, OpenStreetMap
+- **Data formats**: JSON, XML/RSS
 
-1. **Search**: Use the search bar to find movies or TV shows
-2. **Add to Wishlist**: Click the "+" button on search results
-3. **Manage Lists**: View your wishlists in the main interface
-4. **Filter & Sort**: Use genre filters and sorting options
-5. **Export Data**: Download your wishlist as CSV
-6. **Sign In**: Enable cloud sync for cross-device access
+## Usage
 
-## 🛠️ Technical Details
+1. The map loads with current disaster events automatically
+2. Use the alert level dropdown to filter events by severity
+3. Click "Refresh Data" to update with latest events
+4. Click on markers or sidebar events to focus on specific disasters
+5. Each event shows details including type, location, and alert level
 
-### Stack
-- **Frontend**: Vanilla HTML, CSS, JavaScript
-- **Database**: Supabase (PostgreSQL)
-- **API**: The Movie Database (TMDB)
-- **Authentication**: Supabase Auth
+## Notes
 
-### Architecture
-- Hybrid storage (localStorage + Supabase)
-- Offline-first design
-- Progressive enhancement
-- Mobile-responsive
-
-### Security
-- Row Level Security (RLS) in Supabase
-- User-specific data access
-- Safe API key usage
-
-## 📂 File Structure
-
-```
-movie-library/
-├── index.html          # Main application
-├── script.js           # Core functionality
-├── styles.css          # Styling
-├── supabase.js         # Supabase integration
-├── test-import.csv     # Sample CSV data
-└── README.md           # This file
-```
-
-## 🎨 Features Overview
-
-- **Smart Search**: Find content by title, actor, or director
-- **Genre Filtering**: Filter by movie/TV genres
-- **Multiple Sorting**: Sort by title, year, or genre
-- **CSV Export/Import**: Backup and restore your data
-- **Responsive Design**: Works on all screen sizes
-- **Real-time Sync**: Changes appear instantly across devices
-- **Offline Support**: Use without internet connection
-
-## 🔮 Future Enhancements
-
-- Social features (sharing wishlists)
-- Streaming service integration
-- Personalized recommendations
-- Mobile app versions
-- Advanced filtering options
-
-## 🤝 Contributing
-
-This is a personal project, but suggestions and improvements are welcome!
-
-## 📄 License
-
-Open source - feel free to use and modify for your own projects.
-
----
-
-**Enjoy building your perfect movie watchlist!** 🍿🎬
+- The backend serves as a proxy to handle CORS restrictions from GDACS
+- Multiple data sources ensure reliability
+- Events are color-coded by alert level (Green/Orange/Red)
+- Mobile-responsive design adapts to different screen sizes
