@@ -83,19 +83,43 @@ async function fetchGDACSRSSData() {
                 
                 if (isNaN(latitude) || isNaN(longitude)) return;
                 
-                // Determine alert level and type from title
+                // Determine alert level and type from title and description
                 let alertLevel = 'GREEN';
                 let type = 'Other';
                 
                 const titleLower = title.toLowerCase();
-                if (titleLower.includes('red')) alertLevel = 'RED';
-                else if (titleLower.includes('orange')) alertLevel = 'ORANGE';
+                const descriptionLower = description.toLowerCase();
+                const fullText = (titleLower + ' ' + descriptionLower);
+                
+                // More comprehensive alert level detection
+                if (fullText.includes('red alert') || titleLower.includes('red ') || 
+                    fullText.includes('severity: red') || fullText.includes('alert level: red') ||
+                    fullText.includes('magnitude 6') || fullText.includes('magnitude 7') || 
+                    fullText.includes('magnitude 8') || fullText.includes('magnitude 9')) {
+                    alertLevel = 'RED';
+                } else if (fullText.includes('orange alert') || titleLower.includes('orange ') || 
+                          fullText.includes('severity: orange') || fullText.includes('alert level: orange') ||
+                          fullText.includes('magnitude 5.') || fullText.includes('magnitude 5,')) {
+                    alertLevel = 'ORANGE';
+                } else if (fullText.includes('green alert') || titleLower.includes('green ') || 
+                          fullText.includes('severity: green') || fullText.includes('alert level: green')) {
+                    alertLevel = 'GREEN';
+                }
                 
                 if (titleLower.includes('earthquake')) type = 'Earthquake';
                 else if (titleLower.includes('flood')) type = 'Flood';
                 else if (titleLower.includes('cyclone') || titleLower.includes('hurricane') || titleLower.includes('typhoon')) type = 'Cyclone';
                 else if (titleLower.includes('fire')) type = 'Wildfire';
                 else if (titleLower.includes('volcano')) type = 'Volcanic Activity';
+                
+                // Extract magnitude for earthquakes
+                let magnitude = null;
+                if (type === 'Earthquake') {
+                    const magnitudeMatch = fullText.match(/magnitude\s*(\d+\.?\d*)/i);
+                    if (magnitudeMatch) {
+                        magnitude = parseFloat(magnitudeMatch[1]);
+                    }
+                }
                 
                 // Estimate population
                 const radiusKm = type === 'Earthquake' ? 10 : (type === 'Cyclone' ? 75 : 20);
@@ -108,7 +132,7 @@ async function fetchGDACSRSSData() {
                     alertLevel: alertLevel,
                     latitude: latitude,
                     longitude: longitude,
-                    magnitude: null,
+                    magnitude: magnitude,
                     date: pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     description: description,
                     source: 'GDACS-RSS',
@@ -121,12 +145,20 @@ async function fetchGDACSRSSData() {
                 };
                 
                 events.push(event);
-                console.log(`Parsed event: ${title} at ${latitude}, ${longitude}`);
+                console.log(`Parsed event: ${alertLevel} ${type} - ${title} at ${latitude}, ${longitude}`);
                 
             } catch (error) {
                 console.error(`Error parsing RSS item ${index}:`, error.message);
             }
         });
+        
+        // Log alert level distribution
+        const alertStats = events.reduce((stats, event) => {
+            stats[event.alertLevel] = (stats[event.alertLevel] || 0) + 1;
+            return stats;
+        }, {});
+        
+        console.log(`Alert level distribution: RED: ${alertStats.RED || 0}, ORANGE: ${alertStats.ORANGE || 0}, GREEN: ${alertStats.GREEN || 0}`);
         
         return events;
     } catch (error) {
