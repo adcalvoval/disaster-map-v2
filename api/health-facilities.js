@@ -1,4 +1,5 @@
-const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = async (req, res) => {
     // Enable CORS
@@ -13,84 +14,52 @@ module.exports = async (req, res) => {
     }
 
     try {
-        console.log('Fetching health facilities from IFRC public local units API');
+        console.log('Loading health facilities from local JSON file');
         
-        const { limit = 1000, offset = 0, country = '' } = req.query;
+        const { limit = 1000, offset = 0, country = '', functionality = '' } = req.query;
         
-        // IFRC public local units API endpoint
-        let url = `https://goadmin.ifrc.org/api/v2/public-local-units/?limit=${limit}&offset=${offset}`;
+        // Load the health facilities data from JSON file
+        const dataPath = path.join(process.cwd(), 'health-facilities-data.json');
+        const jsonData = fs.readFileSync(dataPath, 'utf-8');
+        const allFacilities = JSON.parse(jsonData);
         
-        // Add country filter if provided
+        console.log(`Loaded ${allFacilities.length} health facilities from JSON file`);
+        
+        // Apply filters
+        let filteredFacilities = allFacilities;
+        
+        // Filter by country if specified
         if (country) {
-            url += `&country=${country}`;
+            filteredFacilities = filteredFacilities.filter(facility => 
+                facility.country && facility.country.toLowerCase().includes(country.toLowerCase())
+            );
         }
         
-        console.log(`Making request to: ${url}`);
-        const response = await axios.get(url, {
-            timeout: 15000,
-            headers: {
-                'User-Agent': 'DisasterMapApp/1.0',
-                'Accept': 'application/json'
-            }
-        });
+        // Filter by functionality if specified
+        if (functionality) {
+            filteredFacilities = filteredFacilities.filter(facility => 
+                facility.functionality && facility.functionality.toLowerCase().includes(functionality.toLowerCase())
+            );
+        }
         
-        const data = response.data;
-        const localUnits = data.results || [];
+        // Apply pagination
+        const startIndex = parseInt(offset) || 0;
+        const limitNum = parseInt(limit) || 1000;
+        const paginatedFacilities = filteredFacilities.slice(startIndex, startIndex + limitNum);
         
-        // Filter to only include health facilities (units with health property)
-        const healthFacilities = localUnits.filter(unit => 
-            unit.health && unit.health_details && unit.health_details.health_facility_type_details
-        );
-        
-        console.log(`Retrieved ${localUnits.length} local units from IFRC API (${healthFacilities.length} health facilities)`);
-        
-        // Transform IFRC health facilities to our format
-        const facilities = healthFacilities.map((unit, index) => {
-            // Extract coordinates from location_geojson
-            const coordinates = unit.location_geojson?.coordinates || [0, 0];
-            const longitude = parseFloat(coordinates[0]) || 0;
-            const latitude = parseFloat(coordinates[1]) || 0;
-            
-            // Map health facility types to our categories
-            const facilityType = mapIFRCHealthFacilityType(unit.health_details?.health_facility_type_details?.name || 'Other');
-            
-            // Determine functionality based on available data
-            const functionality = determineFunctionality(unit);
-            
-            // Use appropriate name
-            const name = unit.local_branch_name || unit.english_branch_name || 'Unnamed Local Unit';
-            
-            return {
-                id: `ifrc_${unit.id || index}`,
-                name: name,
-                type: facilityType,
-                country: unit.country_details?.name || 'Unknown',
-                district: unit.address_loc || unit.address_en || 'Unknown',
-                latitude: latitude,
-                longitude: longitude,
-                functionality: functionality,
-                speciality: unit.health_details?.health_facility_type_details?.name || 'General Services',
-                source: 'IFRC Local Units',
-                original_type: unit.health_details?.health_facility_type_details?.name || 'Unknown'
-            };
-        }).filter(facility => facility.latitude !== 0 && facility.longitude !== 0); // Only include facilities with valid coordinates
-        
-        console.log(`Transformed ${facilities.length} facilities with valid coordinates`);
+        console.log(`Returning ${paginatedFacilities.length} facilities (filtered: ${filteredFacilities.length}, total: ${allFacilities.length})`);
         
         res.status(200).json({
             success: true,
-            count: facilities.length,
-            total: facilities.length, // Use actual facilities count since we're filtering
-            facilities: facilities,
-            debug: {
-                totalLocalUnits: localUnits.length,
-                healthFacilitiesFiltered: healthFacilities.length,
-                facilitiesWithCoordinates: facilities.length
-            }
+            count: paginatedFacilities.length,
+            total: filteredFacilities.length,
+            totalUnfiltered: allFacilities.length,
+            facilities: paginatedFacilities,
+            source: 'Health Facilities JSON File'
         });
         
     } catch (error) {
-        console.error('Error fetching health facilities from IFRC:', error.message);
+        console.error('Error loading health facilities from JSON file:', error.message);
         
         // Return sample data as fallback
         const sampleFacilities = getSampleFacilities();
@@ -98,57 +67,14 @@ module.exports = async (req, res) => {
         res.status(200).json({
             success: true,
             count: sampleFacilities.length,
+            total: sampleFacilities.length,
             facilities: sampleFacilities,
-            note: 'Using sample data - IFRC API temporarily unavailable',
+            note: 'Using sample data - JSON file not available',
             error: error.message
         });
     }
 };
 
-// Helper function to map IFRC health facility types to our facility categories
-function mapIFRCHealthFacilityType(type) {
-    if (!type) return 'Other';
-    
-    const typeLower = type.toLowerCase();
-    
-    if (typeLower.includes('hospital')) {
-        return 'Hospitals';
-    } else if (typeLower.includes('ambulance station')) {
-        return 'Ambulance Stations';
-    } else if (typeLower.includes('blood center') || typeLower.includes('blood centre')) {
-        return 'Blood Centres';
-    } else if (typeLower.includes('pharmacy')) {
-        return 'Pharmacies';
-    } else if (typeLower.includes('training')) {
-        return 'Training Facilities';
-    } else if (typeLower.includes('specialized services')) {
-        return 'Specialized Services';
-    } else if (typeLower.includes('residential facility')) {
-        return 'Residential Facilities';
-    } else if (typeLower.includes('primary health care center') || typeLower.includes('primary health care centre')) {
-        return 'Primary Health Care Centres';
-    } else {
-        return 'Other';
-    }
-}
-
-// Helper function to determine functionality status
-function determineFunctionality(unit) {
-    // Check if there are any status indicators in the data
-    if (unit.status) {
-        const status = unit.status.toLowerCase();
-        if (status.includes('active') || status.includes('operational')) {
-            return 'Fully Functional';
-        } else if (status.includes('limited') || status.includes('partial')) {
-            return 'Partially Functional';
-        } else if (status.includes('closed') || status.includes('inactive')) {
-            return 'Not Functional';
-        }
-    }
-    
-    // Default to functional if no status information
-    return 'Fully Functional';
-}
 
 // Fallback sample data
 function getSampleFacilities() {
