@@ -552,14 +552,22 @@ class DisasterMap {
     }
 
     addHealthFacilitiesToMap() {
+        console.log(`Adding health facilities to map. Total facilities: ${this.healthFacilities.length}`);
+        console.log('Facility type visibility:', this.facilityTypeVisibility);
+        console.log('Selected health country:', this.selectedHealthCountry);
+        console.log('Selected health functionality:', this.selectedHealthFunctionality);
+        
         let addedCount = 0;
         let filteredByType = 0;
         let filteredByCountry = 0;
         let filteredByFunctionality = 0;
         
         this.healthFacilities.forEach(facility => {
+            console.log(`Processing facility: ${facility.name} (type: ${facility.type}, country: ${facility.country})`);
+            
             // Only add facilities that are visible based on type selection
             if (!this.facilityTypeVisibility[facility.type]) {
+                console.log(`Filtered by type: ${facility.type} not visible`);
                 filteredByType++;
                 return;
             }
@@ -577,6 +585,7 @@ class DisasterMap {
             }
             
             addedCount++;
+            console.log(`Adding facility to map: ${facility.name}`);
             
             const color = this.getHealthFacilityColor(facility.type);
             const icon = this.createHealthFacilityIcon(color, facility.type);
