@@ -37,10 +37,15 @@ module.exports = async (req, res) => {
         const data = response.data;
         const localUnits = data.results || [];
         
-        console.log(`Retrieved ${localUnits.length} local units from IFRC API`);
+        // Filter to only include health facilities (units with health property)
+        const healthFacilities = localUnits.filter(unit => 
+            unit.health && unit.health_details && unit.health_details.health_facility_type_details
+        );
         
-        // Transform IFRC local units to health facilities format
-        const facilities = localUnits.map((unit, index) => {
+        console.log(`Retrieved ${localUnits.length} local units from IFRC API (${healthFacilities.length} health facilities)`);
+        
+        // Transform IFRC health facilities to our format
+        const facilities = healthFacilities.map((unit, index) => {
             // Extract coordinates from location_geojson
             const coordinates = unit.location_geojson?.coordinates || [0, 0];
             const longitude = parseFloat(coordinates[0]) || 0;
@@ -75,8 +80,13 @@ module.exports = async (req, res) => {
         res.status(200).json({
             success: true,
             count: facilities.length,
-            total: data.count || facilities.length,
-            facilities: facilities
+            total: facilities.length, // Use actual facilities count since we're filtering
+            facilities: facilities,
+            debug: {
+                totalLocalUnits: localUnits.length,
+                healthFacilitiesFiltered: healthFacilities.length,
+                facilitiesWithCoordinates: facilities.length
+            }
         });
         
     } catch (error) {
