@@ -11,6 +11,9 @@ class DisasterMap {
         this.showHealthFacilities = false;
         this.selectedCountry = ''; // Add country filter state
         this.ifrcSearchTerm = ''; // Add IFRC document search term
+        this.selectedHealthCountry = ''; // Health facilities country filter
+        this.selectedHealthFunctionality = ''; // Health facilities functionality filter
+        this.selectedHealthVisibility = ''; // Health facilities visibility filter
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -107,6 +110,12 @@ class DisasterMap {
         // Health facilities functionality filter
         document.getElementById('healthFunctionalityFilter').addEventListener('change', (e) => {
             this.selectedHealthFunctionality = e.target.value;
+            this.filterHealthFacilities();
+        });
+
+        // Health facilities visibility filter
+        document.getElementById('healthVisibilityFilter').addEventListener('change', (e) => {
+            this.selectedHealthVisibility = e.target.value;
             this.filterHealthFacilities();
         });
 
@@ -573,6 +582,12 @@ class DisasterMap {
             }
             
             console.log(`Loaded ${allFacilities.length} total health facilities`);
+            
+            // Add visibility field to each facility based on affiliation
+            allFacilities.forEach(facility => {
+                facility.visibility = this.determineVisibility(facility);
+            });
+            
             this.healthFacilities = allFacilities;
             this.populateCountryFilter();
             this.initHealthFacilityCountryFilter(); // Initialize after data is loaded
@@ -589,10 +604,12 @@ class DisasterMap {
         console.log('Facility type visibility:', this.facilityTypeVisibility);
         console.log('Selected health country:', this.selectedHealthCountry);
         console.log('Selected health functionality:', this.selectedHealthFunctionality);
+        console.log('Selected health visibility:', this.selectedHealthVisibility);
         
         let addedCount = 0;
         let filteredByType = 0;
         let filteredByCountry = 0;
+        let filteredByVisibility = 0;
         let filteredByFunctionality = 0;
         
         this.healthFacilities.forEach(facility => {
@@ -611,6 +628,12 @@ class DisasterMap {
                 return;
             }
             
+            // Filter by visibility if a visibility level is selected
+            if (!this.matchesVisibilityFilter(facility)) {
+                filteredByVisibility++;
+                return;
+            }
+
             // Filter by functionality if a functionality level is selected
             if (!this.matchesFunctionalityFilter(facility.functionality)) {
                 filteredByFunctionality++;
@@ -630,6 +653,7 @@ class DisasterMap {
                         <h4>${facility.name}</h4>
                         <p><strong>Type:</strong> ${facility.type}</p>
                         <p><strong>Functionality:</strong> <span style="color: ${this.getFunctionalityColor(facility.functionality)}; font-weight: bold;">${facility.functionality}</span></p>
+                        <p><strong>Visibility:</strong> ${facility.visibility || 'Public'}</p>
                         <p><strong>Country:</strong> ${facility.country}</p>
                         ${facility.district ? `<p><strong>District:</strong> ${facility.district}</p>` : ''}
                         ${facility.speciality ? `<p><strong>Speciality:</strong> ${facility.speciality}</p>` : ''}
@@ -641,9 +665,12 @@ class DisasterMap {
             this.healthFacilityMarkers.push(marker);
         });
         
-        console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by functionality: ${filteredByFunctionality}`);
+        console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by visibility: ${filteredByVisibility}, filtered by functionality: ${filteredByFunctionality}`);
         if (this.selectedHealthCountry) {
             console.log(`Applied country filter: "${this.selectedHealthCountry}"`);
+        }
+        if (this.selectedHealthVisibility) {
+            console.log(`Applied visibility filter: "${this.selectedHealthVisibility}"`);
         }
         if (this.selectedHealthFunctionality) {
             console.log(`Applied functionality filter: "${this.selectedHealthFunctionality}"`);
@@ -678,6 +705,36 @@ class DisasterMap {
                 return status.includes('partially functional') || status.includes('partially functioning') || status.includes('partial');
             case 'not':
                 return status.includes('not functional') || status.includes('non-functional') || status.includes('damaged') || status.includes('closed');
+            default:
+                return true;
+        }
+    }
+
+    determineVisibility(facility) {
+        // Determine visibility based on affiliation
+        const affiliation = facility.affiliation ? facility.affiliation.toLowerCase() : '';
+        
+        if (affiliation.includes('red cross') || affiliation.includes('red crescent')) {
+            return 'RCRC Movement';
+        } else if (affiliation.includes('ifrc') || affiliation.includes('international federation')) {
+            return 'IFRC Secretariat';
+        } else {
+            return 'Public'; // Default for non-Red Cross facilities
+        }
+    }
+
+    matchesVisibilityFilter(facility) {
+        if (!this.selectedHealthVisibility) return true; // No filter selected
+        
+        const facilityVisibility = facility.visibility ? facility.visibility.toLowerCase() : 'public';
+        
+        switch (this.selectedHealthVisibility) {
+            case 'public':
+                return facilityVisibility === 'public';
+            case 'rcrc':
+                return facilityVisibility.includes('rcrc movement') || facilityVisibility.includes('red cross');
+            case 'ifrc':
+                return facilityVisibility.includes('ifrc secretariat') || facilityVisibility.includes('ifrc');
             default:
                 return true;
         }
