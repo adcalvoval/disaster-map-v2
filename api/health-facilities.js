@@ -54,65 +54,10 @@ const sampleHealthFacilities = [
         longitude: 28.9784,
         functionality: 'Fully Functional',
         speciality: 'Trauma Center'
-    },
-    {
-        id: 'hf_6',
-        name: 'Ankara Emergency Response Center',
-        type: 'Ambulance Stations', 
-        country: 'Turkey',
-        district: 'Ankara',
-        latitude: 39.9334,
-        longitude: 32.8597,
-        functionality: 'Partially Functional',
-        speciality: 'Emergency Response'
-    },
-    {
-        id: 'hf_7',
-        name: 'Manila General Hospital',
-        type: 'Hospitals',
-        country: 'Philippines',
-        district: 'Manila',
-        latitude: 14.5995,
-        longitude: 120.9842,
-        functionality: 'Fully Functional',
-        speciality: 'General Medicine'
-    },
-    {
-        id: 'hf_8',
-        name: 'Cebu Medical Training Center',
-        type: 'Training Facilities',
-        country: 'Philippines',
-        district: 'Cebu',
-        latitude: 10.3157,
-        longitude: 123.8854,
-        functionality: 'Fully Functional',
-        speciality: 'Medical Training'
-    },
-    {
-        id: 'hf_9',
-        name: 'Jakarta Emergency Pharmacy',
-        type: 'Pharmacies',
-        country: 'Indonesia',
-        district: 'Jakarta',
-        latitude: -6.2088,
-        longitude: 106.8456,
-        functionality: 'Partially Functional',
-        speciality: 'Emergency Medications'
-    },
-    {
-        id: 'hf_10',
-        name: 'Surabaya Specialized Clinic',
-        type: 'Specialized Services',
-        country: 'Indonesia', 
-        district: 'Surabaya',
-        latitude: -7.2575,
-        longitude: 112.7521,
-        functionality: 'Not Functional',
-        speciality: 'Specialized Care'
     }
 ];
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -141,4 +86,4 @@ export default async function handler(req, res) {
             facilities: []
         });
     }
-}
+};
