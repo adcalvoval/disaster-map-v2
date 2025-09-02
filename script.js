@@ -10,6 +10,7 @@ class DisasterMap {
         this.healthFacilities = [];
         this.showHealthFacilities = false;
         this.selectedCountry = ''; // Add country filter state
+        this.ifrcSearchTerm = ''; // Add IFRC document search term
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -86,6 +87,15 @@ class DisasterMap {
         document.getElementById('countryFilter').addEventListener('change', (e) => {
             this.selectedCountry = e.target.value;
             this.loadIfrcDocuments();
+        });
+
+        // IFRC Document search functionality
+        document.getElementById('ifrcDocumentSearch').addEventListener('input', (e) => {
+            this.searchIfrcDocuments(e.target.value);
+        });
+
+        document.getElementById('clearIfrcDocumentSearch').addEventListener('click', () => {
+            this.clearIfrcDocumentSearch();
         });
 
         // Health facilities country filter
@@ -925,6 +935,10 @@ class DisasterMap {
             if (this.selectedCountry) {
                 params.append('country', this.selectedCountry);
             }
+
+            if (this.ifrcSearchTerm) {
+                params.append('search', this.ifrcSearchTerm);
+            }
             
             const response = await fetch(`/api/ifrc-documents?${params}`);
             const data = await response.json();
@@ -976,6 +990,29 @@ class DisasterMap {
         }).join('');
         
         documentsList.innerHTML = documentsHTML;
+    }
+
+    // IFRC Document search functionality
+    searchIfrcDocuments(query) {
+        const searchInput = document.getElementById('ifrcDocumentSearch');
+        const clearBtn = document.getElementById('clearIfrcDocumentSearch');
+        
+        // Show/hide clear button
+        clearBtn.style.display = query.trim() ? 'block' : 'none';
+        
+        // Update search term and reload documents
+        this.ifrcSearchTerm = query.trim();
+        this.loadIfrcDocuments();
+    }
+
+    clearIfrcDocumentSearch() {
+        const searchInput = document.getElementById('ifrcDocumentSearch');
+        const clearBtn = document.getElementById('clearIfrcDocumentSearch');
+        
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        this.ifrcSearchTerm = '';
+        this.loadIfrcDocuments();
     }
 
     // Event search functionality

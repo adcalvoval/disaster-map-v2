@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
     }
 
     try {
-        const { country = '', page = 1, limit = 20 } = req.query;
+        const { country = '', page = 1, limit = 20, search = '' } = req.query;
         
         console.log(`Fetching IFRC documents for country: "${country}", page: ${page}, limit: ${limit}`);
         
@@ -72,6 +72,25 @@ module.exports = async (req, res) => {
             );
             console.log(`Filtered to ${filteredDocuments.length} documents for country: ${country}`);
         }
+
+        // Filter by search term if specified
+        if (search) {
+            const searchTerm = search.toLowerCase();
+            filteredDocuments = filteredDocuments.filter(doc => {
+                const name = (doc.name || '').toLowerCase();
+                const description = (doc.description || '').toLowerCase();
+                const type = (doc.type || '').toLowerCase();
+                const countryName = doc.appeal?.event?.countries_for_preview?.[0]?.name?.toLowerCase() || '';
+                const appealCode = doc.appeal?.code?.toLowerCase() || '';
+                
+                return name.includes(searchTerm) || 
+                       description.includes(searchTerm) || 
+                       type.includes(searchTerm) || 
+                       countryName.includes(searchTerm) ||
+                       appealCode.includes(searchTerm);
+            });
+            console.log(`Filtered to ${filteredDocuments.length} documents for search: "${search}"`);
+        }
         
         // Transform the data to match frontend expectations
         const transformedDocuments = filteredDocuments.map(doc => ({
@@ -102,7 +121,7 @@ module.exports = async (req, res) => {
         console.error('Error fetching IFRC documents:', error.message);
         
         // Return sample data as fallback with correct format
-        const sampleDocuments = [
+        let sampleDocuments = [
             {
                 id: 'sample_1',
                 name: 'Pakistan - Flood Emergency Appeal (MDRPK028)',
@@ -143,6 +162,30 @@ module.exports = async (req, res) => {
                 appeal: { code: 'MDRSY016', start_date: '2025-08-14T00:00:00Z' }
             }
         ];
+
+        // Apply country and search filtering to sample data
+        if (country) {
+            sampleDocuments = sampleDocuments.filter(doc => 
+                doc.country?.toLowerCase() === country.toLowerCase()
+            );
+        }
+
+        if (search) {
+            const searchTerm = search.toLowerCase();
+            sampleDocuments = sampleDocuments.filter(doc => {
+                const name = (doc.name || '').toLowerCase();
+                const description = (doc.description || '').toLowerCase();
+                const type = (doc.type || '').toLowerCase();
+                const countryName = (doc.country_name || '').toLowerCase();
+                const appealCode = doc.appeal?.code?.toLowerCase() || '';
+                
+                return name.includes(searchTerm) || 
+                       description.includes(searchTerm) || 
+                       type.includes(searchTerm) || 
+                       countryName.includes(searchTerm) ||
+                       appealCode.includes(searchTerm);
+            });
+        }
         
         res.status(200).json({
             success: true,
