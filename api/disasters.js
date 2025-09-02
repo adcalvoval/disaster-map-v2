@@ -91,19 +91,27 @@ async function fetchGDACSRSSData() {
                 const descriptionLower = description.toLowerCase();
                 const fullText = (titleLower + ' ' + descriptionLower);
                 
-                // More comprehensive alert level detection
-                if (fullText.includes('red alert') || titleLower.includes('red ') || 
-                    fullText.includes('severity: red') || fullText.includes('alert level: red') ||
-                    fullText.includes('magnitude 6') || fullText.includes('magnitude 7') || 
-                    fullText.includes('magnitude 8') || fullText.includes('magnitude 9')) {
+                // More comprehensive alert level detection - prioritize explicit alert levels
+                if (fullText.includes('red alert') || fullText.includes('red earthquake alert') || 
+                    titleLower.includes('red ') || fullText.includes('severity: red') || 
+                    fullText.includes('alert level: red')) {
                     alertLevel = 'RED';
-                } else if (fullText.includes('orange alert') || titleLower.includes('orange ') || 
-                          fullText.includes('severity: orange') || fullText.includes('alert level: orange') ||
-                          fullText.includes('magnitude 5.') || fullText.includes('magnitude 5,')) {
+                } else if (fullText.includes('orange alert') || fullText.includes('orange earthquake alert') || 
+                          titleLower.includes('orange ') || fullText.includes('severity: orange') || 
+                          fullText.includes('alert level: orange')) {
                     alertLevel = 'ORANGE';
-                } else if (fullText.includes('green alert') || titleLower.includes('green ') || 
-                          fullText.includes('severity: green') || fullText.includes('alert level: green')) {
+                } else if (fullText.includes('green alert') || fullText.includes('green earthquake alert') || 
+                          titleLower.includes('green ') || fullText.includes('severity: green') || 
+                          fullText.includes('alert level: green')) {
                     alertLevel = 'GREEN';
+                } else {
+                    // Only use magnitude-based classification if no explicit alert level is mentioned
+                    if (fullText.includes('magnitude 6') || fullText.includes('magnitude 7') || 
+                        fullText.includes('magnitude 8') || fullText.includes('magnitude 9')) {
+                        alertLevel = 'RED';
+                    } else if (fullText.includes('magnitude 5.') || fullText.includes('magnitude 5,')) {
+                        alertLevel = 'ORANGE';
+                    }
                 }
                 
                 if (titleLower.includes('earthquake')) type = 'Earthquake';
