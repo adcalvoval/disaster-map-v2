@@ -29,21 +29,21 @@ module.exports = async (req, res) => {
         });
 
         const result = await parser.parseStringPromise(response.data);
-        const entries = result.feed?.entry || [];
+        const items = result.rss?.channel?.[0]?.item || [];
         
-        console.log(`Processing ${entries.length} CAP entries`);
+        console.log(`Processing ${items.length} CAP items`);
         
         const impactZones = [];
         
-        entries.forEach((entry, index) => {
+        items.forEach((item, index) => {
             try {
-                const title = entry.title?.[0] || 'Unknown Event';
-                const id = entry.id?.[0] || `gdacs_cap_${index}`;
-                const updated = entry.updated?.[0] || '';
-                const summary = entry.summary?.[0] || '';
+                const title = item.title?.[0] || 'Unknown Event';
+                const id = item.guid?.[0]?._ || item.guid?.[0] || `gdacs_cap_${index}`;
+                const updated = item.pubDate?.[0] || '';
+                const summary = item.description?.[0] || '';
                 
                 // Extract CAP alert data
-                const capAlert = entry['cap:alert']?.[0];
+                const capAlert = item['cap:alert']?.[0];
                 if (!capAlert) return;
                 
                 const capInfo = capAlert['cap:info']?.[0];
@@ -62,6 +62,11 @@ module.exports = async (req, res) => {
                 const areaDesc = capArea['cap:areaDesc']?.[0] || 'Unknown Area';
                 const polygon = capArea['cap:polygon']?.[0];
                 const circle = capArea['cap:circle']?.[0];
+                
+                // Also try to get coordinates from geo:Point if CAP area doesn't have geometry
+                const geoPoint = item['geo:Point']?.[0];
+                const geoLat = geoPoint ? parseFloat(geoPoint['geo:lat']?.[0]) : null;
+                const geoLon = geoPoint ? parseFloat(geoPoint['geo:long']?.[0]) : null;
                 
                 // Extract coordinates from polygon or circle
                 let impactGeometry = null;
@@ -105,6 +110,18 @@ module.exports = async (req, res) => {
                     }
                 }
                 
+                // If no CAP geometry but we have geo:Point, create a default circle
+                if (!impactGeometry && geoLat !== null && geoLon !== null) {
+                    centerPoint = [geoLon, geoLat];
+                    const defaultRadius = 50; // Default 50km radius
+                    impactGeometry = {
+                        type: 'Circle',
+                        center: [geoLon, geoLat],
+                        radius: defaultRadius * 1000 // Convert km to meters
+                    };
+                    radius = defaultRadius;
+                }
+                
                 // Extract population and damage estimates from summary
                 let populationAffected = null;
                 let populationDescription = '';
@@ -135,6 +152,14 @@ module.exports = async (req, res) => {
                 if (depthMatch) {
                     depth = parseFloat(depthMatch[1]);
                 }
+                
+                console.log(`Processing item ${index}: ${title}`);
+                console.log(`  Has CAP alert: ${!!capAlert}`);
+                console.log(`  Has CAP area: ${!!capArea}`);
+                console.log(`  Polygon: ${!!polygon}`);
+                console.log(`  Circle: ${!!circle}`);
+                console.log(`  Geo Point: lat=${geoLat}, lon=${geoLon}`);
+                console.log(`  Impact Geometry: ${!!impactGeometry}`);
                 
                 if (impactGeometry && centerPoint) {
                     impactZones.push({
