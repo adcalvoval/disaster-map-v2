@@ -1144,7 +1144,14 @@ class DisasterMap {
             return;
         }
         
-        const documentsHTML = documents.map(doc => {
+        // Sort documents by date (most recent first)
+        const sortedDocuments = documents.sort((a, b) => {
+            const dateA = new Date(a.created_at || 0);
+            const dateB = new Date(b.created_at || 0);
+            return dateB - dateA; // Descending order (most recent first)
+        });
+        
+        const documentsHTML = sortedDocuments.map(doc => {
             const date = new Date(doc.created_at).toLocaleDateString();
             const countryName = doc.country_name || 'Unknown';
             const disasterType = doc.disaster_type || 'General';
