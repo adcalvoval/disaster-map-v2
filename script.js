@@ -528,23 +528,46 @@ class DisasterMap {
     async loadHealthFacilities() {
         try {
             console.log('Loading health facilities...');
-            const response = await fetch('/api/health-facilities');
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            let allFacilities = [];
+            let offset = 0;
+            const limit = 1000;
+            let hasMore = true;
+            
+            while (hasMore && allFacilities.length < 5000) { // Cap at 5000 to avoid memory issues
+                console.log(`Fetching batch ${Math.floor(offset / limit) + 1} (offset: ${offset})`);
+                const response = await fetch(`/api/health-facilities?limit=${limit}&offset=${offset}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.facilities) {
+                    allFacilities = allFacilities.concat(result.facilities);
+                    console.log(`Batch loaded: ${result.count} facilities. Total: ${allFacilities.length}`);
+                    
+                    // Check if there are more facilities to fetch
+                    hasMore = result.facilities.length === limit && allFacilities.length < result.total;
+                    offset += limit;
+                } else {
+                    console.warn('No facilities in response or error:', result.error);
+                    hasMore = false;
+                }
+                
+                // Add a small delay between requests to be respectful to the API
+                if (hasMore) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
             }
             
-            const result = await response.json();
+            console.log(`Loaded ${allFacilities.length} total health facilities`);
+            this.healthFacilities = allFacilities;
+            this.populateCountryFilter();
+            this.initHealthFacilityCountryFilter(); // Initialize after data is loaded
+            this.updateLegendCounts();
             
-            if (result.success && result.facilities) {
-                console.log(`Loaded ${result.count} health facilities`);
-                this.healthFacilities = result.facilities;
-                this.populateCountryFilter();
-                this.initHealthFacilityCountryFilter(); // Initialize after data is loaded
-                this.updateLegendCounts();
-            } else {
-                throw new Error(result.error || 'No health facilities received');
-            }
         } catch (error) {
             console.error('Error loading health facilities:', error);
             this.healthFacilities = [];

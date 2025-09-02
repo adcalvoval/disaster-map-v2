@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
     try {
         console.log('Fetching health facilities from IFRC public local units API');
         
-        const { limit = 100, offset = 0, country = '' } = req.query;
+        const { limit = 1000, offset = 0, country = '' } = req.query;
         
         // IFRC public local units API endpoint
         let url = `https://goadmin.ifrc.org/api/v2/public-local-units/?limit=${limit}&offset=${offset}`;
