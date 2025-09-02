@@ -3,9 +3,12 @@ class DisasterMap {
         this.map = null;
         this.markers = [];
         this.affectedAreas = [];
+        this.impactZones = [];
+        this.impactZoneLayer = null;
         this.disasterEvents = [];
         this.filteredEvents = [];
         this.showAffectedAreas = true;
+        this.showImpactZones = true;
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
         this.showHealthFacilities = false;
@@ -33,6 +36,7 @@ class DisasterMap {
         this.initEventListeners();
         this.initializeDateInputs();
         this.loadDisasterData();
+        this.loadImpactZones();
         this.loadHealthFacilities();
         this.initIfrcDocuments();
     }
@@ -62,6 +66,11 @@ class DisasterMap {
         document.getElementById('showAffectedAreas').addEventListener('change', (e) => {
             this.showAffectedAreas = e.target.checked;
             this.toggleAffectedAreas();
+        });
+
+        document.getElementById('showImpactZones').addEventListener('change', (e) => {
+            this.showImpactZones = e.target.checked;
+            this.toggleImpactZones();
         });
 
         document.getElementById('showHealthFacilities').addEventListener('change', (e) => {
@@ -540,6 +549,120 @@ class DisasterMap {
         if (event && marker) {
             this.map.setView([event.latitude, event.longitude], 8);
             marker.openPopup();
+        }
+    }
+
+    // Impact Zones Methods
+    async loadImpactZones() {
+        try {
+            console.log('Loading impact zones from GDACS CAP XML...');
+            const response = await fetch('/api/gdacs-cap');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.impactZones) {
+                console.log(`Loaded ${result.count} impact zones`);
+                this.impactZones = result.impactZones;
+                this.displayImpactZones();
+            } else {
+                throw new Error(result.error || 'No impact zones received');
+            }
+        } catch (error) {
+            console.error('Error loading impact zones:', error);
+            this.impactZones = [];
+        }
+    }
+
+    displayImpactZones() {
+        if (!this.showImpactZones) return;
+        
+        // Remove existing impact zone layer
+        if (this.impactZoneLayer) {
+            this.map.removeLayer(this.impactZoneLayer);
+        }
+        
+        // Create a layer group for impact zones
+        this.impactZoneLayer = L.layerGroup();
+        
+        this.impactZones.forEach(zone => {
+            let layer;
+            
+            if (zone.geometry.type === 'Polygon') {
+                // Create polygon layer
+                const coordinates = zone.geometry.coordinates[0].map(coord => [coord[1], coord[0]]); // Convert to [lat, lon]
+                layer = L.polygon(coordinates, {
+                    color: this.getImpactZoneColor(zone.severity),
+                    fillColor: this.getImpactZoneColor(zone.severity),
+                    fillOpacity: 0.2,
+                    weight: 2,
+                    opacity: 0.7
+                });
+            } else if (zone.geometry.type === 'Circle') {
+                // Create circle layer
+                const [lon, lat] = zone.geometry.center;
+                const radiusMeters = zone.geometry.radius || 50000;
+                layer = L.circle([lat, lon], {
+                    radius: radiusMeters,
+                    color: this.getImpactZoneColor(zone.severity),
+                    fillColor: this.getImpactZoneColor(zone.severity),
+                    fillOpacity: 0.2,
+                    weight: 2,
+                    opacity: 0.7
+                });
+            }
+            
+            if (layer) {
+                // Add popup with impact zone information
+                const popupContent = `
+                    <div>
+                        <h4>${zone.title}</h4>
+                        <p><strong>Event Type:</strong> ${zone.eventType}</p>
+                        <p><strong>Severity:</strong> ${zone.severity}</p>
+                        <p><strong>Area:</strong> ${zone.areaDescription}</p>
+                        ${zone.magnitude ? `<p><strong>Magnitude:</strong> ${zone.magnitude}</p>` : ''}
+                        ${zone.depth ? `<p><strong>Depth:</strong> ${zone.depth} km</p>` : ''}
+                        ${zone.populationAffected ? `<p><strong>Population Affected:</strong> ${zone.populationAffected.toLocaleString()}</p>` : ''}
+                        <p><strong>Updated:</strong> ${new Date(zone.updated).toLocaleString()}</p>
+                    </div>
+                `;
+                
+                layer.bindPopup(popupContent);
+                this.impactZoneLayer.addLayer(layer);
+            }
+        });
+        
+        // Add layer group to map
+        this.impactZoneLayer.addTo(this.map);
+        console.log(`Added ${this.impactZones.length} impact zones to map`);
+    }
+
+    getImpactZoneColor(severity) {
+        switch (severity?.toLowerCase()) {
+            case 'extreme':
+                return '#8B0000'; // Dark red
+            case 'severe':
+                return '#FF0000'; // Red
+            case 'moderate':
+                return '#FF4500'; // Orange red
+            case 'minor':
+                return '#FFA500'; // Orange
+            case 'unknown':
+            default:
+                return '#FFD700'; // Gold
+        }
+    }
+
+    toggleImpactZones() {
+        if (this.showImpactZones) {
+            this.displayImpactZones();
+        } else {
+            if (this.impactZoneLayer) {
+                this.map.removeLayer(this.impactZoneLayer);
+            }
         }
     }
 
