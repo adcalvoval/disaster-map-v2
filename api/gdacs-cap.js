@@ -21,8 +21,10 @@ module.exports = async (req, res) => {
         const response = await axios.get('https://www.gdacs.org/xml/gdacs_cap.xml', {
             timeout: 15000,
             headers: {
-                'User-Agent': 'DisasterMapApp/1.0',
-                'Accept': 'application/xml'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Accept-Language': 'en-US,en;q=0.9'
             }
         });
 
@@ -173,7 +175,7 @@ module.exports = async (req, res) => {
     } catch (error) {
         console.error('Error fetching GDACS CAP data:', error.message);
         
-        // Return sample impact zone as fallback
+        // Return sample impact zones as fallback
         const sampleImpactZones = [
             {
                 id: 'sample_impact_1',
@@ -182,11 +184,11 @@ module.exports = async (req, res) => {
                 severity: 'Minor',
                 urgency: 'Past',
                 certainty: 'Observed',
-                areaDescription: 'Japan',
+                areaDescription: 'Honshu, Japan',
                 geometry: {
                     type: 'Circle',
                     center: [140.5, 38.5],
-                    radius: 50000 // 50km in meters
+                    radius: 50000
                 },
                 centerPoint: [140.5, 38.5],
                 radius: 50,
@@ -195,6 +197,57 @@ module.exports = async (req, res) => {
                 magnitude: 5.2,
                 depth: 10,
                 summary: 'Green earthquake alert (Magnitude 5.2M, Depth:10km) in Japan. 250 thousand people affected in 100km radius.',
+                updated: new Date().toISOString(),
+                source: 'GDACS-CAP'
+            },
+            {
+                id: 'sample_impact_2',
+                title: 'Orange earthquake alert (Magnitude 6.1M, Depth:25km) in Philippines',
+                eventType: 'Earthquake',
+                severity: 'Moderate',
+                urgency: 'Expected',
+                certainty: 'Observed',
+                areaDescription: 'Luzon, Philippines',
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[
+                        [120.5, 14.0],
+                        [121.5, 14.0],
+                        [121.5, 15.0],
+                        [120.5, 15.0],
+                        [120.5, 14.0]
+                    ]]
+                },
+                centerPoint: [121.0, 14.5],
+                radius: null,
+                populationAffected: 2500000,
+                populationDescription: '2.5 million people in 100km',
+                magnitude: 6.1,
+                depth: 25,
+                summary: 'Orange earthquake alert (Magnitude 6.1M, Depth:25km) in Philippines. 2.5 million people affected in 100km radius.',
+                updated: new Date().toISOString(),
+                source: 'GDACS-CAP'
+            },
+            {
+                id: 'sample_impact_3',
+                title: 'Green tropical cyclone alert in Pacific Ocean',
+                eventType: 'Tropical Cyclone',
+                severity: 'Minor',
+                urgency: 'Future',
+                certainty: 'Possible',
+                areaDescription: 'Western Pacific Ocean',
+                geometry: {
+                    type: 'Circle',
+                    center: [145.0, 20.0],
+                    radius: 100000
+                },
+                centerPoint: [145.0, 20.0],
+                radius: 100,
+                populationAffected: 50000,
+                populationDescription: '50 thousand people at risk',
+                magnitude: null,
+                depth: null,
+                summary: 'Green tropical cyclone alert in Pacific Ocean. 50 thousand people at risk in coastal areas.',
                 updated: new Date().toISOString(),
                 source: 'GDACS-CAP'
             }
