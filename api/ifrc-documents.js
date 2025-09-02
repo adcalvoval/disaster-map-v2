@@ -73,15 +73,18 @@ module.exports = async (req, res) => {
             console.log(`Filtered to ${filteredDocuments.length} documents for country: ${country}`);
         }
         
-        // Transform the data to match expected format
+        // Transform the data to match frontend expectations
         const transformedDocuments = filteredDocuments.map(doc => ({
             id: doc.id,
             name: doc.name || 'Untitled Document',
             type: doc.type || 'Unknown',
             country: doc.iso || 'Unknown',
-            date: doc.created_at ? new Date(doc.created_at).toISOString().split('T')[0] : null,
+            country_name: doc.appeal?.event?.countries_for_preview?.[0]?.name || 'Unknown',
+            created_at: doc.created_at,
+            disaster_type: doc.type || 'General',
             description: doc.description || '',
             document_url: doc.document_url,
+            document: doc.document_url,
             appeal: doc.appeal ? {
                 code: doc.appeal.code,
                 start_date: doc.appeal.start_date
@@ -92,33 +95,52 @@ module.exports = async (req, res) => {
             success: true,
             count: transformedDocuments.length,
             total: response.data?.count || transformedDocuments.length,
-            documents: transformedDocuments
+            results: transformedDocuments  // Frontend expects 'results' not 'documents'
         });
         
     } catch (error) {
         console.error('Error fetching IFRC documents:', error.message);
         
-        // Return sample data as fallback
+        // Return sample data as fallback with correct format
         const sampleDocuments = [
             {
                 id: 'sample_1',
                 name: 'Pakistan - Flood Emergency Appeal (MDRPK028)',
                 type: 'Emergency Appeal',
                 country: 'PK',
-                date: '2025-08-30',
+                country_name: 'Pakistan',
+                created_at: '2025-08-30T19:03:00Z',
+                disaster_type: 'Flood',
                 description: 'Emergency appeal for Pakistan flood response',
-                document_url: null,
-                appeal: { code: 'MDRPK028', start_date: '2025-08-21' }
+                document_url: 'https://go-api.ifrc.org/api/downloadfile/92265/MDRPK028EA',
+                document: 'https://go-api.ifrc.org/api/downloadfile/92265/MDRPK028EA',
+                appeal: { code: 'MDRPK028', start_date: '2025-08-21T00:00:00Z' }
             },
             {
                 id: 'sample_2',
                 name: 'Cape Verde - Flood DREF Operation (MDRCV005)',
                 type: 'DREF Operation',
                 country: 'CV',
-                date: '2025-08-28',
+                country_name: 'Cape Verde',
+                created_at: '2025-08-28T22:03:00Z',
+                disaster_type: 'Flood',
                 description: 'DREF operation for Cape Verde floods',
-                document_url: null,
-                appeal: { code: 'MDRCV005', start_date: '2025-08-20' }
+                document_url: 'https://go-api.ifrc.org/api/downloadfile/92258/MDRCV005do',
+                document: 'https://go-api.ifrc.org/api/downloadfile/92258/MDRCV005do',
+                appeal: { code: 'MDRCV005', start_date: '2025-08-20T00:00:00Z' }
+            },
+            {
+                id: 'sample_3',
+                name: 'Syria - Heatwave DREF Operation (MDRSY016)',
+                type: 'DREF Operation',
+                country: 'SY',
+                country_name: 'Syria',
+                created_at: '2025-08-20T20:03:00Z',
+                disaster_type: 'Heat Wave',
+                description: 'DREF operation for Syria heatwave response',
+                document_url: 'https://go-api.ifrc.org/api/downloadfile/92182/MDRSY016do',
+                document: 'https://go-api.ifrc.org/api/downloadfile/92182/MDRSY016do',
+                appeal: { code: 'MDRSY016', start_date: '2025-08-14T00:00:00Z' }
             }
         ];
         
@@ -126,7 +148,7 @@ module.exports = async (req, res) => {
             success: true,
             count: sampleDocuments.length,
             total: sampleDocuments.length,
-            documents: sampleDocuments,
+            results: sampleDocuments,  // Frontend expects 'results'
             note: 'Using sample data - IFRC API temporarily unavailable'
         });
     }
