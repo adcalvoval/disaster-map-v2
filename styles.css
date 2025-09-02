@@ -10,8 +10,9 @@ body {
     display: grid;
     grid-template-areas: 
         "header header"
-        "map sidebar";
-    grid-template-rows: 60px 1fr;
+        "map sidebar"
+        "footer footer";
+    grid-template-rows: 60px 1fr 40px;
     grid-template-columns: 1fr 300px;
 }
 
@@ -583,4 +584,32 @@ body {
         flex-direction: column;
         gap: 5px;
     }
+}
+
+/* Footer Styles */
+.footer {
+    grid-area: footer;
+    background: #34495e;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    border-top: 1px solid #2c3e50;
+}
+
+.footer p {
+    margin: 0;
+}
+
+.footer a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer a:hover {
+    color: #5dade2;
+    text-decoration: underline;
 }
