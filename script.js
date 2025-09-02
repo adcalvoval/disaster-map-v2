@@ -8,7 +8,7 @@ class DisasterMap {
         this.disasterEvents = [];
         this.filteredEvents = [];
         this.showAffectedAreas = true;
-        this.showImpactZones = true;
+        this.showImpactZones = false;
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
         this.showHealthFacilities = false;
