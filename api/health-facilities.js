@@ -18,7 +18,7 @@ module.exports = async (req, res) => {
         const { limit = 100, offset = 0, country = '' } = req.query;
         
         // IFRC public local units API endpoint
-        let url = `https://goadmin.ifrc.org/api/v2/public/local_units/?limit=${limit}&offset=${offset}`;
+        let url = `https://goadmin.ifrc.org/api/v2/public-local-units/?limit=${limit}&offset=${offset}`;
         
         // Add country filter if provided
         if (country) {
@@ -41,24 +41,32 @@ module.exports = async (req, res) => {
         
         // Transform IFRC local units to health facilities format
         const facilities = localUnits.map((unit, index) => {
-            // Map local unit types to our facility categories
-            const facilityType = mapLocalUnitType(unit.type_name || unit.type || 'Other');
+            // Extract coordinates from location_geojson
+            const coordinates = unit.location_geojson?.coordinates || [0, 0];
+            const longitude = parseFloat(coordinates[0]) || 0;
+            const latitude = parseFloat(coordinates[1]) || 0;
+            
+            // Map health facility types to our categories
+            const facilityType = mapIFRCHealthFacilityType(unit.health_details?.health_facility_type_details?.name || 'Other');
             
             // Determine functionality based on available data
             const functionality = determineFunctionality(unit);
             
+            // Use appropriate name
+            const name = unit.local_branch_name || unit.english_branch_name || 'Unnamed Local Unit';
+            
             return {
                 id: `ifrc_${unit.id || index}`,
-                name: unit.name || 'Unnamed Local Unit',
+                name: name,
                 type: facilityType,
-                country: unit.country_name || unit.country || 'Unknown',
-                district: unit.district_name || unit.district || unit.city || unit.address,
-                latitude: parseFloat(unit.latitude) || 0,
-                longitude: parseFloat(unit.longitude) || 0,
+                country: unit.country_details?.name || 'Unknown',
+                district: unit.address_loc || unit.address_en || 'Unknown',
+                latitude: latitude,
+                longitude: longitude,
                 functionality: functionality,
-                speciality: unit.type_name || unit.type || 'General Services',
+                speciality: unit.health_details?.health_facility_type_details?.name || 'General Services',
                 source: 'IFRC Local Units',
-                original_type: unit.type_name || unit.type
+                original_type: unit.health_details?.health_facility_type_details?.name || 'Unknown'
             };
         }).filter(facility => facility.latitude !== 0 && facility.longitude !== 0); // Only include facilities with valid coordinates
         
@@ -87,27 +95,27 @@ module.exports = async (req, res) => {
     }
 };
 
-// Helper function to map IFRC local unit types to our facility categories
-function mapLocalUnitType(type) {
+// Helper function to map IFRC health facility types to our facility categories
+function mapIFRCHealthFacilityType(type) {
     if (!type) return 'Other';
     
     const typeLower = type.toLowerCase();
     
-    if (typeLower.includes('hospital') || typeLower.includes('clinic')) {
+    if (typeLower.includes('hospital')) {
         return 'Hospitals';
-    } else if (typeLower.includes('ambulance') || typeLower.includes('emergency')) {
+    } else if (typeLower.includes('ambulance station')) {
         return 'Ambulance Stations';
-    } else if (typeLower.includes('blood') || typeLower.includes('transfusion')) {
+    } else if (typeLower.includes('blood center') || typeLower.includes('blood centre')) {
         return 'Blood Centres';
-    } else if (typeLower.includes('pharmacy') || typeLower.includes('medicine')) {
+    } else if (typeLower.includes('pharmacy')) {
         return 'Pharmacies';
-    } else if (typeLower.includes('training') || typeLower.includes('education')) {
+    } else if (typeLower.includes('training')) {
         return 'Training Facilities';
-    } else if (typeLower.includes('specialized') || typeLower.includes('specialist')) {
+    } else if (typeLower.includes('specialized services')) {
         return 'Specialized Services';
-    } else if (typeLower.includes('residential') || typeLower.includes('care home')) {
+    } else if (typeLower.includes('residential facility')) {
         return 'Residential Facilities';
-    } else if (typeLower.includes('health') || typeLower.includes('primary care')) {
+    } else if (typeLower.includes('primary health care center') || typeLower.includes('primary health care centre')) {
         return 'Primary Health Care Centres';
     } else {
         return 'Other';
