@@ -841,20 +841,20 @@ class DisasterMap {
                 <div style="
                     background-color: ${color};
                     color: white;
-                    border-radius: 4px;
-                    width: 24px;
-                    height: 24px;
+                    border-radius: 50%;
+                    width: 32px;
+                    height: 32px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     font-weight: bold;
-                    font-size: 12px;
+                    font-size: 16px;
                     border: 2px solid white;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                 ">${iconSymbol}</div>
             `,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
         });
     }
 
@@ -1348,37 +1348,32 @@ class DisasterMap {
     }
 
     getCsvHealthFacilityIcon(type) {
-        let iconHtml = '🏥';
-        let color = '#2563eb';
-        
-        switch(type.toLowerCase()) {
-            case 'hospital':
-                iconHtml = '🏥';
-                color = '#dc2626';
-                break;
-            case 'clinic':
-                iconHtml = '🏥';
-                color = '#16a34a';
-                break;
-            case 'dentist':
-                iconHtml = '🦷';
-                color = '#0891b2';
-                break;
-            case 'laboratory':
-                iconHtml = '🔬';
-                color = '#7c3aed';
-                break;
-            default:
-                iconHtml = '⚕️';
-                color = '#6b7280';
-        }
+        // All other health facilities use the same brown color and triangular shape
+        const color = '#8B4513'; // Brown color
+        const iconSymbol = '▲'; // Triangle symbol
         
         return L.divIcon({
-            html: `<div style="background-color: ${color}; color: white; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px dashed white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${iconHtml}</div>`,
+            html: `<div style="
+                background-color: ${color}; 
+                color: white; 
+                width: 20px; 
+                height: 20px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                font-size: 12px; 
+                font-weight: bold;
+                border: 1px solid white; 
+                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+                position: relative;
+            ">
+                <span style="margin-top: 2px;">${iconSymbol}</span>
+            </div>`,
             className: 'csv-health-facility-marker',
-            iconSize: [28, 28],
-            iconAnchor: [14, 14],
-            popupAnchor: [0, -14]
+            iconSize: [20, 20],
+            iconAnchor: [10, 17], // Anchor at bottom center of triangle
+            popupAnchor: [0, -17]
         });
     }
 
@@ -1386,37 +1381,90 @@ class DisasterMap {
         try {
             console.log('Loading shapefile health facilities...');
             
-            const shpUrl = './hotosm_pak_health_facilities_points_shp/hotosm_pak_health_facilities_points_shp.shp';
-            const dbfUrl = './hotosm_pak_health_facilities_points_shp/hotosm_pak_health_facilities_points_shp.dbf';
+            // Try loading the entire shapefile directory as a zip-like structure
+            const baseUrl = './hotosm_pak_health_facilities_points_shp/hotosm_pak_health_facilities_points_shp';
             
-            // Load shapefile using shpjs library
-            const geojson = await shp.combine([
-                shp.parseShp(await fetch(shpUrl).then(r => r.arrayBuffer())),
-                shp.parseDbf(await fetch(dbfUrl).then(r => r.arrayBuffer()))
-            ]);
+            // Method 1: Try using shpjs with the base filename (it should find .shp and .dbf automatically)
+            let geojson;
+            try {
+                console.log('Attempting to load shapefile with shp library...');
+                geojson = await shp(baseUrl);
+                console.log('Shapefile loaded successfully, geojson type:', typeof geojson);
+                console.log('GeoJSON structure:', geojson);
+            } catch (shpError) {
+                console.warn('shp() method failed, trying alternative approach:', shpError);
+                
+                // Method 2: Load files separately and combine
+                try {
+                    const [shpResponse, dbfResponse] = await Promise.all([
+                        fetch(baseUrl + '.shp'),
+                        fetch(baseUrl + '.dbf')
+                    ]);
+                    
+                    const [shpBuffer, dbfBuffer] = await Promise.all([
+                        shpResponse.arrayBuffer(),
+                        dbfResponse.arrayBuffer()
+                    ]);
+                    
+                    console.log('Files loaded, parsing...');
+                    geojson = shp.combine([
+                        shp.parseShp(shpBuffer),
+                        shp.parseDbf(dbfBuffer)
+                    ]);
+                    console.log('Alternative method successful, geojson:', geojson);
+                } catch (altError) {
+                    console.error('Alternative method also failed:', altError);
+                    throw altError;
+                }
+            }
             
             const facilities = [];
-            geojson.forEach(feature => {
-                if (feature.geometry && feature.geometry.coordinates) {
-                    const [longitude, latitude] = feature.geometry.coordinates;
-                    const props = feature.properties || {};
-                    
-                    facilities.push({
-                        name: props.name || props.NAME || 'Unnamed facility',
-                        type: props.healthcare || props.amenity || props.HEALTHCARE || props.AMENITY || 'Unknown',
-                        latitude: latitude,
-                        longitude: longitude,
-                        source: 'Pakistan OpenStreetMap',
-                        properties: props
-                    });
-                }
-            });
+            if (geojson) {
+                // Handle both array format and FeatureCollection format
+                const features = geojson.features || geojson;
+                console.log(`Processing ${features.length} features...`);
+                
+                features.forEach((feature, index) => {
+                    if (feature.geometry && feature.geometry.coordinates) {
+                        const [longitude, latitude] = feature.geometry.coordinates;
+                        const props = feature.properties || {};
+                        
+                        // Debug first few features
+                        if (index < 3) {
+                            console.log(`Feature ${index}:`, {
+                                coords: [longitude, latitude],
+                                props: props
+                            });
+                        }
+                        
+                        // Only include facilities with valid coordinates
+                        if (longitude && latitude && !isNaN(longitude) && !isNaN(latitude)) {
+                            facilities.push({
+                                name: props.name || props.NAME || props.Name || 'Unnamed facility',
+                                type: props.healthcare || props.amenity || props.HEALTHCARE || props.AMENITY || props.Healthcare || props.Amenity || 'Unknown',
+                                latitude: latitude,
+                                longitude: longitude,
+                                source: 'Pakistan OpenStreetMap',
+                                properties: props
+                            });
+                        }
+                    }
+                });
+            }
             
             this.shapefileHealthFacilities = facilities;
-            console.log(`Loaded ${facilities.length} shapefile health facilities from Pakistan`);
+            console.log(`Successfully loaded ${facilities.length} shapefile health facilities from Pakistan`);
+            
+            // Debug: Log first few facilities
+            if (facilities.length > 0) {
+                console.log('Sample facilities:', facilities.slice(0, 3));
+            }
             
         } catch (error) {
             console.error('Error loading shapefile health facilities:', error);
+            console.error('Full error details:', error);
+            // Set empty array so the rest of the app continues to work
+            this.shapefileHealthFacilities = [];
         }
     }
 
