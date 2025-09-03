@@ -20,6 +20,7 @@ class DisasterMap {
         this.selectedHealthCountries = []; // Health facilities country filter (multi-select)
         this.selectedHealthFunctionality = ''; // Health facilities functionality filter
         this.selectedImpactFacilityCountry = ''; // Impact facilities country filter
+        this.isFullscreen = false; // Fullscreen mode state
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -98,6 +99,18 @@ class DisasterMap {
 
         document.getElementById('clearEventSelection').addEventListener('click', () => {
             this.clearEventSelection();
+        });
+
+        // Fullscreen toggle
+        document.getElementById('fullscreenToggle').addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
+
+        // ESC key to exit fullscreen
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isFullscreen) {
+                this.toggleFullscreen();
+            }
         });
 
 
@@ -1705,6 +1718,31 @@ class DisasterMap {
         } else {
             return 'functionality-unknown';
         }
+    }
+
+    toggleFullscreen() {
+        this.isFullscreen = !this.isFullscreen;
+        
+        if (this.isFullscreen) {
+            // Enter fullscreen mode
+            document.body.classList.add('fullscreen-mode');
+            document.getElementById('fullscreenToggle').querySelector('.fullscreen-icon').textContent = '⛉';
+            document.getElementById('fullscreenToggle').title = 'Exit Fullscreen';
+        } else {
+            // Exit fullscreen mode
+            document.body.classList.remove('fullscreen-mode');
+            document.getElementById('fullscreenToggle').querySelector('.fullscreen-icon').textContent = '⛶';
+            document.getElementById('fullscreenToggle').title = 'Enter Fullscreen';
+        }
+        
+        // Invalidate map size after layout change
+        setTimeout(() => {
+            if (this.map) {
+                this.map.invalidateSize();
+            }
+        }, 100);
+        
+        console.log(`Fullscreen mode: ${this.isFullscreen ? 'ON' : 'OFF'}`);
     }
 }
 
