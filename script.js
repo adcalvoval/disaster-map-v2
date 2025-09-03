@@ -14,6 +14,7 @@ class DisasterMap {
         this.showHealthFacilities = false;
         this.csvHealthFacilityMarkers = [];
         this.csvHealthFacilities = [];
+        this.shapefileHealthFacilities = [];
         this.showOtherHealthFacilities = false;
         this.selectedCountry = ''; // Add country filter state
         this.ifrcSearchTerm = ''; // Add IFRC document search term
@@ -41,6 +42,7 @@ class DisasterMap {
         this.loadImpactZones();
         this.loadHealthFacilities();
         this.loadCsvHealthFacilities();
+        this.loadShapefileHealthFacilities();
         this.initIfrcDocuments();
     }
 
@@ -84,7 +86,7 @@ class DisasterMap {
 
         document.getElementById('showOtherHealthFacilities').addEventListener('change', (e) => {
             this.showOtherHealthFacilities = e.target.checked;
-            this.toggleCsvHealthFacilities();
+            this.toggleOtherHealthFacilities();
         });
 
         // Event search functionality
@@ -1311,9 +1313,10 @@ class DisasterMap {
         return result;
     }
 
-    toggleCsvHealthFacilities() {
+    toggleOtherHealthFacilities() {
         if (this.showOtherHealthFacilities) {
             this.addCsvHealthFacilitiesToMap();
+            this.addShapefileHealthFacilitiesToMap();
         } else {
             this.clearCsvHealthFacilityMarkers();
         }
@@ -1371,11 +1374,67 @@ class DisasterMap {
         }
         
         return L.divIcon({
-            html: `<div style="background-color: ${color}; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${iconHtml}</div>`,
+            html: `<div style="background-color: ${color}; color: white; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px dashed white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${iconHtml}</div>`,
             className: 'csv-health-facility-marker',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15],
-            popupAnchor: [0, -15]
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+            popupAnchor: [0, -14]
+        });
+    }
+
+    async loadShapefileHealthFacilities() {
+        try {
+            console.log('Loading shapefile health facilities...');
+            
+            const shpUrl = './hotosm_pak_health_facilities_points_shp/hotosm_pak_health_facilities_points_shp.shp';
+            const dbfUrl = './hotosm_pak_health_facilities_points_shp/hotosm_pak_health_facilities_points_shp.dbf';
+            
+            // Load shapefile using shpjs library
+            const geojson = await shp.combine([
+                shp.parseShp(await fetch(shpUrl).then(r => r.arrayBuffer())),
+                shp.parseDbf(await fetch(dbfUrl).then(r => r.arrayBuffer()))
+            ]);
+            
+            const facilities = [];
+            geojson.forEach(feature => {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    const [longitude, latitude] = feature.geometry.coordinates;
+                    const props = feature.properties || {};
+                    
+                    facilities.push({
+                        name: props.name || props.NAME || 'Unnamed facility',
+                        type: props.healthcare || props.amenity || props.HEALTHCARE || props.AMENITY || 'Unknown',
+                        latitude: latitude,
+                        longitude: longitude,
+                        source: 'Pakistan OpenStreetMap',
+                        properties: props
+                    });
+                }
+            });
+            
+            this.shapefileHealthFacilities = facilities;
+            console.log(`Loaded ${facilities.length} shapefile health facilities from Pakistan`);
+            
+        } catch (error) {
+            console.error('Error loading shapefile health facilities:', error);
+        }
+    }
+
+    addShapefileHealthFacilitiesToMap() {
+        this.shapefileHealthFacilities.forEach(facility => {
+            const icon = this.getCsvHealthFacilityIcon(facility.type); // Use same icon style as CSV
+            
+            const marker = L.marker([facility.latitude, facility.longitude], { icon })
+                .bindPopup(`
+                    <div class="popup-content">
+                        <h4>${facility.name}</h4>
+                        <p><strong>Type:</strong> ${facility.type}</p>
+                        <p><strong>Source:</strong> ${facility.source}</p>
+                    </div>
+                `);
+            
+            this.csvHealthFacilityMarkers.push(marker); // Use same array for consistency
+            marker.addTo(this.map);
         });
     }
 }
