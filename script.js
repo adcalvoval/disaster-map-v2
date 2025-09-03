@@ -1468,16 +1468,13 @@ class DisasterMap {
     displayImpactFacilities(facilities, facilitiesInImpactZones = []) {
         const facilitiesList = document.getElementById('impactFacilitiesList');
         
-        if (!facilities || facilities.length === 0) {
-            facilitiesList.innerHTML = '<div class="no-facilities">No RCRC health facilities found</div>';
+        if (!facilitiesInImpactZones || facilitiesInImpactZones.length === 0) {
+            facilitiesList.innerHTML = '<div class="no-facilities">No RCRC health facilities in impact zones</div>';
             return;
         }
 
-        // Create set of facility IDs that are in impact zones for quick lookup
-        const impactFacilityIds = new Set(facilitiesInImpactZones.map(f => f.id));
-
-        // Sort facilities by country first, then by name
-        const sortedFacilities = [...facilities].sort((a, b) => {
+        // Sort facilities in impact zones by country first, then by name
+        const sortedFacilities = [...facilitiesInImpactZones].sort((a, b) => {
             const countryA = a.country || 'Unknown';
             const countryB = b.country || 'Unknown';
             
@@ -1489,17 +1486,15 @@ class DisasterMap {
         });
 
         const facilitiesHtml = sortedFacilities.map(facility => {
-            const isInImpactZone = impactFacilityIds.has(facility.id);
-            
             return `
-                <div class="facility-card ${isInImpactZone ? 'in-impact-zone' : ''}" 
+                <div class="facility-card in-impact-zone" 
                      onclick="app.zoomToFacility(${facility.latitude}, ${facility.longitude}, '${facility.name.replace(/'/g, "\\'")}')">
                     <div class="facility-name">${facility.name}</div>
                     <div class="facility-district">${facility.district || facility.country || 'Unknown location'}</div>
                     <div class="facility-functionality ${this.getFunctionalityClass(facility.functionality)}">
                         ${facility.functionality || 'Unknown functionality'}
                     </div>
-                    ${isInImpactZone ? '<div class="impact-indicator">⚠️ In Impact Zone</div>' : ''}
+                    <div class="impact-indicator">⚠️ In Impact Zone</div>
                 </div>
             `;
         }).join('');
