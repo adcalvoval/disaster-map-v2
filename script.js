@@ -506,6 +506,12 @@ class DisasterMap {
         const event = this.disasterEvents.find(e => e.id === eventId);
         
         if (event) {
+            // Check if this event is already selected - if so, clear the selection
+            if (this.selectedEventId === eventId) {
+                this.clearEventSelection();
+                return;
+            }
+            
             // Set the selected event
             this.selectedEventId = eventId;
             
@@ -545,9 +551,9 @@ class DisasterMap {
     }
 
     filterImpactZonesForEvent(eventId) {
-        // Filter impact zones that are related to the selected event
-        // For now, we'll show all impact zones, but in a real implementation
-        // you might want to filter based on geographic proximity or event metadata
+        const selectedEvent = this.disasterEvents.find(e => e.id === eventId);
+        if (!selectedEvent) return;
+        
         if (this.impactZoneLayer) {
             this.map.removeLayer(this.impactZoneLayer);
         }
@@ -555,7 +561,26 @@ class DisasterMap {
         // Create a layer group for impact zones
         this.impactZoneLayer = L.layerGroup();
         
-        this.impactZones.forEach(zone => {
+        // Filter impact zones based on proximity to the selected disaster
+        const selectedEventLatLng = L.latLng(selectedEvent.latitude, selectedEvent.longitude);
+        const proximityThreshold = 200000; // 200km in meters
+        
+        const relevantZones = this.impactZones.filter(zone => {
+            if (zone.geometry.type === 'Polygon') {
+                // Calculate the centroid of the polygon
+                const coordinates = zone.geometry.coordinates[0];
+                const centroidLat = coordinates.reduce((sum, coord) => sum + coord[1], 0) / coordinates.length;
+                const centroidLng = coordinates.reduce((sum, coord) => sum + coord[0], 0) / coordinates.length;
+                const zoneLatLng = L.latLng(centroidLat, centroidLng);
+                
+                // Check if the zone is within proximity threshold of the selected event
+                const distance = selectedEventLatLng.distanceTo(zoneLatLng);
+                return distance <= proximityThreshold;
+            }
+            return false;
+        });
+        
+        relevantZones.forEach(zone => {
             let layer;
             
             if (zone.geometry.type === 'Polygon') {
@@ -564,7 +589,7 @@ class DisasterMap {
                 layer = L.polygon(coordinates, {
                     color: this.getImpactZoneColor(zone.severity),
                     fillColor: this.getImpactZoneColor(zone.severity),
-                    fillOpacity: 0.3,
+                    fillOpacity: 0.4,
                     weight: 2
                 });
                 
@@ -572,7 +597,8 @@ class DisasterMap {
                 layer.bindPopup(`
                     <strong>Impact Zone</strong><br>
                     Severity: ${zone.severity || 'Unknown'}<br>
-                    Area: ${zone.area || 'Unknown'}
+                    Area: ${zone.area || 'Unknown'}<br>
+                    Related to: ${selectedEvent.title}
                 `);
                 
                 this.impactZoneLayer.addLayer(layer);
@@ -581,6 +607,8 @@ class DisasterMap {
         
         // Add layer group to map
         this.impactZoneLayer.addTo(this.map);
+        
+        console.log(`Filtered impact zones: showing ${relevantZones.length} zones near ${selectedEvent.title}`);
     }
 
     highlightSelectedEvent(eventId) {
@@ -741,7 +769,13 @@ class DisasterMap {
 
     toggleImpactZones() {
         if (this.showImpactZones) {
-            this.displayImpactZones();
+            // If a disaster is selected, show only impact zones for that disaster
+            if (this.selectedEventId) {
+                this.filterImpactZonesForEvent(this.selectedEventId);
+            } else {
+                // Show all impact zones
+                this.displayImpactZones();
+            }
         } else {
             if (this.impactZoneLayer) {
                 this.map.removeLayer(this.impactZoneLayer);
