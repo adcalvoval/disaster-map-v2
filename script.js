@@ -1348,32 +1348,43 @@ class DisasterMap {
     }
 
     getCsvHealthFacilityIcon(type) {
-        // All other health facilities use the same brown color and triangular shape
-        const color = '#8B4513'; // Brown color
-        const iconSymbol = '▲'; // Triangle symbol
+        // Map common OpenStreetMap types to RCRC facility types for consistent styling
+        const typeMapping = {
+            'hospital': 'Hospitals',
+            'clinic': 'Primary Health Care Centres',
+            'dentist': 'Specialized Services',
+            'laboratory': 'Specialized Services',
+            'pharmacy': 'Pharmacies',
+            'ambulance': 'Ambulance Stations',
+            'blood_bank': 'Blood Centres',
+            'training': 'Training Facilities',
+            'residential': 'Residential Facilities'
+        };
+        
+        const mappedType = typeMapping[type.toLowerCase()] || 'Other';
+        const color = this.getHealthFacilityColor(mappedType);
+        const iconSymbol = this.getHealthFacilitySymbol(mappedType);
         
         return L.divIcon({
-            html: `<div style="
-                background-color: ${color}; 
-                color: white; 
-                width: 20px; 
-                height: 20px; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center; 
-                font-size: 12px; 
-                font-weight: bold;
-                border: 1px solid white; 
-                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-                clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-                position: relative;
-            ">
-                <span style="margin-top: 2px;">${iconSymbol}</span>
-            </div>`,
-            className: 'csv-health-facility-marker',
-            iconSize: [20, 20],
-            iconAnchor: [10, 17], // Anchor at bottom center of triangle
-            popupAnchor: [0, -17]
+            className: 'other-health-facility-icon',
+            html: `
+                <div style="
+                    background-color: ${color};
+                    color: white;
+                    border-radius: 4px;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 12px;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                ">${iconSymbol}</div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
         });
     }
 
