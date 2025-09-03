@@ -1476,14 +1476,26 @@ class DisasterMap {
         // Create set of facility IDs that are in impact zones for quick lookup
         const impactFacilityIds = new Set(facilitiesInImpactZones.map(f => f.id));
 
-        const facilitiesHtml = facilities.map(facility => {
+        // Sort facilities by country first, then by name
+        const sortedFacilities = [...facilities].sort((a, b) => {
+            const countryA = a.country || 'Unknown';
+            const countryB = b.country || 'Unknown';
+            
+            if (countryA !== countryB) {
+                return countryA.localeCompare(countryB);
+            }
+            
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+        const facilitiesHtml = sortedFacilities.map(facility => {
             const isInImpactZone = impactFacilityIds.has(facility.id);
             
             return `
                 <div class="facility-card ${isInImpactZone ? 'in-impact-zone' : ''}" 
                      onclick="app.zoomToFacility(${facility.latitude}, ${facility.longitude}, '${facility.name.replace(/'/g, "\\'")}')">
-                    <div class="facility-name"><strong>${facility.name}</strong></div>
-                    <div class="facility-district">${facility.district || 'Unknown district'}</div>
+                    <div class="facility-name">${facility.name}</div>
+                    <div class="facility-district">${facility.district || facility.country || 'Unknown location'}</div>
                     <div class="facility-functionality ${this.getFunctionalityClass(facility.functionality)}">
                         ${facility.functionality || 'Unknown functionality'}
                     </div>
@@ -1517,18 +1529,15 @@ class DisasterMap {
     getFunctionalityClass(functionality) {
         if (!functionality) return 'functionality-unknown';
         
-        switch (functionality.toLowerCase()) {
-            case 'fully functional':
-            case 'fully':
-                return 'functionality-full';
-            case 'partially functional':
-            case 'partially':
-                return 'functionality-partial';
-            case 'not functional':
-            case 'not':
-                return 'functionality-none';
-            default:
-                return 'functionality-unknown';
+        const status = functionality.toLowerCase();
+        if (status.includes('fully functional') || status.includes('fully functioning') || status === 'functional') {
+            return 'functionality-fully';
+        } else if (status.includes('partially functional') || status.includes('partially functioning') || status.includes('partial')) {
+            return 'functionality-partially';
+        } else if (status.includes('not functional') || status.includes('non-functional') || status.includes('damaged') || status.includes('closed')) {
+            return 'functionality-not';
+        } else {
+            return 'functionality-unknown';
         }
     }
 }

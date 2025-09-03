@@ -613,3 +613,83 @@ body {
     color: #5dade2;
     text-decoration: underline;
 }
+
+/* RCRC Facilities Cards */
+.facility-card {
+    background: white;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-left: 4px solid #e67e22;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.facility-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.facility-card.in-impact-zone {
+    border-left-color: #e74c3c;
+    background: #fdf2f2;
+}
+
+.facility-name {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.facility-district {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    margin-bottom: 3px;
+}
+
+.facility-functionality {
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+
+.functionality-fully {
+    background: #d5f4e6;
+    color: #27ae60;
+}
+
+.functionality-partially {
+    background: #ffeaa7;
+    color: #d63031;
+}
+
+.functionality-not {
+    background: #fab1a0;
+    color: #e17055;
+}
+
+.functionality-unknown {
+    background: #ecf0f1;
+    color: #7f8c8d;
+}
+
+.impact-indicator {
+    font-size: 0.8rem;
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.facilities-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.no-facilities {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 20px;
+    font-style: italic;
+}
