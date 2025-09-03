@@ -12,6 +12,9 @@ class DisasterMap {
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
         this.showHealthFacilities = false;
+        this.csvHealthFacilityMarkers = [];
+        this.csvHealthFacilities = [];
+        this.showOtherHealthFacilities = false;
         this.selectedCountry = ''; // Add country filter state
         this.ifrcSearchTerm = ''; // Add IFRC document search term
         this.selectedHealthCountry = ''; // Health facilities country filter
@@ -34,10 +37,10 @@ class DisasterMap {
     init() {
         this.initMap();
         this.initEventListeners();
-        this.initializeDateInputs();
         this.loadDisasterData();
         this.loadImpactZones();
         this.loadHealthFacilities();
+        this.loadCsvHealthFacilities();
         this.initIfrcDocuments();
     }
 
@@ -55,9 +58,6 @@ class DisasterMap {
             this.loadDisasterData();
         });
 
-        document.getElementById('searchByDate').addEventListener('click', () => {
-            this.searchEventsByDate();
-        });
 
         document.getElementById('alertLevel').addEventListener('change', (e) => {
             this.filterByAlertLevel(e.target.value);
@@ -80,6 +80,11 @@ class DisasterMap {
             // Show/hide the health facilities controls
             const controls = document.getElementById('healthFacilitiesControls');
             controls.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        document.getElementById('showOtherHealthFacilities').addEventListener('change', (e) => {
+            this.showOtherHealthFacilities = e.target.checked;
+            this.toggleCsvHealthFacilities();
         });
 
         // Event search functionality
@@ -133,44 +138,6 @@ class DisasterMap {
         // Note: initHealthFacilityCountryFilter() is called after health facilities are loaded
     }
 
-    initializeDateInputs() {
-        // Set default date range to last 2 months
-        const toDate = new Date();
-        const fromDate = new Date();
-        fromDate.setMonth(fromDate.getMonth() - 2);
-
-        document.getElementById('dateFrom').value = fromDate.toISOString().split('T')[0];
-        document.getElementById('dateTo').value = toDate.toISOString().split('T')[0];
-        
-        console.log(`Initialized date range: ${fromDate.toISOString().split('T')[0]} to ${toDate.toISOString().split('T')[0]}`);
-    }
-
-    async searchEventsByDate() {
-        const fromDateValue = document.getElementById('dateFrom').value;
-        const toDateValue = document.getElementById('dateTo').value;
-        
-        if (!fromDateValue || !toDateValue) {
-            alert('Please select both start and end dates for your search.');
-            return;
-        }
-
-        if (new Date(fromDateValue) > new Date(toDateValue)) {
-            alert('Start date must be before end date.');
-            return;
-        }
-
-        console.log(`Searching events from ${fromDateValue} to ${toDateValue}`);
-        
-        // Show loading state
-        document.getElementById('eventList').innerHTML = '<div class="loading">Searching disaster events...</div>';
-        
-        try {
-            await this.loadDisasterDataWithDates(fromDateValue, toDateValue);
-        } catch (error) {
-            console.error('Error searching events:', error);
-            document.getElementById('eventList').innerHTML = '<div class="error">Error loading events. Please try again.</div>';
-        }
-    }
 
     async loadDisasterData() {
         try {
@@ -1276,6 +1243,140 @@ class DisasterMap {
         
         // Use the existing displayEvents method
         this.displayEvents(events);
+    }
+
+    async loadCsvHealthFacilities() {
+        try {
+            console.log('Loading CSV health facilities...');
+            
+            const response = await fetch('hotosm_afg_health_facilities_points_csv.csv');
+            const csvText = await response.text();
+            
+            // Parse CSV
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(header => header.replace(/"/g, '').trim());
+            
+            const facilities = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // Simple CSV parsing - handle quoted fields
+                const values = this.parseCsvLine(line);
+                if (values.length < headers.length) continue;
+                
+                const facility = {};
+                headers.forEach((header, index) => {
+                    facility[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+                });
+                
+                // Only include facilities with valid coordinates
+                if (facility.latitude && facility.longitude && !isNaN(facility.latitude) && !isNaN(facility.longitude)) {
+                    facilities.push({
+                        name: facility.name || 'Unnamed facility',
+                        type: facility.healthcare || facility.amenity || 'Unknown',
+                        latitude: parseFloat(facility.latitude),
+                        longitude: parseFloat(facility.longitude),
+                        osm_id: facility.osm_id
+                    });
+                }
+            }
+            
+            this.csvHealthFacilities = facilities;
+            console.log(`Loaded ${facilities.length} CSV health facilities`);
+            
+        } catch (error) {
+            console.error('Error loading CSV health facilities:', error);
+        }
+    }
+
+    parseCsvLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current);
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current);
+        return result;
+    }
+
+    toggleCsvHealthFacilities() {
+        if (this.showOtherHealthFacilities) {
+            this.addCsvHealthFacilitiesToMap();
+        } else {
+            this.clearCsvHealthFacilityMarkers();
+        }
+    }
+
+    addCsvHealthFacilitiesToMap() {
+        this.csvHealthFacilities.forEach(facility => {
+            const icon = this.getCsvHealthFacilityIcon(facility.type);
+            
+            const marker = L.marker([facility.latitude, facility.longitude], { icon })
+                .bindPopup(`
+                    <div class="popup-content">
+                        <h4>${facility.name}</h4>
+                        <p><strong>Type:</strong> ${facility.type}</p>
+                        <p><strong>Source:</strong> OpenStreetMap</p>
+                    </div>
+                `);
+            
+            this.csvHealthFacilityMarkers.push(marker);
+            marker.addTo(this.map);
+        });
+    }
+
+    clearCsvHealthFacilityMarkers() {
+        this.csvHealthFacilityMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.csvHealthFacilityMarkers = [];
+    }
+
+    getCsvHealthFacilityIcon(type) {
+        let iconHtml = '🏥';
+        let color = '#2563eb';
+        
+        switch(type.toLowerCase()) {
+            case 'hospital':
+                iconHtml = '🏥';
+                color = '#dc2626';
+                break;
+            case 'clinic':
+                iconHtml = '🏥';
+                color = '#16a34a';
+                break;
+            case 'dentist':
+                iconHtml = '🦷';
+                color = '#0891b2';
+                break;
+            case 'laboratory':
+                iconHtml = '🔬';
+                color = '#7c3aed';
+                break;
+            default:
+                iconHtml = '⚕️';
+                color = '#6b7280';
+        }
+        
+        return L.divIcon({
+            html: `<div style="background-color: ${color}; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${iconHtml}</div>`,
+            className: 'csv-health-facility-marker',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+            popupAnchor: [0, -15]
+        });
     }
 }
 

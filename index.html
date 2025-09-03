@@ -12,13 +12,6 @@
     <div class="header">
         <h1>Health Capacity Assessment and Emergency Response Planning Tool</h1>
         <div class="controls">
-            <div class="date-controls">
-                <label class="date-label">From:</label>
-                <input type="date" id="dateFrom" class="date-input">
-                <label class="date-label">To:</label>
-                <input type="date" id="dateTo" class="date-input">
-                <button id="searchByDate">Search Events</button>
-            </div>
             <div class="filter-controls">
                 <select id="alertLevel">
                     <option value="">All Alert Levels</option>
@@ -36,7 +29,11 @@
                 </label>
                 <label class="checkbox-label">
                     <input type="checkbox" id="showHealthFacilities">
-                    Show Health Facilities
+                    Show RCRC Health Facilities
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showOtherHealthFacilities">
+                    Show other health facilities
                 </label>
                 <button id="refreshData">Refresh Data</button>
             </div>
