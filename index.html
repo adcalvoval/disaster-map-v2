@@ -113,7 +113,7 @@
     
     <div class="sidebar">
         <!-- Disaster Events Section -->
-        <div class="events-section">
+        <div class="events-section" style="height: 50%; display: flex; flex-direction: column;">
             <div class="section-header">
                 <h3>Disaster Events</h3>
                 <div class="search-container">
@@ -121,13 +121,13 @@
                     <button id="clearEventSearch" class="clear-search-btn" style="display: none;">×</button>
                 </div>
             </div>
-            <div id="eventList">
+            <div id="eventList" style="flex: 1; overflow-y: auto;">
                 Loading disaster events...
             </div>
         </div>
         
-        <!-- RCRC Facilities in Impact Zones Section -->
-        <div id="impactFacilitiesSection" class="facilities-section">
+        <!-- RCRC Facilities Section -->
+        <div id="impactFacilitiesSection" class="facilities-section" style="height: 50%; display: flex; flex-direction: column;">
             <div class="section-header">
                 <h3>RCRC Health Facilities</h3>
                 <div class="section-controls">
@@ -136,7 +136,7 @@
                     </select>
                 </div>
             </div>
-            <div id="impactFacilitiesList" class="facilities-list">
+            <div id="impactFacilitiesList" class="facilities-list" style="flex: 1; overflow-y: auto;">
                 Loading facilities...
             </div>
         </div>

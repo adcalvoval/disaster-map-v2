@@ -1480,7 +1480,8 @@ class DisasterMap {
             const isInImpactZone = impactFacilityIds.has(facility.id);
             
             return `
-                <div class="facility-card ${isInImpactZone ? 'in-impact-zone' : ''}">
+                <div class="facility-card ${isInImpactZone ? 'in-impact-zone' : ''}" 
+                     onclick="app.zoomToFacility(${facility.latitude}, ${facility.longitude}, '${facility.name.replace(/'/g, "\\'")}')">
                     <div class="facility-name"><strong>${facility.name}</strong></div>
                     <div class="facility-district">${facility.district || 'Unknown district'}</div>
                     <div class="facility-functionality ${this.getFunctionalityClass(facility.functionality)}">
@@ -1492,6 +1493,25 @@ class DisasterMap {
         }).join('');
 
         facilitiesList.innerHTML = facilitiesHtml;
+    }
+
+    zoomToFacility(latitude, longitude, facilityName) {
+        // Zoom to the facility location
+        this.map.setView([latitude, longitude], 15);
+        
+        // Find and open the popup for this facility if it exists
+        this.healthFacilityMarkers.forEach(marker => {
+            const markerLatLng = marker.getLatLng();
+            if (Math.abs(markerLatLng.lat - latitude) < 0.0001 && 
+                Math.abs(markerLatLng.lng - longitude) < 0.0001) {
+                // Add a small delay to ensure the map has finished panning
+                setTimeout(() => {
+                    marker.openPopup();
+                }, 300);
+            }
+        });
+        
+        console.log(`Zoomed to facility: ${facilityName} at ${latitude}, ${longitude}`);
     }
 
     getFunctionalityClass(functionality) {
