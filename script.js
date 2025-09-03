@@ -390,9 +390,9 @@ class DisasterMap {
                     justify-content: center;
                     font-weight: bold;
                     font-size: 16px;
-                    border: 2px solid white;
+                    border: 2px solid #006400;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+                    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
                 ">${iconSymbol}</div>
             `,
             iconSize: [30, 30],
