@@ -1547,8 +1547,8 @@ class DisasterMap {
             allFacilities = allFacilities.filter(f => f.country === this.selectedImpactFacilityCountry);
         }
 
-        // Find which facilities are in impact zones (if impact zones are shown)
-        const facilitiesInImpactZones = (this.showImpactZones && this.impactZoneLayer) 
+        // Always find which facilities are in impact zones, regardless of impact zones visibility
+        const facilitiesInImpactZones = this.impactZones.length > 0 
             ? this.findFacilitiesInImpactZones()
             : [];
 
@@ -1556,44 +1556,69 @@ class DisasterMap {
     }
 
     findFacilitiesInImpactZones() {
-        if (!this.impactZoneLayer || !this.healthFacilities.length) {
+        if (!this.impactZones.length || !this.healthFacilities.length) {
             return [];
         }
 
         const facilitiesInImpact = [];
+        
+        // If a disaster is selected, filter impact zones to only those relevant to that disaster
+        let relevantZones = this.impactZones;
+        if (this.selectedEventId) {
+            const selectedEvent = this.disasterEvents.find(e => e.id === this.selectedEventId);
+            if (selectedEvent) {
+                const selectedEventLatLng = L.latLng(selectedEvent.latitude, selectedEvent.longitude);
+                
+                // Filter zones to only those closest to the selected disaster (within 100km)
+                relevantZones = this.impactZones.filter(zone => {
+                    if (zone.geometry && zone.geometry.type === 'Polygon') {
+                        const coordinates = zone.geometry.coordinates[0];
+                        const centroidLat = coordinates.reduce((sum, coord) => sum + coord[1], 0) / coordinates.length;
+                        const centroidLng = coordinates.reduce((sum, coord) => sum + coord[0], 0) / coordinates.length;
+                        const zoneLatLng = L.latLng(centroidLat, centroidLng);
+                        
+                        // Find the closest disaster to this zone
+                        let closestDistance = Infinity;
+                        let closestEventId = null;
+                        
+                        this.disasterEvents.forEach(event => {
+                            const eventLatLng = L.latLng(event.latitude, event.longitude);
+                            const distance = zoneLatLng.distanceTo(eventLatLng);
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                                closestEventId = event.id;
+                            }
+                        });
+                        
+                        return closestEventId === this.selectedEventId && closestDistance <= 100000;
+                    }
+                    return false;
+                });
+            }
+        }
 
         this.healthFacilities.forEach(facility => {
             // Create a point for the facility
             const facilityLatLng = L.latLng(facility.latitude, facility.longitude);
             
-            // Check if facility is within any impact zone polygon
-            this.impactZoneLayer.eachLayer((layer) => {
-                if (layer.getBounds && layer.getBounds().contains(facilityLatLng)) {
-                    // More precise check if the layer has a contains method or is a polygon
-                    try {
-                        if (layer.contains && layer.contains(facilityLatLng)) {
-                            facilitiesInImpact.push(facility);
-                        } else if (layer.getLatLngs) {
-                            // For polygon layers, use point-in-polygon check
-                            const polygon = layer.getLatLngs()[0]; // Get first ring of polygon
-                            if (this.isPointInPolygon(facilityLatLng, polygon)) {
-                                facilitiesInImpact.push(facility);
-                            }
-                        }
-                    } catch (error) {
-                        // Fallback to bounds check if geometric operations fail
-                        if (layer.getBounds && layer.getBounds().contains(facilityLatLng)) {
+            // Check if facility is within any relevant impact zone polygon
+            relevantZones.forEach(zone => {
+                if (zone.geometry && zone.geometry.type === 'Polygon') {
+                    const coordinates = zone.geometry.coordinates[0];
+                    // Convert coordinates to Leaflet LatLng format [lat, lng]
+                    const polygon = coordinates.map(coord => L.latLng(coord[1], coord[0]));
+                    
+                    if (this.isPointInPolygon(facilityLatLng, polygon)) {
+                        // Check if this facility hasn't already been added (avoid duplicates)
+                        if (!facilitiesInImpact.find(f => f.id === facility.id)) {
                             facilitiesInImpact.push(facility);
                         }
                     }
                 }
             });
         });
-
-        // Remove duplicates
-        return facilitiesInImpact.filter((facility, index, self) => 
-            index === self.findIndex(f => f.id === facility.id)
-        );
+        
+        return facilitiesInImpact;
     }
 
     isPointInPolygon(point, polygon) {
