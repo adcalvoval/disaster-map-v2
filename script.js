@@ -561,10 +561,9 @@ class DisasterMap {
         // Create a layer group for impact zones
         this.impactZoneLayer = L.layerGroup();
         
-        // Filter impact zones based on proximity to the selected disaster
         const selectedEventLatLng = L.latLng(selectedEvent.latitude, selectedEvent.longitude);
-        const proximityThreshold = 200000; // 200km in meters
         
+        // For each impact zone, find which disaster event it's closest to
         const relevantZones = this.impactZones.filter(zone => {
             if (zone.geometry.type === 'Polygon') {
                 // Calculate the centroid of the polygon
@@ -573,9 +572,22 @@ class DisasterMap {
                 const centroidLng = coordinates.reduce((sum, coord) => sum + coord[0], 0) / coordinates.length;
                 const zoneLatLng = L.latLng(centroidLat, centroidLng);
                 
-                // Check if the zone is within proximity threshold of the selected event
-                const distance = selectedEventLatLng.distanceTo(zoneLatLng);
-                return distance <= proximityThreshold;
+                // Find the closest disaster event to this impact zone
+                let closestDistance = Infinity;
+                let closestEventId = null;
+                
+                this.disasterEvents.forEach(event => {
+                    const eventLatLng = L.latLng(event.latitude, event.longitude);
+                    const distance = zoneLatLng.distanceTo(eventLatLng);
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestEventId = event.id;
+                    }
+                });
+                
+                // Only include this zone if the selected event is the closest one
+                // and within a reasonable distance (100km)
+                return closestEventId === eventId && closestDistance <= 100000;
             }
             return false;
         });
@@ -598,7 +610,7 @@ class DisasterMap {
                     <strong>Impact Zone</strong><br>
                     Severity: ${zone.severity || 'Unknown'}<br>
                     Area: ${zone.area || 'Unknown'}<br>
-                    Related to: ${selectedEvent.title}
+                    Closest to: ${selectedEvent.title}
                 `);
                 
                 this.impactZoneLayer.addLayer(layer);
@@ -608,7 +620,7 @@ class DisasterMap {
         // Add layer group to map
         this.impactZoneLayer.addTo(this.map);
         
-        console.log(`Filtered impact zones: showing ${relevantZones.length} zones near ${selectedEvent.title}`);
+        console.log(`Filtered impact zones: showing ${relevantZones.length} zones closest to ${selectedEvent.title}`);
     }
 
     highlightSelectedEvent(eventId) {
