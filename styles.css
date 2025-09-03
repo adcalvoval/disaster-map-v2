@@ -174,6 +174,13 @@ body {
     border-left-color: #e74c3c;
 }
 
+.event-item.selected-event {
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(33, 150, 243, 0.3);
+}
+
 .event-title {
     font-weight: bold;
     color: #2c3e50;
@@ -416,6 +423,26 @@ body {
 
 .clear-search-btn:hover {
     background: #c0392b;
+}
+
+.clear-selection-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 28px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    margin-left: 4px;
+}
+
+.clear-selection-btn:hover {
+    background: #2980b9;
 }
 
 .event-item.hidden {

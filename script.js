@@ -7,6 +7,7 @@ class DisasterMap {
         this.impactZoneLayer = null;
         this.disasterEvents = [];
         this.filteredEvents = [];
+        this.selectedEventId = null;
         this.showAffectedAreas = true;
         this.showImpactZones = false;
         this.healthFacilityMarkers = [];
@@ -94,6 +95,10 @@ class DisasterMap {
 
         document.getElementById('clearEventSearch').addEventListener('click', () => {
             this.clearEventSearch();
+        });
+
+        document.getElementById('clearEventSelection').addEventListener('click', () => {
+            this.clearEventSelection();
         });
 
 
@@ -499,12 +504,132 @@ class DisasterMap {
 
     focusOnEvent(eventId) {
         const event = this.disasterEvents.find(e => e.id === eventId);
-        const marker = this.markers.find(m => m.eventId === eventId);
         
-        if (event && marker) {
+        if (event) {
+            // Set the selected event
+            this.selectedEventId = eventId;
+            
+            // Clear existing markers and areas
+            this.clearMarkers();
+            this.clearAffectedAreas();
+            if (this.impactZoneLayer) {
+                this.map.removeLayer(this.impactZoneLayer);
+            }
+            
+            // Show only the selected disaster event
+            this.addMarkersToMap([event]);
+            if (this.showAffectedAreas) {
+                this.addAffectedAreasToMap([event]);
+            }
+            
+            // Filter impact zones for this specific disaster if available
+            if (this.showImpactZones && this.impactZones.length > 0) {
+                this.filterImpactZonesForEvent(eventId);
+            }
+            
+            // Zoom to the event
             this.map.setView([event.latitude, event.longitude], 8);
-            marker.openPopup();
+            
+            // Find and open the marker popup
+            const marker = this.markers.find(m => m.eventId === eventId);
+            if (marker) {
+                marker.openPopup();
+            }
+            
+            // Update the facilities list for this specific event
+            this.updateImpactFacilitiesList();
+            
+            // Add visual indicator that an event is selected
+            this.highlightSelectedEvent(eventId);
         }
+    }
+
+    filterImpactZonesForEvent(eventId) {
+        // Filter impact zones that are related to the selected event
+        // For now, we'll show all impact zones, but in a real implementation
+        // you might want to filter based on geographic proximity or event metadata
+        if (this.impactZoneLayer) {
+            this.map.removeLayer(this.impactZoneLayer);
+        }
+        
+        // Create a layer group for impact zones
+        this.impactZoneLayer = L.layerGroup();
+        
+        this.impactZones.forEach(zone => {
+            let layer;
+            
+            if (zone.geometry.type === 'Polygon') {
+                // Create polygon layer
+                const coordinates = zone.geometry.coordinates[0].map(coord => [coord[1], coord[0]]); // Convert to [lat, lon]
+                layer = L.polygon(coordinates, {
+                    color: this.getImpactZoneColor(zone.severity),
+                    fillColor: this.getImpactZoneColor(zone.severity),
+                    fillOpacity: 0.3,
+                    weight: 2
+                });
+                
+                // Add popup with zone information
+                layer.bindPopup(`
+                    <strong>Impact Zone</strong><br>
+                    Severity: ${zone.severity || 'Unknown'}<br>
+                    Area: ${zone.area || 'Unknown'}
+                `);
+                
+                this.impactZoneLayer.addLayer(layer);
+            }
+        });
+        
+        // Add layer group to map
+        this.impactZoneLayer.addTo(this.map);
+    }
+
+    highlightSelectedEvent(eventId) {
+        // Remove existing highlighting
+        document.querySelectorAll('.event-item').forEach(item => {
+            item.classList.remove('selected-event');
+        });
+        
+        // Add highlighting to selected event
+        document.querySelectorAll('.event-item').forEach(item => {
+            const onclick = item.getAttribute('onclick');
+            if (onclick && onclick.includes(`'${eventId}'`)) {
+                item.classList.add('selected-event');
+            }
+        });
+        
+        // Show clear selection button
+        document.getElementById('clearEventSelection').style.display = 'block';
+    }
+
+    clearEventSelection() {
+        this.selectedEventId = null;
+        
+        // Hide clear selection button
+        document.getElementById('clearEventSelection').style.display = 'none';
+        
+        // Remove highlighting
+        document.querySelectorAll('.event-item').forEach(item => {
+            item.classList.remove('selected-event');
+        });
+        
+        // Show all events again
+        this.clearMarkers();
+        this.clearAffectedAreas();
+        if (this.impactZoneLayer) {
+            this.map.removeLayer(this.impactZoneLayer);
+        }
+        
+        // Restore all events
+        this.addMarkersToMap(this.disasterEvents);
+        if (this.showAffectedAreas) {
+            this.addAffectedAreasToMap(this.disasterEvents);
+        }
+        if (this.showImpactZones && this.impactZones.length > 0) {
+            this.addImpactZonesToMap();
+        }
+        
+        // Update facilities list
+        this.updateImpactFacilitiesList();
     }
 
     // Impact Zones Methods
