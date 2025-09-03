@@ -675,6 +675,7 @@ class DisasterMap {
             this.populateCountryFilter();
             this.initHealthFacilityCountryFilter(); // Initialize after data is loaded
             this.initImpactFacilitiesCountryFilter(); // Initialize impact facilities filter
+            this.updateImpactFacilitiesList(); // Initialize the facilities list
             this.updateLegendCounts();
             
         } catch (error) {
@@ -1389,23 +1390,23 @@ class DisasterMap {
     }
 
     updateImpactFacilitiesList() {
-        if (!this.showImpactZones || !this.impactZoneLayer) {
-            document.getElementById('impactFacilitiesSection').style.display = 'none';
-            return;
-        }
-
-        // Show the section
+        // Always show the section
         document.getElementById('impactFacilitiesSection').style.display = 'block';
 
-        // Find facilities within impact zones
-        const facilitiesInImpactZones = this.findFacilitiesInImpactZones();
+        // Get all RCRC health facilities
+        let allFacilities = this.healthFacilities || [];
         
-        // Filter by selected country
-        const filteredFacilities = this.selectedImpactFacilityCountry 
-            ? facilitiesInImpactZones.filter(f => f.country === this.selectedImpactFacilityCountry)
-            : facilitiesInImpactZones;
+        // Filter by selected country if specified
+        if (this.selectedImpactFacilityCountry) {
+            allFacilities = allFacilities.filter(f => f.country === this.selectedImpactFacilityCountry);
+        }
 
-        this.displayImpactFacilities(filteredFacilities);
+        // Find which facilities are in impact zones (if impact zones are shown)
+        const facilitiesInImpactZones = (this.showImpactZones && this.impactZoneLayer) 
+            ? this.findFacilitiesInImpactZones()
+            : [];
+
+        this.displayImpactFacilities(allFacilities, facilitiesInImpactZones);
     }
 
     findFacilitiesInImpactZones() {
@@ -1464,24 +1465,31 @@ class DisasterMap {
         return inside;
     }
 
-    displayImpactFacilities(facilities) {
+    displayImpactFacilities(facilities, facilitiesInImpactZones = []) {
         const facilitiesList = document.getElementById('impactFacilitiesList');
         
         if (!facilities || facilities.length === 0) {
-            facilitiesList.innerHTML = '<div class="no-facilities">No RCRC facilities found in impact zones</div>';
+            facilitiesList.innerHTML = '<div class="no-facilities">No RCRC health facilities found</div>';
             return;
         }
 
-        const facilitiesHtml = facilities.map(facility => `
-            <div class="facility-item">
-                <div class="facility-name">${facility.name}</div>
-                <div class="facility-details">
-                    <span class="facility-country">${facility.country}</span>
-                    <span class="facility-functionality ${this.getFunctionalityClass(facility.functionality)}">${facility.functionality || 'Unknown'}</span>
+        // Create set of facility IDs that are in impact zones for quick lookup
+        const impactFacilityIds = new Set(facilitiesInImpactZones.map(f => f.id));
+
+        const facilitiesHtml = facilities.map(facility => {
+            const isInImpactZone = impactFacilityIds.has(facility.id);
+            
+            return `
+                <div class="facility-card ${isInImpactZone ? 'in-impact-zone' : ''}">
+                    <div class="facility-name"><strong>${facility.name}</strong></div>
+                    <div class="facility-district">${facility.district || 'Unknown district'}</div>
+                    <div class="facility-functionality ${this.getFunctionalityClass(facility.functionality)}">
+                        ${facility.functionality || 'Unknown functionality'}
+                    </div>
+                    ${isInImpactZone ? '<div class="impact-indicator">⚠️ In Impact Zone</div>' : ''}
                 </div>
-                <div class="facility-type">${facility.type}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         facilitiesList.innerHTML = facilitiesHtml;
     }
