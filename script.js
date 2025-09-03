@@ -730,7 +730,10 @@ class DisasterMap {
             const color = this.getHealthFacilityColor(facility.type);
             const icon = this.createHealthFacilityIcon(color, facility.type);
             
-            const marker = L.marker([facility.latitude, facility.longitude], { icon })
+            const marker = L.marker([facility.latitude, facility.longitude], { 
+                    icon: icon,
+                    zIndexOffset: 1000 // Higher z-index to render on top
+                })
                 .addTo(this.map)
                 .bindPopup(`
                     <div>
@@ -841,7 +844,7 @@ class DisasterMap {
                     justify-content: center;
                     font-weight: bold;
                     font-size: 16px;
-                    border: 2px solid red;
+                    border: 2px solid #8B0000;
                     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                 ">${iconSymbol}</div>
             `,
@@ -1192,7 +1195,10 @@ class DisasterMap {
         this.csvHealthFacilities.forEach(facility => {
             const icon = this.getCsvHealthFacilityIcon(facility.type);
             
-            const marker = L.marker([facility.latitude, facility.longitude], { icon })
+            const marker = L.marker([facility.latitude, facility.longitude], { 
+                    icon: icon,
+                    zIndexOffset: 100 // Lower z-index to render below RCRC facilities
+                })
                 .bindPopup(`
                     <div class="popup-content">
                         <h4>${facility.name}</h4>
@@ -1245,7 +1251,7 @@ class DisasterMap {
                     justify-content: center;
                     font-weight: bold;
                     font-size: 12px;
-                    border: 2px solid yellow;
+                    border: 2px solid #FF8C00;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                 ">${iconSymbol}</div>
             `,
@@ -1349,7 +1355,10 @@ class DisasterMap {
         this.shapefileHealthFacilities.forEach(facility => {
             const icon = this.getCsvHealthFacilityIcon(facility.type); // Use same icon style as CSV
             
-            const marker = L.marker([facility.latitude, facility.longitude], { icon })
+            const marker = L.marker([facility.latitude, facility.longitude], { 
+                    icon: icon,
+                    zIndexOffset: 100 // Lower z-index to render below RCRC facilities
+                })
                 .bindPopup(`
                     <div class="popup-content">
                         <h4>${facility.name}</h4>
