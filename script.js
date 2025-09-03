@@ -16,11 +16,10 @@ class DisasterMap {
         this.csvHealthFacilities = [];
         this.shapefileHealthFacilities = [];
         this.showOtherHealthFacilities = false;
-        this.selectedCountry = ''; // Add country filter state
-        this.ifrcSearchTerm = ''; // Add IFRC document search term
         this.selectedHealthCountry = ''; // Health facilities country filter
         this.selectedHealthFunctionality = ''; // Health facilities functionality filter
         this.selectedHealthVisibility = ''; // Health facilities visibility filter
+        this.selectedImpactFacilityCountry = ''; // Impact facilities country filter
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -43,7 +42,6 @@ class DisasterMap {
         this.loadHealthFacilities();
         this.loadCsvHealthFacilities();
         this.loadShapefileHealthFacilities();
-        this.initIfrcDocuments();
     }
 
     initMap() {
@@ -98,24 +96,6 @@ class DisasterMap {
             this.clearEventSearch();
         });
 
-        // IFRC Documents event listeners
-        document.getElementById('refreshIfrcDocs').addEventListener('click', () => {
-            this.loadIfrcDocuments();
-        });
-
-        document.getElementById('countryFilter').addEventListener('change', (e) => {
-            this.selectedCountry = e.target.value;
-            this.loadIfrcDocuments();
-        });
-
-        // IFRC Document search functionality
-        document.getElementById('ifrcDocumentSearch').addEventListener('input', (e) => {
-            this.searchIfrcDocuments(e.target.value);
-        });
-
-        document.getElementById('clearIfrcDocumentSearch').addEventListener('click', () => {
-            this.clearIfrcDocumentSearch();
-        });
 
         // Health facilities country filter
         document.getElementById('healthCountryFilter').addEventListener('change', (e) => {
@@ -133,6 +113,12 @@ class DisasterMap {
         document.getElementById('healthVisibilityFilter').addEventListener('change', (e) => {
             this.selectedHealthVisibility = e.target.value;
             this.filterHealthFacilities();
+        });
+
+        // Impact facilities country filter
+        document.getElementById('facilityCountryFilter').addEventListener('change', (e) => {
+            this.selectedImpactFacilityCountry = e.target.value;
+            this.updateImpactFacilitiesList();
         });
 
         // Add event listeners for individual facility type checkboxes
@@ -397,7 +383,6 @@ class DisasterMap {
                 <div style="
                     background-color: ${color};
                     color: white;
-                    border-radius: 50%;
                     width: 30px;
                     height: 30px;
                     display: flex;
@@ -407,6 +392,7 @@ class DisasterMap {
                     font-size: 16px;
                     border: 2px solid white;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
                 ">${iconSymbol}</div>
             `,
             iconSize: [30, 30],
@@ -607,6 +593,9 @@ class DisasterMap {
         // Add layer group to map
         this.impactZoneLayer.addTo(this.map);
         console.log(`Added ${this.impactZones.length} impact zones to map`);
+        
+        // Update the impact facilities list after adding impact zones
+        this.updateImpactFacilitiesList();
     }
 
     getImpactZoneColor(severity) {
@@ -633,6 +622,8 @@ class DisasterMap {
                 this.map.removeLayer(this.impactZoneLayer);
             }
         }
+        // Update the impact facilities list when impact zones are toggled
+        this.updateImpactFacilitiesList();
     }
 
     // Health Facilities Methods
@@ -683,6 +674,7 @@ class DisasterMap {
             this.healthFacilities = allFacilities;
             this.populateCountryFilter();
             this.initHealthFacilityCountryFilter(); // Initialize after data is loaded
+            this.initImpactFacilitiesCountryFilter(); // Initialize impact facilities filter
             this.updateLegendCounts();
             
         } catch (error) {
@@ -849,7 +841,7 @@ class DisasterMap {
                     justify-content: center;
                     font-weight: bold;
                     font-size: 16px;
-                    border: 2px solid white;
+                    border: 2px solid red;
                     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                 ">${iconSymbol}</div>
             `,
@@ -1044,132 +1036,6 @@ class DisasterMap {
         });
     }
 
-    // IFRC Documents functionality
-    async initIfrcDocuments() {
-        this.selectedCountry = '';
-        await this.loadCountries();
-        await this.loadIfrcDocuments();
-    }
-
-    async loadCountries() {
-        try {
-            const response = await fetch('/api/ifrc-countries');
-            const data = await response.json();
-            
-            const countrySelect = document.getElementById('countryFilter');
-            countrySelect.innerHTML = '<option value="">All Countries</option>';
-            
-            if (data.results) {
-                data.results.forEach(country => {
-                    const option = document.createElement('option');
-                    option.value = country.id;
-                    option.textContent = country.name;
-                    countrySelect.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error('Error loading countries:', error);
-        }
-    }
-
-    async loadIfrcDocuments() {
-        try {
-            const documentsList = document.getElementById('ifrcDocumentsList');
-            documentsList.innerHTML = '<div class="loading-ifrc">Loading IFRC documents...</div>';
-            
-            const params = new URLSearchParams({
-                limit: '10'
-            });
-            
-            if (this.selectedCountry) {
-                params.append('country', this.selectedCountry);
-            }
-
-            if (this.ifrcSearchTerm) {
-                params.append('search', this.ifrcSearchTerm);
-            }
-            
-            const response = await fetch(`/api/ifrc-documents?${params}`);
-            const data = await response.json();
-            
-            if (response.ok) {
-                this.displayIfrcDocuments(data.results || []);
-            } else {
-                throw new Error(data.message || 'Failed to fetch documents');
-            }
-            
-        } catch (error) {
-            console.error('Error loading IFRC documents:', error);
-            const documentsList = document.getElementById('ifrcDocumentsList');
-            documentsList.innerHTML = `<div class="error-ifrc">Error loading documents: ${error.message}</div>`;
-        }
-    }
-
-    displayIfrcDocuments(documents) {
-        const documentsList = document.getElementById('ifrcDocumentsList');
-        
-        if (documents.length === 0) {
-            documentsList.innerHTML = '<div class="loading-ifrc">No documents found</div>';
-            return;
-        }
-        
-        // Sort documents by date (most recent first)
-        const sortedDocuments = documents.sort((a, b) => {
-            const dateA = new Date(a.created_at || 0);
-            const dateB = new Date(b.created_at || 0);
-            return dateB - dateA; // Descending order (most recent first)
-        });
-        
-        const documentsHTML = sortedDocuments.map(doc => {
-            const date = new Date(doc.created_at).toLocaleDateString();
-            const countryName = doc.country_name || 'Unknown';
-            const disasterType = doc.disaster_type || 'General';
-            
-            // Check if document has a valid URL
-            const documentUrl = doc.document_url || doc.document || doc.file || doc.url;
-            const hasValidUrl = documentUrl && documentUrl !== 'null' && documentUrl.startsWith('http');
-            
-            return `
-                <div class="document-item ${hasValidUrl ? '' : 'no-url'}" ${hasValidUrl ? `onclick="window.open('${documentUrl}', '_blank')"` : ''}>
-                    <div class="document-title">${doc.name || 'Unnamed Document'}</div>
-                    <div class="document-meta">
-                        <span class="document-country">${countryName}</span>
-                        <span class="document-date">${date}</span>
-                    </div>
-                    <div class="document-meta">
-                        <span class="document-type">${disasterType}</span>
-                        <span class="document-date">${doc.appeal_code || ''}</span>
-                    </div>
-                    ${!hasValidUrl ? '<div class="no-url-indicator">⚠️ Document URL not available</div>' : ''}
-                </div>
-            `;
-        }).join('');
-        
-        documentsList.innerHTML = documentsHTML;
-    }
-
-    // IFRC Document search functionality
-    searchIfrcDocuments(query) {
-        const searchInput = document.getElementById('ifrcDocumentSearch');
-        const clearBtn = document.getElementById('clearIfrcDocumentSearch');
-        
-        // Show/hide clear button
-        clearBtn.style.display = query.trim() ? 'block' : 'none';
-        
-        // Update search term and reload documents
-        this.ifrcSearchTerm = query.trim();
-        this.loadIfrcDocuments();
-    }
-
-    clearIfrcDocumentSearch() {
-        const searchInput = document.getElementById('ifrcDocumentSearch');
-        const clearBtn = document.getElementById('clearIfrcDocumentSearch');
-        
-        searchInput.value = '';
-        clearBtn.style.display = 'none';
-        this.ifrcSearchTerm = '';
-        this.loadIfrcDocuments();
-    }
 
     // Event search functionality
     searchEvents(query) {
@@ -1379,7 +1245,7 @@ class DisasterMap {
                     justify-content: center;
                     font-weight: bold;
                     font-size: 12px;
-                    border: 2px solid white;
+                    border: 2px solid yellow;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                 ">${iconSymbol}</div>
             `,
@@ -1495,6 +1361,138 @@ class DisasterMap {
             this.csvHealthFacilityMarkers.push(marker); // Use same array for consistency
             marker.addTo(this.map);
         });
+    }
+
+    // Impact Facilities functionality
+    initImpactFacilitiesCountryFilter() {
+        const countrySelect = document.getElementById('facilityCountryFilter');
+        countrySelect.innerHTML = '<option value="">All Countries</option>';
+        
+        // Get unique countries from health facilities
+        const countries = [...new Set(this.healthFacilities.map(facility => facility.country))].sort();
+        
+        countries.forEach(country => {
+            const option = document.createElement('option');
+            option.value = country;
+            option.textContent = country;
+            countrySelect.appendChild(option);
+        });
+    }
+
+    updateImpactFacilitiesList() {
+        if (!this.showImpactZones || !this.impactZoneLayer) {
+            document.getElementById('impactFacilitiesSection').style.display = 'none';
+            return;
+        }
+
+        // Show the section
+        document.getElementById('impactFacilitiesSection').style.display = 'block';
+
+        // Find facilities within impact zones
+        const facilitiesInImpactZones = this.findFacilitiesInImpactZones();
+        
+        // Filter by selected country
+        const filteredFacilities = this.selectedImpactFacilityCountry 
+            ? facilitiesInImpactZones.filter(f => f.country === this.selectedImpactFacilityCountry)
+            : facilitiesInImpactZones;
+
+        this.displayImpactFacilities(filteredFacilities);
+    }
+
+    findFacilitiesInImpactZones() {
+        if (!this.impactZoneLayer || !this.healthFacilities.length) {
+            return [];
+        }
+
+        const facilitiesInImpact = [];
+
+        this.healthFacilities.forEach(facility => {
+            // Create a point for the facility
+            const facilityLatLng = L.latLng(facility.latitude, facility.longitude);
+            
+            // Check if facility is within any impact zone polygon
+            this.impactZoneLayer.eachLayer((layer) => {
+                if (layer.getBounds && layer.getBounds().contains(facilityLatLng)) {
+                    // More precise check if the layer has a contains method or is a polygon
+                    try {
+                        if (layer.contains && layer.contains(facilityLatLng)) {
+                            facilitiesInImpact.push(facility);
+                        } else if (layer.getLatLngs) {
+                            // For polygon layers, use point-in-polygon check
+                            const polygon = layer.getLatLngs()[0]; // Get first ring of polygon
+                            if (this.isPointInPolygon(facilityLatLng, polygon)) {
+                                facilitiesInImpact.push(facility);
+                            }
+                        }
+                    } catch (error) {
+                        // Fallback to bounds check if geometric operations fail
+                        if (layer.getBounds && layer.getBounds().contains(facilityLatLng)) {
+                            facilitiesInImpact.push(facility);
+                        }
+                    }
+                }
+            });
+        });
+
+        // Remove duplicates
+        return facilitiesInImpact.filter((facility, index, self) => 
+            index === self.findIndex(f => f.id === facility.id)
+        );
+    }
+
+    isPointInPolygon(point, polygon) {
+        // Ray casting algorithm for point-in-polygon test
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i].lat, yi = polygon[i].lng;
+            const xj = polygon[j].lat, yj = polygon[j].lng;
+            
+            if (((yi > point.lng) !== (yj > point.lng)) &&
+                (point.lat < (xj - xi) * (point.lng - yi) / (yj - yi) + xi)) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
+    displayImpactFacilities(facilities) {
+        const facilitiesList = document.getElementById('impactFacilitiesList');
+        
+        if (!facilities || facilities.length === 0) {
+            facilitiesList.innerHTML = '<div class="no-facilities">No RCRC facilities found in impact zones</div>';
+            return;
+        }
+
+        const facilitiesHtml = facilities.map(facility => `
+            <div class="facility-item">
+                <div class="facility-name">${facility.name}</div>
+                <div class="facility-details">
+                    <span class="facility-country">${facility.country}</span>
+                    <span class="facility-functionality ${this.getFunctionalityClass(facility.functionality)}">${facility.functionality || 'Unknown'}</span>
+                </div>
+                <div class="facility-type">${facility.type}</div>
+            </div>
+        `).join('');
+
+        facilitiesList.innerHTML = facilitiesHtml;
+    }
+
+    getFunctionalityClass(functionality) {
+        if (!functionality) return 'functionality-unknown';
+        
+        switch (functionality.toLowerCase()) {
+            case 'fully functional':
+            case 'fully':
+                return 'functionality-full';
+            case 'partially functional':
+            case 'partially':
+                return 'functionality-partial';
+            case 'not functional':
+            case 'not':
+                return 'functionality-none';
+            default:
+                return 'functionality-unknown';
+        }
     }
 }
 
