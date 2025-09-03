@@ -17,9 +17,8 @@ class DisasterMap {
         this.csvHealthFacilities = [];
         this.shapefileHealthFacilities = [];
         this.showOtherHealthFacilities = false;
-        this.selectedHealthCountry = ''; // Health facilities country filter
+        this.selectedHealthCountries = []; // Health facilities country filter (multi-select)
         this.selectedHealthFunctionality = ''; // Health facilities functionality filter
-        this.selectedHealthVisibility = ''; // Health facilities visibility filter
         this.selectedImpactFacilityCountry = ''; // Impact facilities country filter
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
@@ -102,9 +101,9 @@ class DisasterMap {
         });
 
 
-        // Health facilities country filter
+        // Health facilities country filter (multi-select)
         document.getElementById('healthCountryFilter').addEventListener('change', (e) => {
-            this.selectedHealthCountry = e.target.value;
+            this.selectedHealthCountries = Array.from(e.target.selectedOptions).map(option => option.value);
             this.filterHealthFacilities();
         });
 
@@ -114,11 +113,6 @@ class DisasterMap {
             this.filterHealthFacilities();
         });
 
-        // Health facilities visibility filter
-        document.getElementById('healthVisibilityFilter').addEventListener('change', (e) => {
-            this.selectedHealthVisibility = e.target.value;
-            this.filterHealthFacilities();
-        });
 
         // Impact facilities country filter
         document.getElementById('facilityCountryFilter').addEventListener('change', (e) => {
@@ -863,14 +857,12 @@ class DisasterMap {
     addHealthFacilitiesToMap() {
         console.log(`Adding health facilities to map. Total facilities: ${this.healthFacilities.length}`);
         console.log('Facility type visibility:', this.facilityTypeVisibility);
-        console.log('Selected health country:', this.selectedHealthCountry);
+        console.log('Selected health countries:', this.selectedHealthCountries);
         console.log('Selected health functionality:', this.selectedHealthFunctionality);
-        console.log('Selected health visibility:', this.selectedHealthVisibility);
         
         let addedCount = 0;
         let filteredByType = 0;
         let filteredByCountry = 0;
-        let filteredByVisibility = 0;
         let filteredByFunctionality = 0;
         
         this.healthFacilities.forEach(facility => {
@@ -883,17 +875,12 @@ class DisasterMap {
                 return;
             }
             
-            // Filter by country if a country is selected
-            if (this.selectedHealthCountry && facility.country !== this.selectedHealthCountry) {
+            // Filter by countries if any countries are selected
+            if (this.selectedHealthCountries.length > 0 && !this.selectedHealthCountries.includes(facility.country)) {
                 filteredByCountry++;
                 return;
             }
             
-            // Filter by visibility if a visibility level is selected
-            if (!this.matchesVisibilityFilter(facility)) {
-                filteredByVisibility++;
-                return;
-            }
 
             // Filter by functionality if a functionality level is selected
             if (!this.matchesFunctionalityFilter(facility.functionality)) {
@@ -929,12 +916,9 @@ class DisasterMap {
             this.healthFacilityMarkers.push(marker);
         });
         
-        console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by visibility: ${filteredByVisibility}, filtered by functionality: ${filteredByFunctionality}`);
-        if (this.selectedHealthCountry) {
-            console.log(`Applied country filter: "${this.selectedHealthCountry}"`);
-        }
-        if (this.selectedHealthVisibility) {
-            console.log(`Applied visibility filter: "${this.selectedHealthVisibility}"`);
+        console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by functionality: ${filteredByFunctionality}`);
+        if (this.selectedHealthCountries.length > 0) {
+            console.log(`Applied country filter: [${this.selectedHealthCountries.join(', ')}]`);
         }
         if (this.selectedHealthFunctionality) {
             console.log(`Applied functionality filter: "${this.selectedHealthFunctionality}"`);
@@ -987,22 +971,6 @@ class DisasterMap {
         }
     }
 
-    matchesVisibilityFilter(facility) {
-        if (!this.selectedHealthVisibility) return true; // No filter selected
-        
-        const facilityVisibility = facility.visibility ? facility.visibility.toLowerCase() : 'public';
-        
-        switch (this.selectedHealthVisibility) {
-            case 'public':
-                return facilityVisibility === 'public';
-            case 'rcrc':
-                return facilityVisibility.includes('rcrc movement') || facilityVisibility.includes('red cross');
-            case 'ifrc':
-                return facilityVisibility.includes('ifrc secretariat') || facilityVisibility.includes('ifrc');
-            default:
-                return true;
-        }
-    }
 
     createHealthFacilityIcon(color, type) {
         const iconSymbol = this.getHealthFacilitySymbol(type);
@@ -1130,8 +1098,8 @@ class DisasterMap {
         countrySelect.onchange = null;
         
         countrySelect.addEventListener('change', (e) => {
-            this.selectedHealthCountry = e.target.value;
-            console.log(`Selected country: "${this.selectedHealthCountry}"`);
+            this.selectedHealthCountries = Array.from(e.target.selectedOptions).map(option => option.value);
+            console.log(`Selected countries: [${this.selectedHealthCountries.join(', ')}]`);
             console.log(`Total health facilities: ${this.healthFacilities.length}`);
             
             // Debug: Show some sample countries from the data
@@ -1140,7 +1108,8 @@ class DisasterMap {
             
             this.updateHealthFacilitiesDisplay();
             this.updateLegendCounts(); // Update counts after filtering
-            console.log(`Filtering health facilities by country: ${this.selectedHealthCountry || 'All Countries'}`);
+            const countryDisplay = this.selectedHealthCountries.length > 0 ? `[${this.selectedHealthCountries.join(', ')}]` : 'All Countries';
+            console.log(`Filtering health facilities by countries: ${countryDisplay}`);
         });
     }
 
@@ -1154,7 +1123,8 @@ class DisasterMap {
     }
 
     filterHealthFacilities() {
-        console.log(`Filtering health facilities by country: ${this.selectedHealthCountry || 'All Countries'}`);
+        const countryDisplay = this.selectedHealthCountries.length > 0 ? `[${this.selectedHealthCountries.join(', ')}]` : 'All Countries';
+        console.log(`Filtering health facilities by countries: ${countryDisplay}`);
         this.updateHealthFacilitiesDisplay();
         this.updateLegendCounts(); // Update counts after filtering
     }

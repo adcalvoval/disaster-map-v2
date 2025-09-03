@@ -44,20 +44,14 @@
     <div id="healthFacilitiesControls" class="health-controls" style="display: block;">
         <div class="controls-header">
             <h4>Health Facilities</h4>
-            <select id="healthCountryFilter" class="country-filter">
-                <option value="">All Countries</option>
+            <select id="healthCountryFilter" class="country-filter" multiple size="4">
+                <!-- Countries will be dynamically populated -->
             </select>
             <select id="healthFunctionalityFilter" class="country-filter" style="margin-top: 5px;">
                 <option value="">All Functionality Levels</option>
                 <option value="fully">Fully Functional</option>
                 <option value="partially">Partially Functional</option>
                 <option value="not">Not Functional</option>
-            </select>
-            <select id="healthVisibilityFilter" class="country-filter" style="margin-top: 5px;">
-                <option value="">All Visibility Levels</option>
-                <option value="public">Public</option>
-                <option value="rcrc">RCRC Movement</option>
-                <option value="ifrc">IFRC Secretariat</option>
             </select>
         </div>
         <div class="facility-legend">

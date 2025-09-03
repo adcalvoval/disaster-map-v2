@@ -272,7 +272,7 @@ body {
     border-radius: 6px;
     padding: 12px;
     position: absolute;
-    bottom: 20px;
+    bottom: 60px;
     left: 20px;
     width: 280px;
     z-index: 1000;
@@ -306,6 +306,22 @@ body {
 .country-filter:focus {
     outline: none;
     border-color: #3498db;
+}
+
+.country-filter[multiple] {
+    height: auto;
+    min-height: 80px;
+    padding: 4px;
+}
+
+.country-filter[multiple] option {
+    padding: 2px 4px;
+    margin: 1px 0;
+}
+
+.country-filter[multiple] option:checked {
+    background: #3498db;
+    color: white;
 }
 
 .country-filter option {
