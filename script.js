@@ -362,7 +362,10 @@ class DisasterMap {
             const color = this.getAlertColor(event.alertLevel);
             const icon = this.createCustomIcon(color, event.type);
             
-            const marker = L.marker([event.latitude, event.longitude], { icon })
+            const marker = L.marker([event.latitude, event.longitude], { 
+                icon,
+                zIndexOffset: 2000
+            })
                 .addTo(this.map)
                 .bindPopup(`
                     <div>
@@ -398,6 +401,8 @@ class DisasterMap {
                     border: 2px solid #006400;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                     clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+                    z-index: 2000;
+                    position: relative;
                 ">${iconSymbol}</div>
             `,
             iconSize: [30, 30],
