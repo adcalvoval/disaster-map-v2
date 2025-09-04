@@ -212,8 +212,28 @@ class DisasterMap {
     }
 
     authenticateEarthEngine() {
-        if (typeof ee !== 'undefined') {
+        if (typeof ee !== 'undefined' && typeof gapi !== 'undefined') {
             console.log('Starting Earth Engine popup authentication...');
+            
+            // Check if gapi.auth2 is loaded
+            if (!gapi.auth2) {
+                console.log('Loading Google auth2 library...');
+                gapi.load('auth2', () => {
+                    this.performEarthEngineAuth();
+                });
+            } else {
+                this.performEarthEngineAuth();
+            }
+        } else {
+            console.error('Earth Engine API or Google API not available for authentication', {
+                ee: typeof ee !== 'undefined',
+                gapi: typeof gapi !== 'undefined'
+            });
+        }
+    }
+
+    performEarthEngineAuth() {
+        try {
             ee.data.authenticateViaPopup(this.earthEngineClientId, (error) => {
                 if (error) {
                     console.error('Earth Engine authentication failed:', error);
@@ -225,8 +245,8 @@ class DisasterMap {
                 // Re-initialize after successful authentication
                 this.initEarthEngine();
             });
-        } else {
-            console.error('Earth Engine API not available for authentication');
+        } catch (error) {
+            console.error('Error during Earth Engine authentication:', error);
         }
     }
 

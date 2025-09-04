@@ -153,6 +153,23 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/shpjs@4.0.4/dist/shp.min.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        // Initialize Google API when loaded
+        function initGoogleAPI() {
+            if (typeof gapi !== 'undefined') {
+                gapi.load('auth2', function() {
+                    console.log('Google API auth2 loaded successfully');
+                });
+            }
+        }
+        
+        // Call init when DOM is ready
+        if (typeof gapi !== 'undefined') {
+            initGoogleAPI();
+        } else {
+            window.addEventListener('load', initGoogleAPI);
+        }
+    </script>
     <script src="https://ajax.googleapis.com/ajax/libs/earthengine/0.1.365/earthengine-api.min.js"></script>
     <script src="script.js"></script>
 </body>
