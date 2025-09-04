@@ -21,6 +21,12 @@ class DisasterMap {
         this.selectedHealthFunctionality = ''; // Health facilities functionality filter
         this.selectedImpactFacilityCountry = ''; // Impact facilities country filter
         this.isFullscreen = false; // Fullscreen mode state
+        this.baseLayer = null; // OpenStreetMap base layer
+        this.satelliteLayer = null; // Satellite imagery layer
+        this.showSatelliteLayer = false; // Satellite layer visibility
+        this.earthEngineLayer = null; // Google Earth Engine layer
+        this.isEarthEngineAuthenticated = false; // Earth Engine authentication status
+        this.earthEngineClientId = '625560076780-9vhmfkncledul1qovqjteh3kacj3bpgp.apps.googleusercontent.com'; // Replace with your OAuth 2.0 Client ID
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -37,6 +43,7 @@ class DisasterMap {
 
     init() {
         this.initMap();
+        this.initEarthEngine();
         this.initEventListeners();
         this.loadDisasterData();
         this.loadImpactZones();
@@ -48,10 +55,86 @@ class DisasterMap {
     initMap() {
         this.map = L.map('map').setView([20, 0], 2);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Create base layer (OpenStreetMap)
+        this.baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 18,
-        }).addTo(this.map);
+        });
+        
+        // Create satellite layer (ArcGIS World Imagery)
+        this.satelliteLayer = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxZoom: 18,
+        });
+        
+        // Add base layer by default
+        this.baseLayer.addTo(this.map);
+    }
+
+    initEarthEngine() {
+        // Initialize Google Earth Engine
+        if (typeof ee !== 'undefined') {
+            // Check if user is already authenticated
+            ee.data.authenticateViaOauth(this.earthEngineClientId, 
+                () => {
+                    // Success callback
+                    console.log('Earth Engine authentication successful');
+                    this.isEarthEngineAuthenticated = true;
+                    ee.initialize();
+                    this.setupEarthEngineLayer();
+                    document.getElementById('authEarthEngine').style.display = 'none';
+                },
+                (error) => {
+                    // Error callback - user needs to authenticate
+                    console.log('Earth Engine authentication required');
+                    this.isEarthEngineAuthenticated = false;
+                    document.getElementById('authEarthEngine').style.display = 'inline-block';
+                },
+                null, // scopes (default)
+                () => {
+                    // Immediate failed callback - show login button
+                    console.log('Earth Engine immediate auth failed - showing login button');
+                    document.getElementById('authEarthEngine').style.display = 'inline-block';
+                }
+            );
+        } else {
+            console.error('Google Earth Engine API not loaded');
+        }
+    }
+
+    setupEarthEngineLayer() {
+        // Create a simple satellite imagery layer using Landsat 8
+        const landsat = ee.ImageCollection('LANDSAT/LC08/C02/T1_TOA')
+            .filterDate('2023-01-01', '2024-01-01')
+            .median();
+
+        // Create visualization parameters for true color
+        const visParams = {
+            bands: ['B4', 'B3', 'B2'],
+            min: 0,
+            max: 0.3,
+            gamma: 1.2
+        };
+
+        // Get the tile URL template
+        landsat.visualize(visParams).getMap({}, (tileUrlTemplate) => {
+            this.earthEngineLayer = L.tileLayer(tileUrlTemplate, {
+                attribution: '© Google Earth Engine',
+                maxZoom: 18,
+            });
+        });
+    }
+
+    authenticateEarthEngine() {
+        if (typeof ee !== 'undefined') {
+            ee.data.authenticateViaPopup(() => {
+                console.log('Earth Engine popup authentication successful');
+                this.isEarthEngineAuthenticated = true;
+                ee.initialize();
+                this.setupEarthEngineLayer();
+                document.getElementById('authEarthEngine').style.display = 'none';
+            });
+        }
     }
 
     initEventListeners() {
@@ -111,6 +194,16 @@ class DisasterMap {
             if (e.key === 'Escape' && this.isFullscreen) {
                 this.toggleFullscreen();
             }
+        });
+
+        // Satellite layer toggle
+        document.getElementById('showSatelliteLayer').addEventListener('change', (e) => {
+            this.showSatelliteLayer = e.target.checked;
+            this.toggleSatelliteLayer();
+        });
+
+        document.getElementById('authEarthEngine').addEventListener('click', () => {
+            this.authenticateEarthEngine();
         });
 
 
@@ -1743,6 +1836,31 @@ class DisasterMap {
         }, 100);
         
         console.log(`Fullscreen mode: ${this.isFullscreen ? 'ON' : 'OFF'}`);
+    }
+
+    toggleSatelliteLayer() {
+        if (this.showSatelliteLayer) {
+            // Remove base layer
+            if (this.map.hasLayer(this.baseLayer)) {
+                this.map.removeLayer(this.baseLayer);
+            }
+            
+            // Use Earth Engine layer if authenticated and available, otherwise use ArcGIS
+            if (this.isEarthEngineAuthenticated && this.earthEngineLayer) {
+                this.earthEngineLayer.addTo(this.map);
+            } else {
+                this.satelliteLayer.addTo(this.map);
+            }
+        } else {
+            // Remove satellite layers and add base layer
+            if (this.map.hasLayer(this.satelliteLayer)) {
+                this.map.removeLayer(this.satelliteLayer);
+            }
+            if (this.earthEngineLayer && this.map.hasLayer(this.earthEngineLayer)) {
+                this.map.removeLayer(this.earthEngineLayer);
+            }
+            this.baseLayer.addTo(this.map);
+        }
     }
 }
 
