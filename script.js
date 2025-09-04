@@ -80,46 +80,47 @@ class DisasterMap {
 
     initEarthEngine() {
         // Initialize Google Earth Engine
-        if (typeof ee !== 'undefined' && typeof gapi !== 'undefined') {
-            console.log('Earth Engine API detected, attempting authentication...');
+        if (typeof ee !== 'undefined') {
+            console.log('Earth Engine API detected, attempting initialization...');
             this.earthEngineRetryCount = 0; // Reset retry count on success
             
-            // Check if user is already authenticated
-            ee.data.authenticateViaOauth(this.earthEngineClientId, 
-                () => {
-                    // Success callback
-                    console.log('Earth Engine authentication successful');
-                    this.isEarthEngineAuthenticated = true;
-                    ee.initialize();
-                    this.setupEarthEngineLayer();
-                    document.getElementById('authEarthEngine').style.display = 'none';
-                },
-                (error) => {
-                    // Error callback - user needs to authenticate
-                    console.log('Earth Engine authentication required:', error);
-                    this.isEarthEngineAuthenticated = false;
-                    document.getElementById('authEarthEngine').style.display = 'inline-block';
-                },
-                null, // scopes (default)
-                () => {
-                    // Immediate failed callback - show login button
-                    console.log('Earth Engine immediate auth failed - showing login button');
-                    document.getElementById('authEarthEngine').style.display = 'inline-block';
-                }
-            );
+            try {
+                // Initialize Earth Engine with project
+                ee.initialize(
+                    null, // No private key for client-side apps
+                    null, // No service account for client-side apps
+                    () => {
+                        // Success callback
+                        console.log('Earth Engine initialization successful');
+                        this.isEarthEngineAuthenticated = true;
+                        this.setupEarthEngineLayer();
+                        document.getElementById('authEarthEngine').style.display = 'none';
+                    },
+                    (error) => {
+                        // Error callback - user needs to authenticate
+                        console.log('Earth Engine authentication required:', error);
+                        this.isEarthEngineAuthenticated = false;
+                        document.getElementById('authEarthEngine').style.display = 'inline-block';
+                    },
+                    this.earthEngineClientId // Pass the OAuth client ID
+                );
+            } catch (error) {
+                console.error('Earth Engine initialization failed:', error);
+                this.isEarthEngineAuthenticated = false;
+                document.getElementById('authEarthEngine').style.display = 'inline-block';
+            }
         } else {
             this.earthEngineRetryCount++;
             
             if (this.earthEngineRetryCount <= this.maxEarthEngineRetries) {
                 console.warn(`Google Earth Engine API not fully loaded yet (attempt ${this.earthEngineRetryCount}/${this.maxEarthEngineRetries}). Available APIs:`, {
-                    ee: typeof ee !== 'undefined',
-                    gapi: typeof gapi !== 'undefined'
+                    ee: typeof ee !== 'undefined'
                 });
                 
                 // Retry after another delay if APIs aren't ready
                 setTimeout(() => {
                     this.initEarthEngine();
-                }, 2000);
+                }, 3000);
             } else {
                 console.error(`Google Earth Engine API failed to load after ${this.maxEarthEngineRetries} attempts. Satellite imagery will use ArcGIS World Imagery only.`);
                 // Hide the auth button since Earth Engine is not available
@@ -202,13 +203,20 @@ class DisasterMap {
 
     authenticateEarthEngine() {
         if (typeof ee !== 'undefined') {
-            ee.data.authenticateViaPopup(() => {
+            console.log('Starting Earth Engine popup authentication...');
+            ee.data.authenticateViaPopup(this.earthEngineClientId, (error) => {
+                if (error) {
+                    console.error('Earth Engine authentication failed:', error);
+                    return;
+                }
                 console.log('Earth Engine popup authentication successful');
                 this.isEarthEngineAuthenticated = true;
-                ee.initialize();
-                this.setupEarthEngineLayer();
-                document.getElementById('authEarthEngine').style.display = 'none';
+                
+                // Re-initialize after successful authentication
+                this.initEarthEngine();
             });
+        } else {
+            console.error('Earth Engine API not available for authentication');
         }
     }
 
