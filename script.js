@@ -44,13 +44,17 @@ class DisasterMap {
 
     init() {
         this.initMap();
-        this.initEarthEngine();
         this.initEventListeners();
         this.loadDisasterData();
         this.loadImpactZones();
         this.loadHealthFacilities();
         this.loadCsvHealthFacilities();
         this.loadShapefileHealthFacilities();
+        
+        // Initialize Earth Engine after other components are loaded
+        setTimeout(() => {
+            this.initEarthEngine();
+        }, 1000);
     }
 
     initMap() {
@@ -74,7 +78,9 @@ class DisasterMap {
 
     initEarthEngine() {
         // Initialize Google Earth Engine
-        if (typeof ee !== 'undefined') {
+        if (typeof ee !== 'undefined' && typeof gapi !== 'undefined') {
+            console.log('Earth Engine API detected, attempting authentication...');
+            
             // Check if user is already authenticated
             ee.data.authenticateViaOauth(this.earthEngineClientId, 
                 () => {
@@ -87,7 +93,7 @@ class DisasterMap {
                 },
                 (error) => {
                     // Error callback - user needs to authenticate
-                    console.log('Earth Engine authentication required');
+                    console.log('Earth Engine authentication required:', error);
                     this.isEarthEngineAuthenticated = false;
                     document.getElementById('authEarthEngine').style.display = 'inline-block';
                 },
@@ -99,7 +105,15 @@ class DisasterMap {
                 }
             );
         } else {
-            console.error('Google Earth Engine API not loaded');
+            console.warn('Google Earth Engine API or Google API not fully loaded yet. Available APIs:', {
+                ee: typeof ee !== 'undefined',
+                gapi: typeof gapi !== 'undefined'
+            });
+            
+            // Retry after another delay if APIs aren't ready
+            setTimeout(() => {
+                this.initEarthEngine();
+            }, 2000);
         }
     }
 
