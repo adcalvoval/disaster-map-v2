@@ -162,6 +162,8 @@ class DisasterMap {
                     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
                     border: 1px solid #ccc;
                     pointer-events: none;
+                    margin-bottom: 70px;
+                    margin-right: 10px;
                 `;
                 return div;
             },
