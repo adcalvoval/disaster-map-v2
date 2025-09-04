@@ -28,6 +28,8 @@ class DisasterMap {
         this.isEarthEngineAuthenticated = false; // Earth Engine authentication status
         this.earthEngineClientId = '625560076780-dq6gn2dhbuuk2kv2c538av7rkhvdt3u2.apps.googleusercontent.com'; // Replace with your OAuth 2.0 Client ID
         this.satelliteDateCaption = null; // Date caption control for satellite imagery
+        this.earthEngineRetryCount = 0; // Track retry attempts
+        this.maxEarthEngineRetries = 5; // Maximum retry attempts
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -80,6 +82,7 @@ class DisasterMap {
         // Initialize Google Earth Engine
         if (typeof ee !== 'undefined' && typeof gapi !== 'undefined') {
             console.log('Earth Engine API detected, attempting authentication...');
+            this.earthEngineRetryCount = 0; // Reset retry count on success
             
             // Check if user is already authenticated
             ee.data.authenticateViaOauth(this.earthEngineClientId, 
@@ -105,15 +108,23 @@ class DisasterMap {
                 }
             );
         } else {
-            console.warn('Google Earth Engine API or Google API not fully loaded yet. Available APIs:', {
-                ee: typeof ee !== 'undefined',
-                gapi: typeof gapi !== 'undefined'
-            });
+            this.earthEngineRetryCount++;
             
-            // Retry after another delay if APIs aren't ready
-            setTimeout(() => {
-                this.initEarthEngine();
-            }, 2000);
+            if (this.earthEngineRetryCount <= this.maxEarthEngineRetries) {
+                console.warn(`Google Earth Engine API not fully loaded yet (attempt ${this.earthEngineRetryCount}/${this.maxEarthEngineRetries}). Available APIs:`, {
+                    ee: typeof ee !== 'undefined',
+                    gapi: typeof gapi !== 'undefined'
+                });
+                
+                // Retry after another delay if APIs aren't ready
+                setTimeout(() => {
+                    this.initEarthEngine();
+                }, 2000);
+            } else {
+                console.error(`Google Earth Engine API failed to load after ${this.maxEarthEngineRetries} attempts. Satellite imagery will use ArcGIS World Imagery only.`);
+                // Hide the auth button since Earth Engine is not available
+                document.getElementById('authEarthEngine').style.display = 'none';
+            }
         }
     }
 
