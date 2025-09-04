@@ -99,6 +99,16 @@ class DisasterMap {
                     (error) => {
                         // Error callback - user needs to authenticate
                         console.log('Earth Engine authentication required:', error);
+                        
+                        // Check if it's a CORS error (OAuth domain not configured)
+                        if (error && error.message && error.message.includes('Invalid JSON')) {
+                            console.error('⚠️ CORS Error detected - Please add your domain to Google Cloud OAuth authorized origins:');
+                            console.error('   1. Go to https://console.cloud.google.com/');
+                            console.error('   2. Navigate to APIs & Services > Credentials');
+                            console.error('   3. Edit your OAuth Client ID');
+                            console.error('   4. Add this domain to Authorized JavaScript origins:', window.location.origin);
+                        }
+                        
                         this.isEarthEngineAuthenticated = false;
                         document.getElementById('authEarthEngine').style.display = 'inline-block';
                     },
