@@ -212,39 +212,93 @@ class DisasterMap {
     }
 
     authenticateEarthEngine() {
-        if (typeof ee !== 'undefined' && typeof gapi !== 'undefined') {
-            console.log('Starting Earth Engine popup authentication...');
-            
-            // Check if gapi.auth2 is loaded
-            if (!gapi.auth2) {
-                console.log('Loading Google auth2 library...');
-                gapi.load('auth2', () => {
-                    this.performEarthEngineAuth();
-                });
-            } else {
-                this.performEarthEngineAuth();
-            }
-        } else {
-            console.error('Earth Engine API or Google API not available for authentication', {
-                ee: typeof ee !== 'undefined',
-                gapi: typeof gapi !== 'undefined'
-            });
+        console.log('Starting Earth Engine authentication...');
+        
+        // Check API availability
+        if (typeof ee === 'undefined') {
+            console.error('Earth Engine API not loaded');
+            return;
         }
+        
+        if (typeof gapi === 'undefined') {
+            console.error('Google API not loaded');
+            return;
+        }
+        
+        // Initialize Google API client if not already done
+        this.initializeGoogleAuth().then(() => {
+            this.performEarthEngineAuth();
+        }).catch((error) => {
+            console.error('Failed to initialize Google Auth:', error);
+        });
+    }
+
+    initializeGoogleAuth() {
+        return new Promise((resolve, reject) => {
+            // Check if gapi is already initialized
+            if (gapi.auth2 && gapi.auth2.getAuthInstance()) {
+                console.log('Google Auth already initialized');
+                resolve();
+                return;
+            }
+            
+            // Load and initialize auth2
+            gapi.load('auth2', () => {
+                gapi.auth2.init({
+                    client_id: this.earthEngineClientId,
+                    scope: 'https://www.googleapis.com/auth/earthengine'
+                }).then(() => {
+                    console.log('Google Auth2 initialized successfully');
+                    resolve();
+                }).catch((error) => {
+                    console.error('Google Auth2 initialization failed:', error);
+                    reject(error);
+                });
+            });
+        });
     }
 
     performEarthEngineAuth() {
         try {
-            ee.data.authenticateViaPopup(this.earthEngineClientId, (error) => {
-                if (error) {
-                    console.error('Earth Engine authentication failed:', error);
-                    return;
-                }
-                console.log('Earth Engine popup authentication successful');
-                this.isEarthEngineAuthenticated = true;
-                
-                // Re-initialize after successful authentication
-                this.initEarthEngine();
-            });
+            console.log('Attempting Earth Engine popup authentication...');
+            
+            // Use Google Auth2 directly for more reliable authentication
+            const authInstance = gapi.auth2.getAuthInstance();
+            if (authInstance) {
+                authInstance.signIn().then((user) => {
+                    console.log('Google sign-in successful');
+                    const authResponse = user.getAuthResponse();
+                    
+                    // Now initialize Earth Engine with the token
+                    ee.initialize(
+                        null, // No private key
+                        null, // No service account  
+                        () => {
+                            console.log('Earth Engine authentication successful');
+                            this.isEarthEngineAuthenticated = true;
+                            this.setupEarthEngineLayer();
+                            document.getElementById('authEarthEngine').style.display = 'none';
+                        },
+                        (error) => {
+                            console.error('Earth Engine initialization failed:', error);
+                        }
+                    );
+                }).catch((error) => {
+                    console.error('Google sign-in failed:', error);
+                });
+            } else {
+                // Fallback to Earth Engine's authentication method
+                ee.data.authenticateViaPopup(this.earthEngineClientId, (error) => {
+                    if (error) {
+                        console.error('Earth Engine authentication failed:', error);
+                        return;
+                    }
+                    console.log('Earth Engine popup authentication successful');
+                    this.isEarthEngineAuthenticated = true;
+                    this.setupEarthEngineLayer();
+                    document.getElementById('authEarthEngine').style.display = 'none';
+                });
+            }
         } catch (error) {
             console.error('Error during Earth Engine authentication:', error);
         }
