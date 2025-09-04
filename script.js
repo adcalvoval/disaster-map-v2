@@ -26,7 +26,7 @@ class DisasterMap {
         this.showSatelliteLayer = false; // Satellite layer visibility
         this.earthEngineLayer = null; // Google Earth Engine layer
         this.isEarthEngineAuthenticated = false; // Earth Engine authentication status
-        this.earthEngineClientId = '625560076780-9vhmfkncledul1qovqjteh3kacj3bpgp.apps.googleusercontent.com'; // Replace with your OAuth 2.0 Client ID
+        this.earthEngineClientId = '625560076780-dq6gn2dhbuuk2kv2c538av7rkhvdt3u2.apps.googleusercontent.com'; // Replace with your OAuth 2.0 Client ID
         this.satelliteDateCaption = null; // Date caption control for satellite imagery
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
