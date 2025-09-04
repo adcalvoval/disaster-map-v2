@@ -27,6 +27,7 @@ class DisasterMap {
         this.earthEngineLayer = null; // Google Earth Engine layer
         this.isEarthEngineAuthenticated = false; // Earth Engine authentication status
         this.earthEngineClientId = '625560076780-9vhmfkncledul1qovqjteh3kacj3bpgp.apps.googleusercontent.com'; // Replace with your OAuth 2.0 Client ID
+        this.satelliteDateCaption = null; // Date caption control for satellite imagery
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -103,10 +104,12 @@ class DisasterMap {
     }
 
     setupEarthEngineLayer() {
-        // Create a simple satellite imagery layer using Landsat 8
+        // Create a recent satellite imagery layer using Landsat 8
         const landsat = ee.ImageCollection('LANDSAT/LC08/C02/T1_TOA')
-            .filterDate('2023-01-01', '2024-01-01')
-            .median();
+            .filterDate('2023-01-01', '2024-12-31')
+            .filterBounds(ee.Geometry.Point(0, 0)) // Global coverage
+            .sort('system:time_start', false) // Most recent first
+            .first(); // Get the most recent image
 
         // Create visualization parameters for true color
         const visParams = {
@@ -116,6 +119,19 @@ class DisasterMap {
             gamma: 1.2
         };
 
+        // Get the image date
+        landsat.get('system:time_start').evaluate((timestamp) => {
+            const imageDate = new Date(timestamp);
+            const dateString = imageDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            // Create the date caption
+            this.createSatelliteDateCaption(`Landsat 8 - ${dateString}`);
+        });
+
         // Get the tile URL template
         landsat.visualize(visParams).getMap({}, (tileUrlTemplate) => {
             this.earthEngineLayer = L.tileLayer(tileUrlTemplate, {
@@ -123,6 +139,38 @@ class DisasterMap {
                 maxZoom: 18,
             });
         });
+    }
+
+    createSatelliteDateCaption(dateText) {
+        // Remove existing caption if it exists
+        if (this.satelliteDateCaption && this.map.hasControl(this.satelliteDateCaption)) {
+            this.map.removeControl(this.satelliteDateCaption);
+        }
+
+        // Create a custom Leaflet control for the date caption
+        const DateCaption = L.Control.extend({
+            onAdd: function(map) {
+                const div = L.DomUtil.create('div', 'satellite-date-caption');
+                div.innerHTML = dateText;
+                div.style.cssText = `
+                    background: rgba(255, 255, 255, 0.9);
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    color: #333;
+                    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+                    border: 1px solid #ccc;
+                    pointer-events: none;
+                `;
+                return div;
+            },
+            onRemove: function(map) {
+                // Nothing to do here
+            }
+        });
+
+        this.satelliteDateCaption = new DateCaption({ position: 'bottomright' });
     }
 
     authenticateEarthEngine() {
@@ -1848,8 +1896,17 @@ class DisasterMap {
             // Use Earth Engine layer if authenticated and available, otherwise use ArcGIS
             if (this.isEarthEngineAuthenticated && this.earthEngineLayer) {
                 this.earthEngineLayer.addTo(this.map);
+                // Show date caption for Earth Engine imagery
+                if (this.satelliteDateCaption) {
+                    this.satelliteDateCaption.addTo(this.map);
+                }
             } else {
                 this.satelliteLayer.addTo(this.map);
+                // Create a generic caption for ArcGIS imagery
+                if (!this.satelliteDateCaption) {
+                    this.createSatelliteDateCaption('ArcGIS World Imagery');
+                }
+                this.satelliteDateCaption.addTo(this.map);
             }
         } else {
             // Remove satellite layers and add base layer
@@ -1858,6 +1915,10 @@ class DisasterMap {
             }
             if (this.earthEngineLayer && this.map.hasLayer(this.earthEngineLayer)) {
                 this.map.removeLayer(this.earthEngineLayer);
+            }
+            // Hide date caption
+            if (this.satelliteDateCaption && this.map.hasControl(this.satelliteDateCaption)) {
+                this.map.removeControl(this.satelliteDateCaption);
             }
             this.baseLayer.addTo(this.map);
         }
