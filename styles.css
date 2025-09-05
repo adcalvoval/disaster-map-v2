@@ -166,6 +166,13 @@ body.fullscreen-mode .health-controls {
     display: none;
 }
 
+/* Road network overlay styling */
+.road-network-layer {
+    mix-blend-mode: multiply;
+    opacity: 0.8 !important;
+    filter: contrast(1.2) brightness(0.9);
+}
+
 .sidebar {
     grid-area: sidebar;
     background: #f8f9fa;

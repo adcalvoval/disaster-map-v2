@@ -30,6 +30,8 @@ class DisasterMap {
         this.satelliteDateCaption = null; // Date caption control for satellite imagery
         this.earthEngineRetryCount = 0; // Track retry attempts
         this.maxEarthEngineRetries = 5; // Maximum retry attempts
+        this.roadNetworkLayer = null; // Road network overlay layer
+        this.showRoadNetwork = false; // Road network visibility
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -72,6 +74,15 @@ class DisasterMap {
         this.satelliteLayer = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
             maxZoom: 18,
+        });
+        
+        // Create road network overlay layer (OpenStreetMap roads only)
+        this.roadNetworkLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+            opacity: 0.7, // Semi-transparent for overlay effect
+            // Custom CSS filter to show only roads (remove background)
+            className: 'road-network-layer'
         });
         
         // Add base layer by default
@@ -220,85 +231,25 @@ class DisasterMap {
             return;
         }
         
-        if (typeof gapi === 'undefined') {
-            console.error('Google API not loaded');
-            return;
-        }
-        
-        // Initialize Google API client if not already done
-        this.initializeGoogleAuth().then(() => {
-            this.performEarthEngineAuth();
-        }).catch((error) => {
-            console.error('Failed to initialize Google Auth:', error);
-        });
-    }
-
-    initializeGoogleAuth() {
-        return new Promise((resolve, reject) => {
-            // Check if gapi is already initialized
-            if (gapi.auth2 && gapi.auth2.getAuthInstance()) {
-                console.log('Google Auth already initialized');
-                resolve();
-                return;
-            }
-            
-            // Load and initialize auth2
-            gapi.load('auth2', () => {
-                gapi.auth2.init({
-                    client_id: this.earthEngineClientId,
-                    scope: 'https://www.googleapis.com/auth/earthengine'
-                }).then(() => {
-                    console.log('Google Auth2 initialized successfully');
-                    resolve();
-                }).catch((error) => {
-                    console.error('Google Auth2 initialization failed:', error);
-                    reject(error);
-                });
-            });
-        });
-    }
-
-    performEarthEngineAuth() {
+        // Simplified approach - use Earth Engine's built-in authentication
         try {
             console.log('Attempting Earth Engine popup authentication...');
-            
-            // Use Google Auth2 directly for more reliable authentication
-            const authInstance = gapi.auth2.getAuthInstance();
-            if (authInstance) {
-                authInstance.signIn().then((user) => {
-                    console.log('Google sign-in successful');
-                    const authResponse = user.getAuthResponse();
+            ee.data.authenticateViaPopup(this.earthEngineClientId, (error) => {
+                if (error) {
+                    console.error('Earth Engine authentication failed:', error);
                     
-                    // Now initialize Earth Engine with the token
-                    ee.initialize(
-                        null, // No private key
-                        null, // No service account  
-                        () => {
-                            console.log('Earth Engine authentication successful');
-                            this.isEarthEngineAuthenticated = true;
-                            this.setupEarthEngineLayer();
-                            document.getElementById('authEarthEngine').style.display = 'none';
-                        },
-                        (error) => {
-                            console.error('Earth Engine initialization failed:', error);
-                        }
-                    );
-                }).catch((error) => {
-                    console.error('Google sign-in failed:', error);
-                });
-            } else {
-                // Fallback to Earth Engine's authentication method
-                ee.data.authenticateViaPopup(this.earthEngineClientId, (error) => {
-                    if (error) {
-                        console.error('Earth Engine authentication failed:', error);
-                        return;
+                    // Check if it's a CORS error (OAuth domain not configured)
+                    if (error.message && error.message.includes('Invalid JSON')) {
+                        console.error('⚠️ CORS Error - Please add your domain to Google Cloud OAuth authorized origins');
+                        console.error('Domain needed:', window.location.origin);
                     }
-                    console.log('Earth Engine popup authentication successful');
-                    this.isEarthEngineAuthenticated = true;
-                    this.setupEarthEngineLayer();
-                    document.getElementById('authEarthEngine').style.display = 'none';
-                });
-            }
+                    return;
+                }
+                console.log('Earth Engine popup authentication successful');
+                this.isEarthEngineAuthenticated = true;
+                this.setupEarthEngineLayer();
+                document.getElementById('authEarthEngine').style.display = 'none';
+            });
         } catch (error) {
             console.error('Error during Earth Engine authentication:', error);
         }
@@ -367,6 +318,11 @@ class DisasterMap {
         document.getElementById('showSatelliteLayer').addEventListener('change', (e) => {
             this.showSatelliteLayer = e.target.checked;
             this.toggleSatelliteLayer();
+        });
+
+        document.getElementById('showRoadNetwork').addEventListener('change', (e) => {
+            this.showRoadNetwork = e.target.checked;
+            this.toggleRoadNetwork();
         });
 
         document.getElementById('authEarthEngine').addEventListener('click', () => {
@@ -2040,6 +1996,18 @@ class DisasterMap {
                 this.map.removeControl(this.satelliteDateCaption);
             }
             this.baseLayer.addTo(this.map);
+        }
+    }
+
+    toggleRoadNetwork() {
+        if (this.showRoadNetwork) {
+            // Add road network overlay
+            this.roadNetworkLayer.addTo(this.map);
+        } else {
+            // Remove road network overlay
+            if (this.map.hasLayer(this.roadNetworkLayer)) {
+                this.map.removeLayer(this.roadNetworkLayer);
+            }
         }
     }
 }
