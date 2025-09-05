@@ -225,6 +225,10 @@ class DisasterMap {
             this.toggleMunicipalities();
         });
 
+        // Health controls collapse/expand toggle
+        document.getElementById('toggleHealthControls').addEventListener('click', (e) => {
+            this.toggleHealthControlsCollapse();
+        });
 
 
         // Health facilities country filter (multi-select)
@@ -2419,6 +2423,23 @@ class DisasterMap {
                 }
             });
             console.log('Municipality markers removed from map');
+        }
+    }
+
+    toggleHealthControlsCollapse() {
+        const content = document.getElementById('healthControlsContent');
+        const toggleBtn = document.getElementById('toggleHealthControls');
+        
+        if (content.classList.contains('collapsed')) {
+            // Expand
+            content.classList.remove('collapsed');
+            toggleBtn.textContent = '−';
+            toggleBtn.title = 'Collapse Health Facilities';
+        } else {
+            // Collapse
+            content.classList.add('collapsed');
+            toggleBtn.textContent = '+';
+            toggleBtn.title = 'Expand Health Facilities';
         }
     }
 

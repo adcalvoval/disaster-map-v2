@@ -63,18 +63,24 @@
     <!-- Health Facilities Controls -->
     <div id="healthFacilitiesControls" class="health-controls" style="display: block;">
         <div class="controls-header">
-            <h4>Health Facilities</h4>
-            <select id="healthCountryFilter" class="country-filter" multiple size="4">
-                <!-- Countries will be dynamically populated -->
-            </select>
-            <select id="healthFunctionalityFilter" class="country-filter" style="margin-top: 5px;">
-                <option value="">All Functionality Levels</option>
-                <option value="fully">Fully Functional</option>
-                <option value="partially">Partially Functional</option>
-                <option value="not">Not Functional</option>
-            </select>
+            <div class="header-with-toggle">
+                <h4>Health Facilities</h4>
+                <button id="toggleHealthControls" class="toggle-btn" title="Collapse/Expand Health Facilities">−</button>
+            </div>
         </div>
-        <div class="facility-legend">
+        <div id="healthControlsContent" class="collapsible-content">
+            <div class="filter-section">
+                <select id="healthCountryFilter" class="country-filter" multiple size="4">
+                    <!-- Countries will be dynamically populated -->
+                </select>
+                <select id="healthFunctionalityFilter" class="country-filter" style="margin-top: 5px;">
+                    <option value="">All Functionality Levels</option>
+                    <option value="fully">Fully Functional</option>
+                    <option value="partially">Partially Functional</option>
+                    <option value="not">Not Functional</option>
+                </select>
+            </div>
+            <div class="facility-legend">
             <div class="legend-item">
                 <input type="checkbox" id="show-primary-health" checked>
                 <span class="legend-icon" style="background: #1e3a8a;">🏥</span>
@@ -119,6 +125,7 @@
                 <input type="checkbox" id="show-other" checked>
                 <span class="legend-icon" style="background: #374151;">⚕️</span>
                 <label for="show-other">Other (630)</label>
+            </div>
             </div>
         </div>
     </div>
