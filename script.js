@@ -245,10 +245,17 @@ class DisasterMap {
 
 
         // Impact facilities country filter
-        document.getElementById('facilityCountryFilter').addEventListener('change', (e) => {
-            this.selectedImpactFacilityCountry = e.target.value;
-            this.updateImpactFacilitiesList();
-        });
+        const facilityCountryFilter = document.getElementById('facilityCountryFilter');
+        if (facilityCountryFilter) {
+            facilityCountryFilter.addEventListener('change', (e) => {
+                this.selectedImpactFacilityCountry = e.target.value;
+                console.log(`🔍 Impact facility country filter changed to: "${this.selectedImpactFacilityCountry}"`);
+                this.updateImpactFacilitiesList();
+            });
+            console.log('✅ Impact facility country filter event listener added');
+        } else {
+            console.error('❌ facilityCountryFilter element not found!');
+        }
 
         // Add event listeners for individual facility type checkboxes
         this.initFacilityTypeListeners();
@@ -1662,6 +1669,8 @@ class DisasterMap {
         
         // Get unique countries from health facilities
         const countries = [...new Set(this.healthFacilities.map(facility => facility.country))].sort();
+        console.log(`🌍 Available countries for impact facilities filter:`, countries);
+        console.log(`🌍 Sample facility data:`, this.healthFacilities[0]);
         
         countries.forEach(country => {
             const option = document.createElement('option');
@@ -1669,6 +1678,8 @@ class DisasterMap {
             option.textContent = country;
             countrySelect.appendChild(option);
         });
+        
+        console.log(`🌍 Country filter initialized with ${countries.length} countries`);
     }
 
     updateImpactFacilitiesList() {
@@ -1677,10 +1688,13 @@ class DisasterMap {
 
         // Get all RCRC health facilities
         let allFacilities = this.healthFacilities || [];
+        console.log(`📊 Updating impact facilities list - Total facilities: ${allFacilities.length}`);
+        console.log(`📊 Selected country filter: "${this.selectedImpactFacilityCountry}"`);
         
         // Filter by selected country if specified
         if (this.selectedImpactFacilityCountry) {
             allFacilities = allFacilities.filter(f => f.country === this.selectedImpactFacilityCountry);
+            console.log(`📊 After country filter: ${allFacilities.length} facilities`);
         }
 
         // Always find which facilities are in impact zones, regardless of impact zones visibility
