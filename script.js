@@ -77,15 +77,12 @@ class DisasterMap {
             maxZoom: 18,
         });
         
-        // Create road network overlay layer (OpenStreetMap roads only)
-        this.roadNetworkLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
+        // Create road network overlay layer using CartoDB roads-only tiles
+        this.roadNetworkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors, © CARTO',
             maxZoom: 18,
-            opacity: 1, // Full opacity - CSS filters will handle transparency
-            className: 'road-network-layer',
-            // Force tile refresh to ensure filters apply correctly
-            updateWhenIdle: false,
-            keepBuffer: 2
+            opacity: 0.8,
+            className: 'road-network-layer'
         });
         
         // Add base layer by default
