@@ -2057,10 +2057,6 @@ class DisasterMap {
                                         <p style="margin: 2px 0;"><strong>Case fatality rate:</strong> <span style="color: #dc2626; font-weight: bold;">35%</span></p>
                                     </div>
                                     
-                                    <div style="background: #f0f9ff; padding: 8px; border-radius: 4px; margin: 8px 0; border-left: 4px solid #0284c7;">
-                                        <h5 style="margin: 0 0 6px 0; color: #0c4a6e;">🏥 Affected Areas</h5>
-                                        <p style="margin: 2px 0;"><strong>Health zones:</strong> Bulape</p>
-                                    </div>
                                     
                                     <div style="background: #f0fdf4; padding: 8px; border-radius: 4px; margin: 8px 0; border-left: 4px solid #16a34a;">
                                         <h5 style="margin: 0 0 6px 0; color: #14532d;">💉 Response Resources</h5>
