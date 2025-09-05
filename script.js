@@ -80,9 +80,11 @@ class DisasterMap {
         this.roadNetworkLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 18,
-            opacity: 0.7, // Semi-transparent for overlay effect
-            // Custom CSS filter to show only roads (remove background)
-            className: 'road-network-layer'
+            opacity: 1, // Full opacity - CSS filters will handle transparency
+            className: 'road-network-layer',
+            // Force tile refresh to ensure filters apply correctly
+            updateWhenIdle: false,
+            keepBuffer: 2
         });
         
         // Add base layer by default
