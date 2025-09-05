@@ -52,7 +52,10 @@ class DisasterMap {
         this.loadCsvHealthFacilities();
         this.loadShapefileHealthFacilities();
         
-        // Create satellite date caption
+        // Initialize Earth Engine client
+        this.earthEngineClient = new EarthEngineClient(this.map);
+        
+        // Create fallback satellite date caption
         this.createSatelliteDateCaption('ArcGIS World Imagery');
     }
 
@@ -1831,30 +1834,64 @@ class DisasterMap {
         console.log(`Fullscreen mode: ${this.isFullscreen ? 'ON' : 'OFF'}`);
     }
 
-    toggleSatelliteLayer() {
+    async toggleSatelliteLayer() {
         if (this.showSatelliteLayer) {
             // Remove base layer
             if (this.map.hasLayer(this.baseLayer)) {
                 this.map.removeLayer(this.baseLayer);
             }
             
-            // Use ArcGIS satellite imagery
-            this.satelliteLayer.addTo(this.map);
-            // Show date caption for satellite imagery
-            if (this.satelliteDateCaption && !this.isSatelliteDateCaptionVisible) {
-                this.satelliteDateCaption.addTo(this.map);
-                this.isSatelliteDateCaptionVisible = true;
+            // Try Earth Engine first, fallback to ArcGIS
+            console.log('🛰️ Attempting to load Earth Engine satellite imagery...');
+            
+            const earthEngineResult = await this.earthEngineClient.toggleSatelliteLayer({
+                cloudPercentage: 20,
+                composite: false,
+                opacity: 0.8
+            });
+            
+            if (earthEngineResult.success && earthEngineResult.action === 'added') {
+                // Earth Engine loaded successfully
+                console.log('✅ Using Earth Engine satellite imagery');
+                
+                // Hide ArcGIS caption if visible
+                if (this.satelliteDateCaption && this.isSatelliteDateCaptionVisible) {
+                    this.map.removeControl(this.satelliteDateCaption);
+                    this.isSatelliteDateCaptionVisible = false;
+                }
+            } else {
+                // Fallback to ArcGIS
+                console.log('⚠️ Earth Engine failed, falling back to ArcGIS:', earthEngineResult.error);
+                
+                this.satelliteLayer.addTo(this.map);
+                
+                // Show ArcGIS caption
+                if (this.satelliteDateCaption && !this.isSatelliteDateCaptionVisible) {
+                    this.satelliteDateCaption.addTo(this.map);
+                    this.isSatelliteDateCaptionVisible = true;
+                }
+                
+                // Show fallback notification
+                this.showNotification('Using ArcGIS imagery (Earth Engine backend unavailable)', 'warning');
             }
         } else {
-            // Remove satellite layer and add base layer
+            // Remove Earth Engine layer if active
+            if (this.earthEngineClient.isActive()) {
+                await this.earthEngineClient.toggleSatelliteLayer();
+            }
+            
+            // Remove ArcGIS layer if active
             if (this.map.hasLayer(this.satelliteLayer)) {
                 this.map.removeLayer(this.satelliteLayer);
             }
+            
             // Hide date caption
             if (this.satelliteDateCaption && this.isSatelliteDateCaptionVisible) {
                 this.map.removeControl(this.satelliteDateCaption);
                 this.isSatelliteDateCaptionVisible = false;
             }
+            
+            // Add base layer back
             this.baseLayer.addTo(this.map);
         }
     }
@@ -1878,7 +1915,80 @@ class DisasterMap {
             console.log('Road network layers removed');
         }
     }
+
+    showNotification(message, type = 'info', duration = 5000) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <span>${message}</span>
+            <button class="notification-close">&times;</button>
+        `;
+        
+        // Add styles
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'warning' ? '#f59e0b' : type === 'error' ? '#ef4444' : '#3b82f6'};
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideInRight 0.3s ease-out;
+        `;
+        
+        // Add close functionality
+        notification.querySelector('.notification-close').onclick = () => {
+            notification.remove();
+        };
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Auto-remove after duration
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, duration);
+    }
 }
+
+// Add notification animations
+const notificationStyles = document.createElement('style');
+notificationStyles.textContent = `
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    .notification-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        margin-left: 12px;
+        padding: 0;
+        line-height: 1;
+    }
+    .notification-close:hover {
+        opacity: 0.8;
+    }
+`;
+document.head.appendChild(notificationStyles);
 
 // Initialize the application when the page loads
 let app;
