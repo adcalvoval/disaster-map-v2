@@ -1929,9 +1929,37 @@ class DisasterMap {
             console.log('Loading Kasai Province shapefile...');
             
             // Load the DRC administrative level 1 boundaries shapefile
-            const shapefileUrl = 'cod_admbnda_adm1_rgc_itos_20190911.shp';
+            // Use base filename without extension - shpjs will find .shp, .dbf, etc. automatically
+            const baseUrl = './cod_admbnda_adm1_rgc_itos_20190911';
             
-            const response = await shp(shapefileUrl);
+            let response;
+            try {
+                console.log('Attempting to load DRC boundaries with shp library...');
+                response = await shp(baseUrl);
+                console.log('DRC boundaries loaded successfully');
+            } catch (shpError) {
+                console.warn('shp() method failed, trying alternative approach:', shpError);
+                
+                // Alternative method: Load files separately
+                try {
+                    const [shpResponse, dbfResponse] = await Promise.all([
+                        fetch('./cod_admbnda_adm1_rgc_itos_20190911.shp'),
+                        fetch('./cod_admbnda_adm1_rgc_itos_20190911.dbf')
+                    ]);
+                    
+                    const shpBuffer = await shpResponse.arrayBuffer();
+                    const dbfBuffer = await dbfResponse.arrayBuffer();
+                    
+                    console.log('Files loaded, parsing...');
+                    response = await shp.combine([
+                        shp.parseShp(shpBuffer),
+                        shp.parseDbf(dbfBuffer)
+                    ]);
+                    console.log('Alternative method successful, geojson:', response);
+                } catch (altError) {
+                    throw new Error(`Both loading methods failed: ${altError.message}`);
+                }
+            }
             
             if (response && response.features) {
                 console.log(`Found ${response.features.length} administrative boundaries`);
