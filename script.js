@@ -24,13 +24,8 @@ class DisasterMap {
         this.baseLayer = null; // OpenStreetMap base layer
         this.satelliteLayer = null; // Satellite imagery layer
         this.showSatelliteLayer = false; // Satellite layer visibility
-        this.earthEngineLayer = null; // Google Earth Engine layer
-        this.isEarthEngineAuthenticated = false; // Earth Engine authentication status
-        this.earthEngineClientId = '625560076780-dq6gn2dhbuuk2kv2c538av7rkhvdt3u2.apps.googleusercontent.com'; // Replace with your OAuth 2.0 Client ID
         this.satelliteDateCaption = null; // Date caption control for satellite imagery
         this.isSatelliteDateCaptionVisible = false; // Track if caption is currently displayed
-        this.earthEngineRetryCount = 0; // Track retry attempts
-        this.maxEarthEngineRetries = 5; // Maximum retry attempts
         this.roadNetworkLayer = null; // Road network overlay layer
         this.roadLabelsLayer = null; // Road labels and city names layer
         this.showRoadNetwork = false; // Road network visibility
@@ -57,10 +52,8 @@ class DisasterMap {
         this.loadCsvHealthFacilities();
         this.loadShapefileHealthFacilities();
         
-        // Initialize Earth Engine after other components are loaded
-        setTimeout(() => {
-            this.initEarthEngine();
-        }, 1000);
+        // Create satellite date caption
+        this.createSatelliteDateCaption('ArcGIS World Imagery');
     }
 
     initMap() {
@@ -98,104 +91,6 @@ class DisasterMap {
         this.baseLayer.addTo(this.map);
     }
 
-    initEarthEngine() {
-        // Initialize Google Earth Engine
-        if (typeof ee !== 'undefined') {
-            console.log('Earth Engine API detected, attempting initialization...');
-            this.earthEngineRetryCount = 0; // Reset retry count on success
-            
-            try {
-                // Initialize Earth Engine with project
-                ee.initialize(
-                    null, // No private key for client-side apps
-                    null, // No service account for client-side apps
-                    () => {
-                        // Success callback
-                        console.log('Earth Engine initialization successful');
-                        this.isEarthEngineAuthenticated = true;
-                        this.setupEarthEngineLayer();
-                        document.getElementById('authEarthEngine').style.display = 'none';
-                    },
-                    (error) => {
-                        // Error callback - user needs to authenticate
-                        console.log('Earth Engine authentication required:', error);
-                        
-                        // Check if it's a CORS error (OAuth domain not configured)
-                        if (error && error.message && error.message.includes('Invalid JSON')) {
-                            console.error('⚠️ CORS Error detected - Please add your domain to Google Cloud OAuth authorized origins:');
-                            console.error('   1. Go to https://console.cloud.google.com/');
-                            console.error('   2. Navigate to APIs & Services > Credentials');
-                            console.error('   3. Edit your OAuth Client ID');
-                            console.error('   4. Add this domain to Authorized JavaScript origins:', window.location.origin);
-                        }
-                        
-                        this.isEarthEngineAuthenticated = false;
-                        document.getElementById('authEarthEngine').style.display = 'inline-block';
-                    },
-                    this.earthEngineClientId // Pass the OAuth client ID
-                );
-            } catch (error) {
-                console.error('Earth Engine initialization failed:', error);
-                this.isEarthEngineAuthenticated = false;
-                document.getElementById('authEarthEngine').style.display = 'inline-block';
-            }
-        } else {
-            this.earthEngineRetryCount++;
-            
-            if (this.earthEngineRetryCount <= this.maxEarthEngineRetries) {
-                console.warn(`Google Earth Engine API not fully loaded yet (attempt ${this.earthEngineRetryCount}/${this.maxEarthEngineRetries}). Available APIs:`, {
-                    ee: typeof ee !== 'undefined'
-                });
-                
-                // Retry after another delay if APIs aren't ready
-                setTimeout(() => {
-                    this.initEarthEngine();
-                }, 3000);
-            } else {
-                console.error(`Google Earth Engine API failed to load after ${this.maxEarthEngineRetries} attempts. Satellite imagery will use ArcGIS World Imagery only.`);
-                // Hide the auth button since Earth Engine is not available
-                document.getElementById('authEarthEngine').style.display = 'none';
-            }
-        }
-    }
-
-    setupEarthEngineLayer() {
-        // Create a recent satellite imagery layer using Landsat 8
-        const landsat = ee.ImageCollection('LANDSAT/LC08/C02/T1_TOA')
-            .filterDate('2023-01-01', '2024-12-31')
-            .filterBounds(ee.Geometry.Point(0, 0)) // Global coverage
-            .sort('system:time_start', false) // Most recent first
-            .first(); // Get the most recent image
-
-        // Create visualization parameters for true color
-        const visParams = {
-            bands: ['B4', 'B3', 'B2'],
-            min: 0,
-            max: 0.3,
-            gamma: 1.2
-        };
-
-        // Get the image date
-        landsat.get('system:time_start').evaluate((timestamp) => {
-            const imageDate = new Date(timestamp);
-            const dateString = imageDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-            
-            // Create the date caption
-            this.createSatelliteDateCaption(`Landsat 8 - ${dateString}`);
-        });
-
-        // Get the tile URL template
-        landsat.visualize(visParams).getMap({}, (tileUrlTemplate) => {
-            this.earthEngineLayer = L.tileLayer(tileUrlTemplate, {
-                attribution: '© Google Earth Engine',
-                maxZoom: 18,
-            });
-        });
-    }
 
     createSatelliteDateCaption(dateText) {
         // Remove existing caption if it exists
@@ -232,38 +127,6 @@ class DisasterMap {
         this.satelliteDateCaption = new DateCaption({ position: 'bottomright' });
     }
 
-    authenticateEarthEngine() {
-        console.log('Starting Earth Engine authentication...');
-        
-        // Check API availability
-        if (typeof ee === 'undefined') {
-            console.error('Earth Engine API not loaded');
-            return;
-        }
-        
-        // Simplified approach - use Earth Engine's built-in authentication
-        try {
-            console.log('Attempting Earth Engine popup authentication...');
-            ee.data.authenticateViaPopup(this.earthEngineClientId, (error) => {
-                if (error) {
-                    console.error('Earth Engine authentication failed:', error);
-                    
-                    // Check if it's a CORS error (OAuth domain not configured)
-                    if (error.message && error.message.includes('Invalid JSON')) {
-                        console.error('⚠️ CORS Error - Please add your domain to Google Cloud OAuth authorized origins');
-                        console.error('Domain needed:', window.location.origin);
-                    }
-                    return;
-                }
-                console.log('Earth Engine popup authentication successful');
-                this.isEarthEngineAuthenticated = true;
-                this.setupEarthEngineLayer();
-                document.getElementById('authEarthEngine').style.display = 'none';
-            });
-        } catch (error) {
-            console.error('Error during Earth Engine authentication:', error);
-        }
-    }
 
     initEventListeners() {
         document.getElementById('refreshData').addEventListener('click', () => {
@@ -335,9 +198,6 @@ class DisasterMap {
             this.toggleRoadNetwork();
         });
 
-        document.getElementById('authEarthEngine').addEventListener('click', () => {
-            this.authenticateEarthEngine();
-        });
 
 
         // Health facilities country filter (multi-select)
@@ -1978,30 +1838,17 @@ class DisasterMap {
                 this.map.removeLayer(this.baseLayer);
             }
             
-            // Use Earth Engine layer if authenticated and available, otherwise use ArcGIS
-            if (this.isEarthEngineAuthenticated && this.earthEngineLayer) {
-                this.earthEngineLayer.addTo(this.map);
-                // Show date caption for Earth Engine imagery
-                if (this.satelliteDateCaption) {
-                    this.satelliteDateCaption.addTo(this.map);
-                    this.isSatelliteDateCaptionVisible = true;
-                }
-            } else {
-                this.satelliteLayer.addTo(this.map);
-                // Create a generic caption for ArcGIS imagery
-                if (!this.satelliteDateCaption) {
-                    this.createSatelliteDateCaption('ArcGIS World Imagery');
-                }
+            // Use ArcGIS satellite imagery
+            this.satelliteLayer.addTo(this.map);
+            // Show date caption for satellite imagery
+            if (this.satelliteDateCaption && !this.isSatelliteDateCaptionVisible) {
                 this.satelliteDateCaption.addTo(this.map);
                 this.isSatelliteDateCaptionVisible = true;
             }
         } else {
-            // Remove satellite layers and add base layer
+            // Remove satellite layer and add base layer
             if (this.map.hasLayer(this.satelliteLayer)) {
                 this.map.removeLayer(this.satelliteLayer);
-            }
-            if (this.earthEngineLayer && this.map.hasLayer(this.earthEngineLayer)) {
-                this.map.removeLayer(this.earthEngineLayer);
             }
             // Hide date caption
             if (this.satelliteDateCaption && this.isSatelliteDateCaptionVisible) {
