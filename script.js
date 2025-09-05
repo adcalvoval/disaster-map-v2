@@ -32,6 +32,7 @@ class DisasterMap {
         this.earthEngineRetryCount = 0; // Track retry attempts
         this.maxEarthEngineRetries = 5; // Maximum retry attempts
         this.roadNetworkLayer = null; // Road network overlay layer
+        this.roadLabelsLayer = null; // Road labels and city names layer
         this.showRoadNetwork = false; // Road network visibility
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
@@ -77,12 +78,21 @@ class DisasterMap {
             maxZoom: 18,
         });
         
-        // Create road network overlay layer using CartoDB roads-only tiles
-        this.roadNetworkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors, © CARTO',
+        // Create road lines layer (black lines for roads)
+        this.roadNetworkLayer = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lines/{z}/{x}/{y}.png', {
+            attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
             maxZoom: 18,
             opacity: 0.8,
-            className: 'road-network-layer'
+            className: 'road-lines-layer',
+            subdomains: 'abcd'
+        });
+        
+        // Create labels layer (city names and road labels)
+        this.roadLabelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors, © CARTO',
+            maxZoom: 18,
+            opacity: 0.9,
+            className: 'road-labels-layer'
         });
         
         // Add base layer by default
@@ -2005,12 +2015,16 @@ class DisasterMap {
 
     toggleRoadNetwork() {
         if (this.showRoadNetwork) {
-            // Add road network overlay
+            // Add road lines and labels overlay
             this.roadNetworkLayer.addTo(this.map);
+            this.roadLabelsLayer.addTo(this.map);
         } else {
             // Remove road network overlay
             if (this.map.hasLayer(this.roadNetworkLayer)) {
                 this.map.removeLayer(this.roadNetworkLayer);
+            }
+            if (this.map.hasLayer(this.roadLabelsLayer)) {
+                this.map.removeLayer(this.roadLabelsLayer);
             }
         }
     }

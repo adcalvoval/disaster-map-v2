@@ -167,7 +167,13 @@ body.fullscreen-mode .health-controls {
 }
 
 /* Road network overlay styling */
-.road-network-layer {
+.road-lines-layer {
+    opacity: 0.8 !important;
+    mix-blend-mode: multiply;
+    filter: invert(1) contrast(2);
+}
+
+.road-labels-layer {
     opacity: 0.9 !important;
     mix-blend-mode: normal;
 }
