@@ -78,11 +78,11 @@ class DisasterMap {
             maxZoom: 18,
         });
         
-        // Create road lines layer - use OpenStreetMap with heavy CSS filtering for roads only
-        this.roadNetworkLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
+        // Create road lines layer - use Stamen Toner Lines for roads-only visibility
+        this.roadNetworkLayer = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lines/{z}/{x}/{y}.png', {
+            attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
             maxZoom: 18,
-            opacity: 1,
+            opacity: 0.8,
             className: 'road-lines-layer'
         });
         
