@@ -29,6 +29,8 @@ class DisasterMap {
         this.roadNetworkLayer = null; // Road network overlay layer
         this.roadLabelsLayer = null; // Road labels and city names layer
         this.showRoadNetwork = false; // Road network visibility
+        this.kasaiProvinceLayer = null; // Kasai province boundary layer
+        this.showKasaiProvince = false; // Kasai province visibility
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -51,6 +53,7 @@ class DisasterMap {
         this.loadHealthFacilities();
         this.loadCsvHealthFacilities();
         this.loadShapefileHealthFacilities();
+        this.loadKasaiProvince();
         
         // Initialize Earth Engine client
         this.earthEngineClient = new EarthEngineClient(this.map);
@@ -199,6 +202,11 @@ class DisasterMap {
         document.getElementById('showRoadNetwork').addEventListener('change', (e) => {
             this.showRoadNetwork = e.target.checked;
             this.toggleRoadNetwork();
+        });
+
+        document.getElementById('showKasaiProvince').addEventListener('change', (e) => {
+            this.showKasaiProvince = e.target.checked;
+            this.toggleKasaiProvince();
         });
 
 
@@ -1913,6 +1921,93 @@ class DisasterMap {
                 this.map.removeLayer(this.roadLabelsLayer);
             }
             console.log('Road network layers removed');
+        }
+    }
+
+    async loadKasaiProvince() {
+        try {
+            console.log('Loading Kasai Province shapefile...');
+            
+            // Load the DRC administrative level 1 boundaries shapefile
+            const shapefileUrl = 'cod_admbnda_adm1_rgc_itos_20190911.shp';
+            
+            const response = await shp(shapefileUrl);
+            
+            if (response && response.features) {
+                console.log(`Found ${response.features.length} administrative boundaries`);
+                
+                // Find Kasai province by name (case-insensitive)
+                const kasaiFeature = response.features.find(feature => {
+                    const properties = feature.properties;
+                    const name = properties.ADM1_EN || properties.ADM1_FR || properties.NAME || properties.Name || '';
+                    return name.toLowerCase().includes('kasai');
+                });
+                
+                if (kasaiFeature) {
+                    console.log('Found Kasai province:', kasaiFeature.properties);
+                    
+                    // Create Leaflet GeoJSON layer with blue styling
+                    this.kasaiProvinceLayer = L.geoJSON(kasaiFeature, {
+                        style: {
+                            color: '#1e40af',        // Dark blue outline
+                            weight: 2,               // Border width
+                            fillColor: '#3b82f6',    // Blue fill
+                            fillOpacity: 0.5,        // 50% transparency
+                            opacity: 1               // Full opacity for outline
+                        },
+                        onEachFeature: (feature, layer) => {
+                            // Add popup with province information
+                            const props = feature.properties;
+                            const popup = `
+                                <div class="popup-content">
+                                    <h4>Kasai Province</h4>
+                                    <p><strong>Country:</strong> Democratic Republic of the Congo</p>
+                                    <p><strong>Administrative Level:</strong> Province (ADM1)</p>
+                                    ${props.ADM1_EN ? `<p><strong>English Name:</strong> ${props.ADM1_EN}</p>` : ''}
+                                    ${props.ADM1_FR ? `<p><strong>French Name:</strong> ${props.ADM1_FR}</p>` : ''}
+                                </div>
+                            `;
+                            layer.bindPopup(popup);
+                        }
+                    });
+                    
+                    console.log('✅ Kasai province layer created successfully');
+                    
+                } else {
+                    console.warn('⚠️ Kasai province not found in shapefile. Available provinces:');
+                    response.features.forEach((feature, index) => {
+                        const name = feature.properties.ADM1_EN || feature.properties.ADM1_FR || feature.properties.NAME || 'Unknown';
+                        console.log(`${index + 1}: ${name}`);
+                    });
+                }
+            }
+            
+        } catch (error) {
+            console.error('❌ Error loading Kasai province shapefile:', error);
+        }
+    }
+
+    toggleKasaiProvince() {
+        if (this.showKasaiProvince) {
+            if (this.kasaiProvinceLayer) {
+                this.kasaiProvinceLayer.addTo(this.map);
+                console.log('✅ Kasai province layer added to map');
+                
+                // Zoom to Kasai province bounds
+                this.map.fitBounds(this.kasaiProvinceLayer.getBounds(), {
+                    padding: [20, 20]
+                });
+                
+                this.showNotification('Kasai Province (DRC) displayed', 'info');
+            } else {
+                console.warn('⚠️ Kasai province layer not loaded yet');
+                this.showNotification('Kasai Province data still loading...', 'warning');
+            }
+        } else {
+            if (this.kasaiProvinceLayer && this.map.hasLayer(this.kasaiProvinceLayer)) {
+                this.map.removeLayer(this.kasaiProvinceLayer);
+                console.log('Kasai province layer removed from map');
+            }
         }
     }
 
