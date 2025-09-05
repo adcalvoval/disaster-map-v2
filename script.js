@@ -2071,10 +2071,14 @@ class DisasterMap {
                             `;
                             
                             // Bind both popup (click) and tooltip (hover)
-                            layer.bindPopup(popup);
+                            layer.bindPopup(popup, {
+                                offset: [150, 0], // Position popup 150px to the right
+                                direction: 'right'
+                            });
                             layer.bindTooltip(`${provinceName} Province - Health Alert (Click for details)`, {
                                 permanent: false,
-                                direction: 'center',
+                                direction: 'right',
+                                offset: [20, 0],
                                 className: 'kasai-tooltip'
                             });
                         }
