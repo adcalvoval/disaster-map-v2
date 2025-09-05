@@ -28,6 +28,7 @@ class DisasterMap {
         this.isEarthEngineAuthenticated = false; // Earth Engine authentication status
         this.earthEngineClientId = '625560076780-dq6gn2dhbuuk2kv2c538av7rkhvdt3u2.apps.googleusercontent.com'; // Replace with your OAuth 2.0 Client ID
         this.satelliteDateCaption = null; // Date caption control for satellite imagery
+        this.isSatelliteDateCaptionVisible = false; // Track if caption is currently displayed
         this.earthEngineRetryCount = 0; // Track retry attempts
         this.maxEarthEngineRetries = 5; // Maximum retry attempts
         this.roadNetworkLayer = null; // Road network overlay layer
@@ -192,8 +193,9 @@ class DisasterMap {
 
     createSatelliteDateCaption(dateText) {
         // Remove existing caption if it exists
-        if (this.satelliteDateCaption && this.map.hasControl(this.satelliteDateCaption)) {
+        if (this.satelliteDateCaption && this.isSatelliteDateCaptionVisible) {
             this.map.removeControl(this.satelliteDateCaption);
+            this.isSatelliteDateCaptionVisible = false;
         }
 
         // Create a custom Leaflet control for the date caption
@@ -1976,6 +1978,7 @@ class DisasterMap {
                 // Show date caption for Earth Engine imagery
                 if (this.satelliteDateCaption) {
                     this.satelliteDateCaption.addTo(this.map);
+                    this.isSatelliteDateCaptionVisible = true;
                 }
             } else {
                 this.satelliteLayer.addTo(this.map);
@@ -1984,6 +1987,7 @@ class DisasterMap {
                     this.createSatelliteDateCaption('ArcGIS World Imagery');
                 }
                 this.satelliteDateCaption.addTo(this.map);
+                this.isSatelliteDateCaptionVisible = true;
             }
         } else {
             // Remove satellite layers and add base layer
@@ -1994,8 +1998,9 @@ class DisasterMap {
                 this.map.removeLayer(this.earthEngineLayer);
             }
             // Hide date caption
-            if (this.satelliteDateCaption && this.map.hasControl(this.satelliteDateCaption)) {
+            if (this.satelliteDateCaption && this.isSatelliteDateCaptionVisible) {
                 this.map.removeControl(this.satelliteDateCaption);
+                this.isSatelliteDateCaptionVisible = false;
             }
             this.baseLayer.addTo(this.map);
         }
