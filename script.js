@@ -1964,11 +1964,35 @@ class DisasterMap {
             if (response && response.features) {
                 console.log(`Found ${response.features.length} administrative boundaries`);
                 
-                // Find Kasai province by name (case-insensitive)
+                // Debug: Log all available provinces to understand the data structure
+                console.log('Available provinces in DRC shapefile:');
+                response.features.forEach((feature, index) => {
+                    const props = feature.properties;
+                    console.log(`${index + 1}:`, {
+                        ADM1_EN: props.ADM1_EN,
+                        ADM1_FR: props.ADM1_FR,
+                        NAME: props.NAME,
+                        Name: props.Name,
+                        allProperties: Object.keys(props)
+                    });
+                });
+                
+                // Find Kasai province by name (case-insensitive, multiple variations)
                 const kasaiFeature = response.features.find(feature => {
                     const properties = feature.properties;
-                    const name = properties.ADM1_EN || properties.ADM1_FR || properties.NAME || properties.Name || '';
-                    return name.toLowerCase().includes('kasai');
+                    const searchFields = [
+                        properties.ADM1_EN,
+                        properties.ADM1_FR, 
+                        properties.NAME,
+                        properties.Name,
+                        properties.name,
+                        properties.PROVINCE,
+                        properties.Province
+                    ].filter(Boolean); // Remove null/undefined values
+                    
+                    return searchFields.some(name => 
+                        name && name.toLowerCase().includes('kasai')
+                    );
                 });
                 
                 if (kasaiFeature) {
@@ -2029,7 +2053,15 @@ class DisasterMap {
                 this.showNotification('Kasai Province (DRC) displayed', 'info');
             } else {
                 console.warn('⚠️ Kasai province layer not loaded yet');
-                this.showNotification('Kasai Province data still loading...', 'warning');
+                this.showNotification('Kasai Province data still loading... Please wait a moment and try again.', 'warning', 3000);
+                
+                // Uncheck the checkbox since we can't display it yet
+                document.getElementById('showKasaiProvince').checked = false;
+                this.showKasaiProvince = false;
+                
+                // Try loading again in case it failed
+                console.log('Retrying Kasai province loading...');
+                this.loadKasaiProvince();
             }
         } else {
             if (this.kasaiProvinceLayer && this.map.hasLayer(this.kasaiProvinceLayer)) {
