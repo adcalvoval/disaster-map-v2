@@ -78,13 +78,12 @@ class DisasterMap {
             maxZoom: 18,
         });
         
-        // Create road lines layer (black lines for roads)
-        this.roadNetworkLayer = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lines/{z}/{x}/{y}.png', {
-            attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
+        // Create road lines layer - use OpenStreetMap with heavy CSS filtering for roads only
+        this.roadNetworkLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
             maxZoom: 18,
-            opacity: 0.8,
-            className: 'road-lines-layer',
-            subdomains: 'abcd'
+            opacity: 1,
+            className: 'road-lines-layer'
         });
         
         // Create labels layer (city names and road labels)
@@ -2016,16 +2015,20 @@ class DisasterMap {
     toggleRoadNetwork() {
         if (this.showRoadNetwork) {
             // Add road lines and labels overlay
+            console.log('Adding road network layers');
             this.roadNetworkLayer.addTo(this.map);
             this.roadLabelsLayer.addTo(this.map);
+            console.log('Road network layers added');
         } else {
             // Remove road network overlay
+            console.log('Removing road network layers');
             if (this.map.hasLayer(this.roadNetworkLayer)) {
                 this.map.removeLayer(this.roadNetworkLayer);
             }
             if (this.map.hasLayer(this.roadLabelsLayer)) {
                 this.map.removeLayer(this.roadLabelsLayer);
             }
+            console.log('Road network layers removed');
         }
     }
 }

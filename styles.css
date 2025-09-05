@@ -166,11 +166,17 @@ body.fullscreen-mode .health-controls {
     display: none;
 }
 
-/* Road network overlay styling */
+/* Road network overlay styling - aggressive filtering to show only roads */
 .road-lines-layer {
-    opacity: 0.8 !important;
-    mix-blend-mode: multiply;
-    filter: invert(1) contrast(2);
+    opacity: 1 !important;
+    mix-blend-mode: screen;
+    filter: contrast(5) brightness(0.1) saturate(0) invert(1);
+    /* This creates high-contrast white lines on transparent background */
+}
+
+.road-lines-layer img {
+    filter: contrast(8) brightness(0.05) saturate(0) invert(1) !important;
+    mix-blend-mode: lighten;
 }
 
 .road-labels-layer {
