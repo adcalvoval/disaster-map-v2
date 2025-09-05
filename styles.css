@@ -177,6 +177,22 @@ body.fullscreen-mode .health-controls {
     mix-blend-mode: normal;
 }
 
+/* Kasaï Province tooltip styling */
+.kasai-tooltip {
+    background: rgba(220, 38, 38, 0.9) !important;
+    color: white !important;
+    border: 2px solid #dc2626 !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+}
+
+.kasai-tooltip::before {
+    border-top-color: #dc2626 !important;
+}
+
 .sidebar {
     grid-area: sidebar;
     background: #f8f9fa;
