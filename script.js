@@ -31,8 +31,10 @@ class DisasterMap {
         this.showRoadNetwork = false; // Road network visibility
         this.kasaiProvinceLayer = null; // Kasai province boundary layer
         this.showKasaiProvince = false; // Kasai province visibility
-        this.healthZonesLayer = null; // Health zones layer (Bulape, Mweka)
+        this.healthZonesLayer = null; // Health zones layer (Bulape)
         this.showHealthZones = false; // Health zones visibility
+        this.municipalityMarkers = []; // Municipality markers (Mweka, Bulape)
+        this.showMunicipalities = false; // Municipality markers visibility
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Ambulance Stations': true,
@@ -57,6 +59,7 @@ class DisasterMap {
         this.loadShapefileHealthFacilities();
         this.loadKasaiProvince();
         this.loadHealthZones();
+        this.loadMunicipalityMarkers();
         
         // Initialize Earth Engine client
         this.earthEngineClient = new EarthEngineClient(this.map);
@@ -215,6 +218,11 @@ class DisasterMap {
         document.getElementById('showHealthZones').addEventListener('change', (e) => {
             this.showHealthZones = e.target.checked;
             this.toggleHealthZones();
+        });
+
+        document.getElementById('showMunicipalities').addEventListener('change', (e) => {
+            this.showMunicipalities = e.target.checked;
+            this.toggleMunicipalities();
         });
 
 
@@ -2051,7 +2059,7 @@ class DisasterMap {
                                     
                                     <div style="background: #f0f9ff; padding: 8px; border-radius: 4px; margin: 8px 0; border-left: 4px solid #0284c7;">
                                         <h5 style="margin: 0 0 6px 0; color: #0c4a6e;">🏥 Affected Areas</h5>
-                                        <p style="margin: 2px 0;"><strong>Health zones:</strong> Bulape, Mweka</p>
+                                        <p style="margin: 2px 0;"><strong>Health zones:</strong> Bulape</p>
                                     </div>
                                     
                                     <div style="background: #f0fdf4; padding: 8px; border-radius: 4px; margin: 8px 0; border-left: 4px solid #16a34a;">
@@ -2126,7 +2134,7 @@ class DisasterMap {
 
     async loadHealthZones() {
         try {
-            console.log('Loading Health Zones (Bulape, Mweka)...');
+            console.log('Loading Health Zone (Bulape)...');
             
             // Load the DRC administrative level 2 boundaries shapefile (health zones)
             // Use base filename without extension - shpjs will find .shp, .dbf, etc. automatically
@@ -2177,8 +2185,8 @@ class DisasterMap {
                     });
                 });
                 
-                // Find Bulape and Mweka health zones
-                const targetZones = ['bulape', 'mweka'];
+                // Find Bulape health zone only
+                const targetZones = ['bulape'];
                 const foundZones = [];
                 
                 targetZones.forEach(targetZone => {
@@ -2264,7 +2272,7 @@ class DisasterMap {
                     console.log(`✅ Health zones layer created successfully with ${foundZones.length} zones`);
                     
                 } else {
-                    console.warn('⚠️ No health zones (Bulape, Mweka) found in shapefile');
+                    console.warn('⚠️ Bulape health zone not found in shapefile');
                 }
             }
             
@@ -2287,7 +2295,7 @@ class DisasterMap {
                 });
                 
                 console.log('✅ Health zones and labels added to map');
-                this.showNotification('Health zones (Bulape, Mweka) displayed', 'info');
+                this.showNotification('Bulape health zone displayed', 'info');
             } else {
                 console.warn('⚠️ Health zones layer not loaded yet');
                 this.showNotification('Health zones data still loading... Please wait a moment and try again.', 'warning', 3000);
@@ -2314,6 +2322,103 @@ class DisasterMap {
                 
                 console.log('Health zones and labels removed from map');
             }
+        }
+    }
+
+    loadMunicipalityMarkers() {
+        // Define municipality locations in Kasaï province (approximate coordinates)
+        const municipalities = [
+            {
+                name: 'Mweka',
+                lat: -4.8515,  // Approximate coordinates for Mweka
+                lng: 21.5519,
+                status: 'outbreak_monitored',
+                description: 'Municipality under outbreak monitoring'
+            },
+            {
+                name: 'Bulape',
+                lat: -5.0234,  // Approximate coordinates for Bulape  
+                lng: 21.0987,
+                status: 'outbreak_active',
+                description: 'Municipality with active outbreak'
+            }
+        ];
+
+        municipalities.forEach(municipality => {
+            // Create red triangle icon
+            const triangleIcon = L.divIcon({
+                html: `
+                    <div style="
+                        width: 0;
+                        height: 0;
+                        border-left: 12px solid transparent;
+                        border-right: 12px solid transparent;
+                        border-bottom: 20px solid #dc2626;
+                        position: relative;
+                        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+                    "></div>
+                    <div style="
+                        position: absolute;
+                        top: 22px;
+                        left: -30px;
+                        width: 60px;
+                        text-align: center;
+                        background: rgba(220, 38, 38, 0.9);
+                        color: white;
+                        font-size: 11px;
+                        font-weight: bold;
+                        padding: 2px 4px;
+                        border-radius: 3px;
+                        border: 1px solid #7f1d1d;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    ">${municipality.name}</div>
+                `,
+                className: 'municipality-marker',
+                iconSize: [24, 20],
+                iconAnchor: [12, 20]
+            });
+
+            // Create marker with popup
+            const marker = L.marker([municipality.lat, municipality.lng], { 
+                icon: triangleIcon,
+                zIndexOffset: 1000 // High z-index to appear above other markers
+            }).bindPopup(`
+                <div class="popup-content">
+                    <h4 style="color: #dc2626;">🏛️ ${municipality.name} Municipality</h4>
+                    <p><strong>Province:</strong> Kasaï</p>
+                    <p><strong>Country:</strong> Democratic Republic of the Congo</p>
+                    <p><strong>Status:</strong> 
+                        <span style="color: ${municipality.status === 'outbreak_active' ? '#dc2626' : '#f59e0b'}; font-weight: bold;">
+                            ${municipality.status === 'outbreak_active' ? 'Active Outbreak' : 'Under Monitoring'}
+                        </span>
+                    </p>
+                    <p><strong>Administrative Level:</strong> Municipality</p>
+                    <p><em>${municipality.description}</em></p>
+                </div>
+            `);
+
+            this.municipalityMarkers.push(marker);
+        });
+
+        console.log(`✅ Municipality markers created for ${municipalities.length} municipalities (Mweka, Bulape)`);
+    }
+
+    toggleMunicipalities() {
+        if (this.showMunicipalities) {
+            // Add municipality markers to map
+            this.municipalityMarkers.forEach(marker => {
+                marker.addTo(this.map);
+            });
+            console.log('✅ Municipality markers added to map');
+            this.showNotification('Municipality markers (Mweka, Bulape) displayed', 'info');
+        } else {
+            // Remove municipality markers from map
+            this.municipalityMarkers.forEach(marker => {
+                if (this.map.hasLayer(marker)) {
+                    this.map.removeLayer(marker);
+                }
+            });
+            console.log('Municipality markers removed from map');
         }
     }
 

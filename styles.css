@@ -193,6 +193,15 @@ body.fullscreen-mode .health-controls {
     border-top-color: #dc2626 !important;
 }
 
+/* Municipality marker styling */
+.municipality-marker {
+    z-index: 1000 !important;
+}
+
+.municipality-marker div {
+    pointer-events: none;
+}
+
 .sidebar {
     grid-area: sidebar;
     background: #f8f9fa;
