@@ -146,7 +146,7 @@ class DisasterMap {
 
         document.getElementById('showAffectedAreas').addEventListener('change', (e) => {
             this.showAffectedAreas = e.target.checked;
-            this.toggleAffectedAreas();
+            this.toggleDisasterEvents();
         });
 
         document.getElementById('showImpactZones').addEventListener('change', (e) => {
@@ -589,11 +589,17 @@ class DisasterMap {
         }
     }
 
-    toggleAffectedAreas() {
+    toggleDisasterEvents() {
         if (this.showAffectedAreas) {
+            // Show both disaster event markers and affected areas
+            this.addMarkersToMap(this.disasterEvents);
             this.addAffectedAreasToMap(this.disasterEvents);
+            console.log('✅ Disaster events and affected areas shown');
         } else {
+            // Hide both disaster event markers and affected areas
+            this.clearMarkers();
             this.clearAffectedAreas();
+            console.log('❌ Disaster events and affected areas hidden');
         }
     }
 
@@ -1977,7 +1983,7 @@ class DisasterMap {
                     });
                 });
                 
-                // Find Kasai province by name (case-insensitive, multiple variations)
+                // Find Kasaï province by name (handling accented characters)
                 const kasaiFeature = response.features.find(feature => {
                     const properties = feature.properties;
                     const searchFields = [
@@ -1990,13 +1996,18 @@ class DisasterMap {
                         properties.Province
                     ].filter(Boolean); // Remove null/undefined values
                     
-                    return searchFields.some(name => 
-                        name && name.toLowerCase().includes('kasai')
-                    );
+                    return searchFields.some(name => {
+                        if (!name) return false;
+                        const normalizedName = name.toLowerCase();
+                        // Look for "Kasaï" (the main province, not the sub-provinces)
+                        return normalizedName === 'kasaï' || 
+                               normalizedName === 'kasai' ||
+                               (normalizedName.includes('kasaï') && !normalizedName.includes('-'));
+                    });
                 });
                 
                 if (kasaiFeature) {
-                    console.log('Found Kasai province:', kasaiFeature.properties);
+                    console.log('Found Kasaï province:', kasaiFeature.properties);
                     
                     // Create Leaflet GeoJSON layer with blue styling
                     this.kasaiProvinceLayer = L.geoJSON(kasaiFeature, {
@@ -2010,9 +2021,10 @@ class DisasterMap {
                         onEachFeature: (feature, layer) => {
                             // Add popup with province information
                             const props = feature.properties;
+                            const provinceName = props.ADM1_FR || props.ADM1_EN || props.NAME || 'Kasaï';
                             const popup = `
                                 <div class="popup-content">
-                                    <h4>Kasai Province</h4>
+                                    <h4>${provinceName} Province</h4>
                                     <p><strong>Country:</strong> Democratic Republic of the Congo</p>
                                     <p><strong>Administrative Level:</strong> Province (ADM1)</p>
                                     ${props.ADM1_EN ? `<p><strong>English Name:</strong> ${props.ADM1_EN}</p>` : ''}
@@ -2023,7 +2035,7 @@ class DisasterMap {
                         }
                     });
                     
-                    console.log('✅ Kasai province layer created successfully');
+                    console.log('✅ Kasaï province layer created successfully');
                     
                 } else {
                     console.warn('⚠️ Kasai province not found in shapefile. Available provinces:');
@@ -2050,7 +2062,7 @@ class DisasterMap {
                     padding: [20, 20]
                 });
                 
-                this.showNotification('Kasai Province (DRC) displayed', 'info');
+                this.showNotification('Kasaï Province (DRC) displayed', 'info');
             } else {
                 console.warn('⚠️ Kasai province layer not loaded yet');
                 this.showNotification('Kasai Province data still loading... Please wait a moment and try again.', 'warning', 3000);
