@@ -83,8 +83,8 @@ class DisasterMap {
             maxZoom: 18,
         });
         
-        // Create road lines layer - use CartoDB Positron for better visibility
-        this.roadNetworkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
+        // Create road lines layer - use CartoDB Dark Matter roads for better road hierarchy visibility
+        this.roadNetworkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors, © CARTO',
             maxZoom: 18,
             opacity: 0.7,

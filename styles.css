@@ -166,10 +166,13 @@ body.fullscreen-mode .health-controls {
     display: none;
 }
 
-/* Road network overlay styling - using dedicated roads-only tiles */
+/* Road network overlay styling - enhance road visibility and hierarchy */
 .road-lines-layer {
-    opacity: 0.8 !important;
-    /* Stamen Toner Lines already shows only road lines on transparent background */
+    opacity: 0.7 !important;
+    /* Invert colors to make roads visible on light backgrounds */
+    filter: invert(1) contrast(200%) brightness(80%);
+    mix-blend-mode: multiply;
+    /* This makes dark roads from CartoDB appear as light roads visible on satellite/light backgrounds */
 }
 
 .road-labels-layer {
