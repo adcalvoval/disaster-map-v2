@@ -28,8 +28,6 @@ class DisasterMap {
         this.isSatelliteDateCaptionVisible = false; // Track if caption is currently displayed
         this.kasaiProvinceLayer = null; // Kasai province boundary layer
         this.showKasaiProvince = false; // Kasai province visibility
-        this.healthZonesLayer = null; // Health zones layer (Bulape)
-        this.showHealthZones = false; // Health zones visibility
         this.municipalityMarkers = []; // Municipality markers (Mweka, Bulape)
         this.showMunicipalities = false; // Municipality markers visibility
         this.germanStatesLayer = null; // German states layer (NRW, RLP)
@@ -57,7 +55,6 @@ class DisasterMap {
         this.loadCsvHealthFacilities();
         this.loadShapefileHealthFacilities();
         this.loadKasaiProvince();
-        this.loadHealthZones();
         this.loadMunicipalityMarkers();
         this.loadGermanStates();
         
@@ -193,10 +190,6 @@ class DisasterMap {
             this.toggleKasaiProvince();
         });
 
-        document.getElementById('showHealthZones').addEventListener('change', (e) => {
-            this.showHealthZones = e.target.checked;
-            this.toggleHealthZones();
-        });
 
         document.getElementById('showMunicipalities').addEventListener('change', (e) => {
             this.showMunicipalities = e.target.checked;
@@ -2093,198 +2086,9 @@ class DisasterMap {
         }
     }
 
-    async loadHealthZones() {
-        try {
-            console.log('Loading Health Zone (Bulape)...');
-            
-            // Load the DRC administrative level 2 boundaries shapefile (health zones)
-            // Use base filename without extension - shpjs will find .shp, .dbf, etc. automatically
-            const baseUrl = './cod_admbnda_adm2_rgc_20190911';
-            
-            let response;
-            try {
-                console.log('Attempting to load DRC health zones with shp library...');
-                response = await shp(baseUrl);
-                console.log('DRC health zones loaded successfully');
-            } catch (shpError) {
-                console.warn('shp() method failed, trying alternative approach:', shpError);
-                
-                // Alternative method: Load files separately
-                try {
-                    const [shpResponse, dbfResponse] = await Promise.all([
-                        fetch('./cod_admbnda_adm2_rgc_20190911.shp'),
-                        fetch('./cod_admbnda_adm2_rgc_20190911.dbf')
-                    ]);
-                    
-                    const shpBuffer = await shpResponse.arrayBuffer();
-                    const dbfBuffer = await dbfResponse.arrayBuffer();
-                    
-                    console.log('Files loaded, parsing...');
-                    response = await shp.combine([
-                        shp.parseShp(shpBuffer),
-                        shp.parseDbf(dbfBuffer)
-                    ]);
-                    console.log('Alternative method successful, geojson:', response);
-                } catch (altError) {
-                    throw new Error(`Both loading methods failed: ${altError.message}`);
-                }
-            }
-            
-            if (response && response.features) {
-                console.log(`Found ${response.features.length} health zones/districts`);
-                
-                // Debug: Log some zones to understand the data structure
-                console.log('Sample health zones from DRC shapefile:');
-                response.features.slice(0, 10).forEach((feature, index) => {
-                    const props = feature.properties;
-                    console.log(`${index + 1}:`, {
-                        ADM2_EN: props.ADM2_EN,
-                        ADM2_FR: props.ADM2_FR,
-                        NAME: props.NAME,
-                        Name: props.Name,
-                        allProperties: Object.keys(props)
-                    });
-                });
-                
-                // Find Bulape health zone only
-                const targetZones = ['bulape'];
-                const foundZones = [];
-                
-                targetZones.forEach(targetZone => {
-                    const zoneFeature = response.features.find(feature => {
-                        const properties = feature.properties;
-                        const searchFields = [
-                            properties.ADM2_EN,
-                            properties.ADM2_FR, 
-                            properties.NAME,
-                            properties.Name,
-                            properties.name,
-                            properties.HEALTH_ZONE,
-                            properties.HealthZone
-                        ].filter(Boolean);
-                        
-                        return searchFields.some(name => {
-                            if (!name) return false;
-                            return name.toLowerCase().includes(targetZone);
-                        });
-                    });
-                    
-                    if (zoneFeature) {
-                        foundZones.push(zoneFeature);
-                        console.log(`Found ${targetZone}:`, zoneFeature.properties);
-                    } else {
-                        console.warn(`⚠️ Health zone "${targetZone}" not found`);
-                    }
-                });
-                
-                if (foundZones.length > 0) {
-                    // Create Leaflet GeoJSON layer with red styling for all found zones
-                    this.healthZonesLayer = L.geoJSON(foundZones, {
-                        style: {
-                            color: '#7f1d1d',        // Dark red outline
-                            weight: 2,               // Border width
-                            fillColor: '#dc2626',    // Red fill
-                            fillOpacity: 0.5,        // 50% transparency
-                            opacity: 1               // Full opacity for outline
-                        },
-                        onEachFeature: (feature, layer) => {
-                            // Add popup and permanent label for each zone
-                            const props = feature.properties;
-                            const zoneName = props.ADM2_EN || props.ADM2_FR || props.NAME || props.Name || 'Unknown';
-                            
-                            const popup = `
-                                <div class="popup-content">
-                                    <h4 style="color: #dc2626;">🏥 ${zoneName} Health Zone</h4>
-                                    <p><strong>Province:</strong> Kasaï</p>
-                                    <p><strong>Country:</strong> Democratic Republic of the Congo</p>
-                                    <p><strong>Status:</strong> <span style="color: #dc2626; font-weight: bold;">Outbreak Affected</span></p>
-                                    <p><strong>Administrative Level:</strong> Health Zone (ADM2)</p>
-                                </div>
-                            `;
-                            
-                            // Bind popup (click)
-                            layer.bindPopup(popup);
-                            
-                            // Add permanent label showing zone name
-                            const center = layer.getBounds().getCenter();
-                            const label = L.divIcon({
-                                html: `<div style="
-                                    background: rgba(220, 38, 38, 0.9);
-                                    color: white;
-                                    padding: 4px 8px;
-                                    border-radius: 4px;
-                                    font-weight: bold;
-                                    font-size: 12px;
-                                    text-align: center;
-                                    border: 1px solid #7f1d1d;
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                                ">${zoneName}</div>`,
-                                className: 'health-zone-label',
-                                iconSize: [80, 20],
-                                iconAnchor: [40, 10]
-                            });
-                            
-                            // Add the label marker
-                            const labelMarker = L.marker(center, { icon: label });
-                            layer.labelMarker = labelMarker; // Store reference for later removal
-                        }
-                    });
-                    
-                    console.log(`✅ Health zones layer created successfully with ${foundZones.length} zones`);
-                    
-                } else {
-                    console.warn('⚠️ Bulape health zone not found in shapefile');
-                }
-            }
-            
-        } catch (error) {
-            console.error('❌ Error loading health zones shapefile:', error);
-        }
-    }
 
-    toggleHealthZones() {
-        if (this.showHealthZones) {
-            if (this.healthZonesLayer) {
-                // Add health zones to map
-                this.healthZonesLayer.addTo(this.map);
-                
-                // Add labels for each zone
-                this.healthZonesLayer.eachLayer(layer => {
-                    if (layer.labelMarker) {
-                        layer.labelMarker.addTo(this.map);
-                    }
-                });
-                
-                console.log('✅ Health zones and labels added to map');
-                this.showNotification('Bulape health zone displayed', 'info');
-            } else {
-                console.warn('⚠️ Health zones layer not loaded yet');
-                this.showNotification('Health zones data still loading... Please wait a moment and try again.', 'warning', 3000);
-                
-                // Uncheck the checkbox since we can't display it yet
-                document.getElementById('showHealthZones').checked = false;
-                this.showHealthZones = false;
-                
-                // Try loading again in case it failed
-                console.log('Retrying health zones loading...');
-                this.loadHealthZones();
-            }
-        } else {
-            if (this.healthZonesLayer && this.map.hasLayer(this.healthZonesLayer)) {
-                // Remove health zones layer
-                this.map.removeLayer(this.healthZonesLayer);
-                
-                // Remove labels for each zone
-                this.healthZonesLayer.eachLayer(layer => {
-                    if (layer.labelMarker && this.map.hasLayer(layer.labelMarker)) {
-                        this.map.removeLayer(layer.labelMarker);
-                    }
-                });
-                
-                console.log('Health zones and labels removed from map');
-            }
-        }
-    }
+
+
 
     loadMunicipalityMarkers() {
         // Define municipality locations in Kasaï province (approximate coordinates)
