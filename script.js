@@ -83,12 +83,17 @@ class DisasterMap {
             maxZoom: 18,
         });
         
-        // Create road lines layer - use Stamen Toner Lines for roads-only visibility
-        this.roadNetworkLayer = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lines/{z}/{x}/{y}.png', {
-            attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
+        // Create road lines layer - use CartoDB Positron for better visibility
+        this.roadNetworkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors, © CARTO',
             maxZoom: 18,
-            opacity: 0.8,
+            opacity: 0.7,
             className: 'road-lines-layer'
+        });
+        
+        // Add error handling for road network layer
+        this.roadNetworkLayer.on('tileerror', (e) => {
+            console.error('❌ Road network tile failed to load:', e);
         });
         
         // Create labels layer (city names and road labels)
@@ -98,6 +103,13 @@ class DisasterMap {
             opacity: 0.9,
             className: 'road-labels-layer'
         });
+        
+        // Add error handling for road labels layer
+        this.roadLabelsLayer.on('tileerror', (e) => {
+            console.error('❌ Road labels tile failed to load:', e);
+        });
+        
+        console.log('✅ Road network and labels layers initialized');
         
         // Add base layer by default
         this.baseLayer.addTo(this.map);
@@ -207,6 +219,7 @@ class DisasterMap {
 
         document.getElementById('showRoadNetwork').addEventListener('change', (e) => {
             this.showRoadNetwork = e.target.checked;
+            console.log(`🛣️ Road network checkbox changed to: ${this.showRoadNetwork}`);
             this.toggleRoadNetwork();
         });
 
@@ -1952,22 +1965,36 @@ class DisasterMap {
     }
 
     toggleRoadNetwork() {
+        console.log(`🛣️ Toggle road network called - showRoadNetwork: ${this.showRoadNetwork}`);
+        console.log(`🛣️ Road network layer exists: ${!!this.roadNetworkLayer}`);
+        console.log(`🛣️ Road labels layer exists: ${!!this.roadLabelsLayer}`);
+        
         if (this.showRoadNetwork) {
             // Add road lines and labels overlay
             console.log('Adding road network layers');
-            this.roadNetworkLayer.addTo(this.map);
-            this.roadLabelsLayer.addTo(this.map);
-            console.log('Road network layers added');
+            if (this.roadNetworkLayer) {
+                this.roadNetworkLayer.addTo(this.map);
+                console.log('✅ Road network layer added');
+            } else {
+                console.error('❌ Road network layer is null');
+            }
+            if (this.roadLabelsLayer) {
+                this.roadLabelsLayer.addTo(this.map);
+                console.log('✅ Road labels layer added');
+            } else {
+                console.error('❌ Road labels layer is null');
+            }
         } else {
             // Remove road network overlay
             console.log('Removing road network layers');
-            if (this.map.hasLayer(this.roadNetworkLayer)) {
+            if (this.roadNetworkLayer && this.map.hasLayer(this.roadNetworkLayer)) {
                 this.map.removeLayer(this.roadNetworkLayer);
+                console.log('✅ Road network layer removed');
             }
-            if (this.map.hasLayer(this.roadLabelsLayer)) {
+            if (this.roadLabelsLayer && this.map.hasLayer(this.roadLabelsLayer)) {
                 this.map.removeLayer(this.roadLabelsLayer);
+                console.log('✅ Road labels layer removed');
             }
-            console.log('Road network layers removed');
         }
     }
 
