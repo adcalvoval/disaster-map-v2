@@ -4,7 +4,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(node server.js)",
+      "WebFetch(domain:developers.google.com)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
