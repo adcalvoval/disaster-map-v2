@@ -183,6 +183,22 @@ body.fullscreen-mode .health-controls {
     border-top-color: #dc2626 !important;
 }
 
+/* German States tooltip styling */
+.german-states-tooltip {
+    background: rgba(59, 130, 246, 0.9) !important;
+    color: white !important;
+    border: 2px solid #1e40af !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.german-states-tooltip::before {
+    border-top-color: #1e40af !important;
+}
+
 /* Municipality marker styling */
 .municipality-marker {
     z-index: 1000 !important;
