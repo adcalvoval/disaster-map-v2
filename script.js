@@ -1667,18 +1667,22 @@ class DisasterMap {
         console.log(`📊 Updating impact facilities list - Total facilities: ${allFacilities.length}`);
         console.log(`📊 Selected country filter: "${this.selectedImpactFacilityCountry}"`);
         
-        // Filter by selected country if specified
-        if (this.selectedImpactFacilityCountry) {
-            allFacilities = allFacilities.filter(f => f.country === this.selectedImpactFacilityCountry);
-            console.log(`📊 After country filter: ${allFacilities.length} facilities`);
-        }
-
         // Always find which facilities are in impact zones, regardless of impact zones visibility
         const facilitiesInImpactZones = this.impactZones.length > 0 
             ? this.findFacilitiesInImpactZones()
             : [];
 
-        this.displayImpactFacilities(allFacilities, facilitiesInImpactZones);
+        // Filter facilities that are in impact zones
+        let facilitiesToShow = facilitiesInImpactZones;
+        
+        // Then filter by selected country if specified
+        if (this.selectedImpactFacilityCountry) {
+            facilitiesToShow = facilitiesToShow.filter(f => f.country === this.selectedImpactFacilityCountry);
+            console.log(`📊 After country filter: ${facilitiesToShow.length} facilities in impact zones`);
+        }
+
+        console.log(`📊 Showing ${facilitiesToShow.length} facilities that are within impact zones`);
+        this.displayImpactFacilities(facilitiesToShow, facilitiesInImpactZones);
     }
 
     findFacilitiesInImpactZones() {
@@ -1765,9 +1769,9 @@ class DisasterMap {
     displayImpactFacilities(facilities, facilitiesInImpactZones = []) {
         const facilitiesList = document.getElementById('impactFacilitiesList');
         
-        // Show all filtered facilities, not just those in impact zones
+        // Show only facilities that fall within impact zones
         if (!facilities || facilities.length === 0) {
-            facilitiesList.innerHTML = '<div class="no-facilities">No RCRC health facilities found for the selected filter</div>';
+            facilitiesList.innerHTML = '<div class="no-facilities">No RCRC health facilities found within impact zones for the selected filter</div>';
             return;
         }
 
