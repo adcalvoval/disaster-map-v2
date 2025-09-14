@@ -210,27 +210,39 @@ class DisasterMap {
         });
 
         // Health controls collapse/expand toggle
-        document.getElementById('toggleHealthControls').addEventListener('click', (e) => {
-            this.toggleHealthControlsCollapse();
-        });
+        const healthToggle = document.getElementById('toggleHealthControls');
+        if (healthToggle) {
+            healthToggle.addEventListener('click', (e) => {
+                this.toggleHealthControlsCollapse();
+            });
+        }
 
         // Disaster controls collapse/expand toggle
-        document.getElementById('toggleDisasterControls').addEventListener('click', (e) => {
-            this.toggleDisasterControlsCollapse();
-        });
+        const disasterToggle = document.getElementById('toggleDisasterControls');
+        if (disasterToggle) {
+            disasterToggle.addEventListener('click', (e) => {
+                this.toggleDisasterControlsCollapse();
+            });
+        }
 
 
         // Health facilities country filter (multi-select)
-        document.getElementById('healthCountryFilter').addEventListener('change', (e) => {
-            this.selectedHealthCountries = Array.from(e.target.selectedOptions).map(option => option.value);
-            this.filterHealthFacilities();
-        });
+        const healthCountryFilter = document.getElementById('healthCountryFilter');
+        if (healthCountryFilter) {
+            healthCountryFilter.addEventListener('change', (e) => {
+                this.selectedHealthCountries = Array.from(e.target.selectedOptions).map(option => option.value);
+                this.filterHealthFacilities();
+            });
+        }
 
         // Health facilities functionality filter
-        document.getElementById('healthFunctionalityFilter').addEventListener('change', (e) => {
-            this.selectedHealthFunctionality = e.target.value;
-            this.filterHealthFacilities();
-        });
+        const healthFunctionalityFilter = document.getElementById('healthFunctionalityFilter');
+        if (healthFunctionalityFilter) {
+            healthFunctionalityFilter.addEventListener('change', (e) => {
+                this.selectedHealthFunctionality = e.target.value;
+                this.filterHealthFacilities();
+            });
+        }
 
 
         // Impact facilities country filter
