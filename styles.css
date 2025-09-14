@@ -162,7 +162,8 @@ body.fullscreen-mode #map {
 }
 
 /* Hide health controls in fullscreen mode */
-body.fullscreen-mode .health-controls {
+body.fullscreen-mode .health-controls,
+body.fullscreen-mode .disaster-controls {
     display: none;
 }
 
@@ -364,6 +365,21 @@ body.fullscreen-mode .health-controls {
     margin: 4px 0;
 }
 
+.disaster-controls {
+    background: #34495e;
+    border: 1px solid #5a6c7d;
+    border-radius: 6px;
+    padding: 12px;
+    position: absolute;
+    bottom: 60px;
+    left: 320px;
+    width: 280px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
 .health-controls {
     background: #34495e;
     border: 1px solid #5a6c7d;
@@ -425,6 +441,49 @@ body.fullscreen-mode .health-controls {
 .country-filter option {
     background: #2c3e50;
     color: white;
+}
+
+.disaster-controls .disaster-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.disaster-controls .legend-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.disaster-controls .legend-item:hover {
+    background-color: #4a5f7a;
+}
+
+.disaster-controls .legend-item input[type="checkbox"] {
+    margin-right: 6px;
+    cursor: pointer;
+}
+
+.disaster-controls .legend-item label {
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+.disaster-controls .legend-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    margin-right: 4px;
 }
 
 .health-controls .facility-legend {

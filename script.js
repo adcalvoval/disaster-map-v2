@@ -43,6 +43,14 @@ class DisasterMap {
             'Residential Facilities': true,
             'Other': true
         };
+        this.disasterTypeVisibility = {
+            'Earthquake': true,
+            'Flood': true,
+            'Cyclone': true,
+            'Wildfire': true,
+            'Volcanic Activity': true,
+            'Other': true
+        };
         this.init();
     }
 
@@ -206,6 +214,11 @@ class DisasterMap {
             this.toggleHealthControlsCollapse();
         });
 
+        // Disaster controls collapse/expand toggle
+        document.getElementById('toggleDisasterControls').addEventListener('click', (e) => {
+            this.toggleDisasterControlsCollapse();
+        });
+
 
         // Health facilities country filter (multi-select)
         document.getElementById('healthCountryFilter').addEventListener('change', (e) => {
@@ -235,6 +248,9 @@ class DisasterMap {
 
         // Add event listeners for individual facility type checkboxes
         this.initFacilityTypeListeners();
+        
+        // Add event listeners for disaster type checkboxes
+        this.initDisasterTypeListeners();
         // Note: initHealthFacilityCountryFilter() is called after health facilities are loaded
     }
 
@@ -607,17 +623,32 @@ class DisasterMap {
     }
 
     filterByAlertLevel(alertLevel) {
-        const filteredEvents = alertLevel ? 
-            this.disasterEvents.filter(event => event.alertLevel === alertLevel) : 
-            this.disasterEvents;
-        
+        // Use the comprehensive filter method that considers both alert level and disaster type
+        this.updateDisasterEventsDisplay();
+    }
+
+    updateDisasterEventsDisplay() {
+        // Filter events based on disaster type visibility
+        const filteredEvents = this.disasterEvents.filter(event => {
+            return this.disasterTypeVisibility[event.type] !== false;
+        });
+
+        // Also apply alert level filter if one is active
+        const alertLevel = document.getElementById('alertLevel').value;
+        const finalFilteredEvents = alertLevel ? 
+            filteredEvents.filter(event => event.alertLevel === alertLevel) : 
+            filteredEvents;
+
+        // Update the display
         this.clearMarkers();
         this.clearAffectedAreas();
-        this.displayEvents(filteredEvents);
-        this.addMarkersToMap(filteredEvents);
+        this.displayEvents(finalFilteredEvents);
+        this.addMarkersToMap(finalFilteredEvents);
         if (this.showAffectedAreas) {
-            this.addAffectedAreasToMap(filteredEvents);
+            this.addAffectedAreasToMap(finalFilteredEvents);
         }
+
+        console.log(`🔍 Disaster type filter applied. Showing ${finalFilteredEvents.length} of ${this.disasterEvents.length} events`);
     }
 
     focusOnEvent(eventId) {
@@ -1181,6 +1212,27 @@ class DisasterMap {
                 checkbox.addEventListener('change', (e) => {
                     this.facilityTypeVisibility[facilityType] = e.target.checked;
                     this.updateHealthFacilitiesDisplay();
+                });
+            }
+        });
+    }
+
+    initDisasterTypeListeners() {
+        const typeMapping = {
+            'show-earthquake': 'Earthquake',
+            'show-flood': 'Flood',
+            'show-cyclone': 'Cyclone',
+            'show-wildfire': 'Wildfire',
+            'show-volcanic-activity': 'Volcanic Activity',
+            'show-other-disaster': 'Other'
+        };
+
+        Object.entries(typeMapping).forEach(([checkboxId, disasterType]) => {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    this.disasterTypeVisibility[disasterType] = e.target.checked;
+                    this.updateDisasterEventsDisplay();
                 });
             }
         });
@@ -2205,6 +2257,23 @@ class DisasterMap {
             content.classList.add('collapsed');
             toggleBtn.textContent = '+';
             toggleBtn.title = 'Expand Health Facilities';
+        }
+    }
+
+    toggleDisasterControlsCollapse() {
+        const content = document.getElementById('disasterControlsContent');
+        const toggleBtn = document.getElementById('toggleDisasterControls');
+        
+        if (content.classList.contains('collapsed')) {
+            // Expand
+            content.classList.remove('collapsed');
+            toggleBtn.textContent = '−';
+            toggleBtn.title = 'Collapse Disaster Events';
+        } else {
+            // Collapse
+            content.classList.add('collapsed');
+            toggleBtn.textContent = '+';
+            toggleBtn.title = 'Expand Disaster Events';
         }
     }
 
