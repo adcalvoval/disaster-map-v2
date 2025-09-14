@@ -119,6 +119,13 @@ async function fetchGDACSRSSData() {
                 else if (titleLower.includes('cyclone') || titleLower.includes('hurricane') || titleLower.includes('typhoon')) type = 'Cyclone';
                 else if (titleLower.includes('fire')) type = 'Wildfire';
                 else if (titleLower.includes('volcano')) type = 'Volcanic Activity';
+                else if (titleLower.includes('drought')) type = 'Drought';
+                
+                // Skip drought events - exclude them from the disaster list
+                if (type === 'Drought') {
+                    console.log(`Skipping drought event: ${title}`);
+                    return;
+                }
                 
                 // Extract magnitude for earthquakes
                 let magnitude = null;
