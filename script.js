@@ -209,6 +209,14 @@ class DisasterMap {
             this.toggleGermanStates();
         });
 
+        // Sidebar drawer toggle
+        const sidebarToggle = document.getElementById('toggleSidebar');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', (e) => {
+                this.toggleSidebar();
+            });
+        }
+
         // Health controls collapse/expand toggle
         const healthToggle = document.getElementById('toggleHealthControls');
         if (healthToggle) {
@@ -2286,6 +2294,21 @@ class DisasterMap {
             content.classList.add('collapsed');
             toggleBtn.textContent = '+';
             toggleBtn.title = 'Expand Disaster Events';
+        }
+    }
+
+    toggleSidebar() {
+        const drawer = document.getElementById('sidebarDrawer');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        
+        if (drawer.classList.contains('active')) {
+            // Hide drawer
+            drawer.classList.remove('active');
+            toggleBtn.setAttribute('title', 'Toggle Events & Facilities Panel');
+        } else {
+            // Show drawer
+            drawer.classList.add('active');
+            toggleBtn.setAttribute('title', 'Close Events & Facilities Panel');
         }
     }
 

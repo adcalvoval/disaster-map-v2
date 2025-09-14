@@ -11,6 +11,10 @@
 <body>
     <div class="header">
         <h1>Health Capacity Assessment and Emergency Response Planning Tool</h1>
+        <button id="toggleSidebar" class="sidebar-toggle" title="Toggle Events & Facilities Panel">
+            <span class="toggle-icon">📊</span>
+            <span class="toggle-text">Events & Facilities</span>
+        </button>
         <div class="controls">
             <div class="filter-controls">
                 <select id="alertLevel">
@@ -176,7 +180,12 @@
         </button>
     </div>
     
-    <div class="sidebar">
+    <!-- Sliding Drawer for Events and Facilities -->
+    <div id="sidebarDrawer" class="sidebar-drawer">
+        <div class="drawer-handle">
+            <button class="drawer-close" onclick="app.toggleSidebar()" title="Close Panel">×</button>
+        </div>
+        
         <!-- Disaster Events Section -->
         <div class="events-section" style="height: 50%; display: flex; flex-direction: column;">
             <div class="section-header">
