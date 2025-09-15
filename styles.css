@@ -33,6 +33,13 @@ body {
     margin: 0;
 }
 
+.ifrc-logo {
+    position: absolute;
+    left: 20px;
+    height: 40px;
+    width: auto;
+}
+
 .sidebar-toggle {
     position: absolute;
     right: 20px;
