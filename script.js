@@ -12,7 +12,7 @@ class DisasterMap {
         this.showImpactZones = false;
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
-        this.showHealthFacilities = true; // Enable by default to show facilities
+        this.showHealthFacilities = false;
         // Removed clustering - markers added directly to map
         this.csvHealthFacilityMarkers = [];
         this.csvHealthFacilities = [];
