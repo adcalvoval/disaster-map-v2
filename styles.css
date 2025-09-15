@@ -73,9 +73,9 @@ body {
     border-radius: 6px;
     padding: 12px;
     position: absolute;
-    top: 70px;
-    left: 20px;
-    width: 600px;
+    bottom: 60px;
+    left: 620px;
+    width: 280px;
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     max-height: 400px;
