@@ -889,7 +889,7 @@ class DisasterMap {
             console.log('Loading conflict events from ACLED API...');
 
             const params = new URLSearchParams({
-                limit: '1000',
+                limit: '50',
                 disorder_type: 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians',
                 email: 'adrian.calvo@ifrc.org',
                 key: '-Gv3itxBQYcsw4SwB-XBoF_qHVkUv2zrUmK-JnCX3AU'
