@@ -886,16 +886,14 @@ class DisasterMap {
     // Conflict Events Methods
     async loadConflictData() {
         try {
-            console.log('Loading conflict events from ACLED API...');
+            console.log('Loading conflict events from ACLED API via proxy...');
 
             const params = new URLSearchParams({
                 limit: '20',
-                disorder_type: 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians',
-                email: 'adrian.calvo@ifrc.org',
-                key: '-Gv3itxBQYcsw4SwB-XBoF_qHVkUv2zrUmK-JnCX3AU'
+                disorder_type: 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians'
             });
 
-            const response = await fetch(`https://acleddata.com/api/acled/read?${params}`);
+            const response = await fetch(`/api/acled?${params}`);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
