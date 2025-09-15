@@ -180,10 +180,6 @@ class DisasterMap {
         document.getElementById('showHealthFacilities').addEventListener('change', (e) => {
             this.showHealthFacilities = e.target.checked;
             this.toggleHealthFacilities();
-
-            // Show/hide the health facilities controls
-            const controls = document.getElementById('healthFacilitiesControls');
-            controls.style.display = e.target.checked ? 'block' : 'none';
         });
 
         document.getElementById('showConflictEvents').addEventListener('change', (e) => {
