@@ -1234,7 +1234,7 @@ class DisasterMap {
     // Health Facilities Methods
     async loadHealthFacilities() {
         try {
-            console.log('Loading RCRC facilities...');
+            console.log('Loading RCRC health facilities...');
             
             let allFacilities = [];
             let offset = 0;
@@ -1243,7 +1243,7 @@ class DisasterMap {
             
             while (hasMore && allFacilities.length < 5000) { // Cap at 5000 to avoid memory issues
                 console.log(`Fetching batch ${Math.floor(offset / limit) + 1} (offset: ${offset})`);
-                const response = await fetch(`/api/health-facilities?limit=${limit}&offset=${offset}&facility_type=all`);
+                const response = await fetch(`/api/health-facilities?limit=${limit}&offset=${offset}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1269,7 +1269,7 @@ class DisasterMap {
                 }
             }
             
-            console.log(`Loaded ${allFacilities.length} total RCRC facilities`);
+            console.log(`Loaded ${allFacilities.length} total RCRC health facilities`);
             
             // Add visibility field to each facility based on affiliation
             allFacilities.forEach(facility => {
@@ -1284,7 +1284,7 @@ class DisasterMap {
             this.updateLegendCounts();
             
         } catch (error) {
-            console.error('Error loading RCRC facilities:', error);
+            console.error('Error loading RCRC health facilities:', error);
             this.healthFacilities = [];
         }
     }

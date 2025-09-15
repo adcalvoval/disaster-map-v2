@@ -947,19 +947,8 @@ app.get('/api/health-facilities', async (req, res) => {
             offset: parseInt(offset)
         };
 
-        // Add type filter if specified, default to health facilities (type 2)
-        if (facility_type) {
-            if (facility_type === 'health') {
-                params.type = 2; // Type 2 = Health Care facilities
-            } else if (facility_type === 'all') {
-                // No type filter - get all facility types
-            } else {
-                // Allow specific type numbers to be passed
-                params.type = parseInt(facility_type);
-            }
-        } else {
-            params.type = 2; // Default to health facilities for backward compatibility
-        }
+        // Always filter to health facilities only (type 2)
+        params.type = 2; // Type 2 = Health Care facilities
 
         console.log(`Fetching IFRC facilities: ${apiUrl}`, params);
 
@@ -975,8 +964,22 @@ app.get('/api/health-facilities', async (req, res) => {
 
         const data = response.data;
 
+        // Filter out non-health facility types
+        const excludedTypes = [
+            'Administrative',
+            'Emergency Response',
+            'Humanitarian Assistance Centres',
+            'Training and Education',
+            'Other'
+        ];
+
+        const healthOnlyResults = data.results.filter(facility => {
+            const facilityType = facility.health_details?.health_facility_type_details?.name;
+            return facilityType && !excludedTypes.includes(facilityType);
+        });
+
         // Transform the IFRC API data to match the expected frontend format
-        const transformedFacilities = data.results.map(facility => ({
+        const transformedFacilities = healthOnlyResults.map(facility => ({
             id: facility.id,
             name: facility.local_branch_name || facility.english_branch_name || 'Unknown Facility',
             country: facility.country_details.name,
@@ -1002,7 +1005,7 @@ app.get('/api/health-facilities', async (req, res) => {
         res.json({
             success: true,
             count: transformedFacilities.length,
-            total: data.count,
+            total: data.count, // Note: This is the original API total, actual health facilities may be less due to filtering
             next: data.next,
             previous: data.previous,
             facilities: transformedFacilities,
@@ -1012,6 +1015,11 @@ app.get('/api/health-facilities', async (req, res) => {
                 has_next: !!data.next,
                 has_previous: !!data.previous,
                 total_pages: Math.ceil(data.count / parseInt(limit))
+            },
+            filtered_info: {
+                original_count: data.results.length,
+                health_only_count: transformedFacilities.length,
+                excluded_types: excludedTypes
             }
         });
 
