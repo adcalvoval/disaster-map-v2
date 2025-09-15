@@ -13,7 +13,7 @@ class DisasterMap {
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
         this.showHealthFacilities = false;
-        this.regionClusterGroups = new Map(); // Map to store cluster groups by region
+        // Removed clustering - markers added directly to map
         this.csvHealthFacilityMarkers = [];
         this.csvHealthFacilities = [];
         this.shapefileHealthFacilities = [];
@@ -1500,11 +1500,9 @@ class DisasterMap {
         console.log('Selected health countries:', this.selectedHealthCountries);
         console.log('Selected health functionality:', this.selectedHealthFunctionality);
 
-        // Clear existing cluster groups
+        // Clear existing markers
         this.clearHealthFacilityMarkers();
 
-        // Group facilities by region
-        const facilitiesByRegion = new Map();
         let addedCount = 0;
         let filteredByType = 0;
         let filteredByCountry = 0;
@@ -1534,94 +1532,36 @@ class DisasterMap {
 
             addedCount++;
 
-            // Group by region
-            const country = facility.country || 'Unknown';
-            const region = this.getRegionForCountry(country);
-            if (!facilitiesByRegion.has(region)) {
-                facilitiesByRegion.set(region, []);
-            }
-            facilitiesByRegion.get(region).push(facility);
-        });
+            // Create individual marker for each facility
+            const color = this.getHealthFacilityColor(facility.type);
+            const icon = this.createHealthFacilityIcon(color, facility.type);
 
-        // Create cluster groups for each region
-        facilitiesByRegion.forEach((facilities, region) => {
-            const clusterGroup = L.markerClusterGroup({
-                iconCreateFunction: (cluster) => {
-                    const count = cluster.getChildCount();
-                    // Dynamic sizing based on facility count
-                    let size = Math.min(Math.max(40 + Math.log(count) * 8, 50), 80);
-                    let fontSize = Math.min(Math.max(12 + Math.log(count), 14), 18);
-                    let smallFontSize = Math.min(Math.max(8 + Math.log(count) * 0.5, 9), 11);
+            const marker = L.marker([facility.latitude, facility.longitude], {
+                icon: icon,
+                zIndexOffset: 1000
+            })
+            .bindPopup(`
+                <div>
+                    <h4>${facility.name}</h4>
+                    <p><strong>Type:</strong> ${facility.type}</p>
+                    <p><strong>Functionality:</strong> <span style="color: ${this.getFunctionalityColor(facility.functionality)}; font-weight: bold;">${facility.functionality}</span></p>
+                    <p><strong>Visibility:</strong> ${facility.visibility || 'Public'}</p>
+                    <p><strong>Country:</strong> ${facility.country}</p>
+                    ${facility.address ? `<p><strong>Address:</strong> ${facility.address}</p>` : ''}
+                    ${facility.district ? `<p><strong>District:</strong> ${facility.district}</p>` : ''}
+                    ${facility.speciality ? `<p><strong>Speciality:</strong> ${facility.speciality}</p>` : ''}
+                </div>
+            `);
 
-                    // Color coding based on facility count
-                    let backgroundColor = '#3498db';
-                    if (count > 100) backgroundColor = '#e74c3c';
-                    else if (count > 50) backgroundColor = '#f39c12';
-                    else if (count > 20) backgroundColor = '#27ae60';
+            marker.facilityId = facility.id;
+            marker.facilityType = facility.type;
 
-                    return L.divIcon({
-                        html: `<div class="cluster-content" style="background: linear-gradient(135deg, ${backgroundColor}, ${this.darkenColor(backgroundColor, 0.8)});">
-                                <span class="cluster-count" style="font-size: ${fontSize}px">${count}</span>
-                                <small class="cluster-country" style="font-size: ${smallFontSize}px">${region}</small>
-                                <div class="cluster-label">facilities</div>
-                               </div>`,
-                        className: 'region-cluster-marker',
-                        iconSize: L.point(size, size)
-                    });
-                },
-                maxClusterRadius: (zoom) => {
-                    // Very aggressive clustering at low zoom levels to ensure one marker per region
-                    if (zoom <= 2) return 2000;  // At default zoom (2), very large radius
-                    if (zoom <= 3) return 1000;  // Still very large
-                    if (zoom <= 4) return 500;   // Large radius
-                    if (zoom <= 5) return 200;   // Medium radius
-                    if (zoom <= 6) return 100;   // Smaller radius
-                    return 60;                   // Default radius for higher zoom levels
-                },
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: true,
-                zoomToBoundsOnClick: true,
-                animate: true,
-                disableClusteringAtZoom: 12  // Disable clustering completely at zoom 12+
-            });
-
-            // Add individual facility markers to the cluster group
-            facilities.forEach(facility => {
-                const color = this.getHealthFacilityColor(facility.type);
-                const icon = this.createHealthFacilityIcon(color, facility.type);
-
-                const marker = L.marker([facility.latitude, facility.longitude], {
-                    icon: icon,
-                    zIndexOffset: 1000
-                })
-                .bindPopup(`
-                    <div>
-                        <h4>${facility.name}</h4>
-                        <p><strong>Type:</strong> ${facility.type}</p>
-                        <p><strong>Functionality:</strong> <span style="color: ${this.getFunctionalityColor(facility.functionality)}; font-weight: bold;">${facility.functionality}</span></p>
-                        <p><strong>Visibility:</strong> ${facility.visibility || 'Public'}</p>
-                        <p><strong>Country:</strong> ${facility.country}</p>
-                        ${facility.address ? `<p><strong>Address:</strong> ${facility.address}</p>` : ''}
-                        ${facility.district ? `<p><strong>District:</strong> ${facility.district}</p>` : ''}
-                        ${facility.speciality ? `<p><strong>Speciality:</strong> ${facility.speciality}</p>` : ''}
-                    </div>
-                `);
-
-                marker.facilityId = facility.id;
-                marker.facilityType = facility.type;
-                clusterGroup.addLayer(marker);
-                this.healthFacilityMarkers.push(marker);
-            });
-
-            // Add the cluster group to the map
-            this.map.addLayer(clusterGroup);
-            this.regionClusterGroups.set(region, clusterGroup);
-
-            console.log(`Created cluster for ${region} with ${facilities.length} facilities`);
+            // Add marker directly to map
+            this.map.addLayer(marker);
+            this.healthFacilityMarkers.push(marker);
         });
 
         console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by functionality: ${filteredByFunctionality}`);
-        console.log(`Created ${facilitiesByRegion.size} region clusters`);
         if (this.selectedHealthCountries.length > 0) {
             console.log(`Applied country filter: [${this.selectedHealthCountries.join(', ')}]`);
         }
@@ -1759,11 +1699,10 @@ class DisasterMap {
     }
 
     clearHealthFacilityMarkers() {
-        // Remove all cluster groups
-        this.regionClusterGroups.forEach((clusterGroup, region) => {
-            this.map.removeLayer(clusterGroup);
+        // Remove all individual markers
+        this.healthFacilityMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
         });
-        this.regionClusterGroups.clear();
         this.healthFacilityMarkers = [];
     }
 
