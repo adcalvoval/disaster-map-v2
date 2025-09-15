@@ -13,6 +13,8 @@ class DisasterMap {
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
         this.showHealthFacilities = false;
+        this.currentCountryFilter = null; // Track current country filter
+        this.currentTypeFilter = null; // Track current facility type filter
         // Removed clustering - markers added directly to map
         this.csvHealthFacilityMarkers = [];
         this.csvHealthFacilities = [];
@@ -2847,16 +2849,90 @@ class DisasterMap {
     }
 
     filterByCountryAndType(country, facilityType) {
-        // Set all facility types to hidden first
-        Object.keys(this.facilityTypeVisibility).forEach(type => {
-            this.facilityTypeVisibility[type] = false;
-        });
+        // Check if we're clicking the same type that's already filtered
+        const isToggleOff = (this.currentCountryFilter === country && this.currentTypeFilter === facilityType);
 
-        // Enable only the selected facility type
-        this.facilityTypeVisibility[facilityType] = true;
+        if (isToggleOff) {
+            // Toggle off - show all facility types for this country
+            console.log(`🔄 Toggling off ${facilityType} filter - showing all facilities in ${country}`);
 
-        // Set the country filter to only the selected country
+            // Enable all facility types
+            Object.keys(this.facilityTypeVisibility).forEach(type => {
+                this.facilityTypeVisibility[type] = true;
+            });
+
+            // Check all facility type checkboxes
+            const typeMapping = {
+                'Primary Health Care Centres': 'show-primary-health',
+                'Ambulance Stations': 'show-ambulance',
+                'Blood Centres': 'show-blood',
+                'Hospitals': 'show-hospitals',
+                'Pharmacies': 'show-pharmacies',
+                'Training Facilities': 'show-training',
+                'Specialized Services': 'show-specialized',
+                'Residential Facilities': 'show-residential',
+                'Other': 'show-other'
+            };
+
+            Object.values(typeMapping).forEach(checkboxId => {
+                const checkbox = document.getElementById(checkboxId);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+
+            // Clear the type filter but keep the country filter
+            this.currentTypeFilter = null;
+
+        } else {
+            // Toggle on - show only this facility type
+            console.log(`🎯 Filtering to show only ${facilityType} in ${country}`);
+
+            // Set all facility types to hidden first
+            Object.keys(this.facilityTypeVisibility).forEach(type => {
+                this.facilityTypeVisibility[type] = false;
+            });
+
+            // Enable only the selected facility type
+            this.facilityTypeVisibility[facilityType] = true;
+
+            // Update the facility type checkboxes to reflect the selection
+            const typeMapping = {
+                'Primary Health Care Centres': 'show-primary-health',
+                'Ambulance Stations': 'show-ambulance',
+                'Blood Centres': 'show-blood',
+                'Hospitals': 'show-hospitals',
+                'Pharmacies': 'show-pharmacies',
+                'Training Facilities': 'show-training',
+                'Specialized Services': 'show-specialized',
+                'Residential Facilities': 'show-residential',
+                'Other': 'show-other'
+            };
+
+            // Uncheck all facility type checkboxes first
+            Object.values(typeMapping).forEach(checkboxId => {
+                const checkbox = document.getElementById(checkboxId);
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+            });
+
+            // Check only the selected facility type
+            const selectedCheckboxId = typeMapping[facilityType];
+            if (selectedCheckboxId) {
+                const checkbox = document.getElementById(selectedCheckboxId);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            }
+
+            // Update the filter state
+            this.currentTypeFilter = facilityType;
+        }
+
+        // Always ensure the country filter is set correctly
         this.selectedHealthCountries = [country];
+        this.currentCountryFilter = country;
 
         // Update the health country filter dropdown to reflect the selection
         const healthCountryFilter = document.getElementById('healthCountryFilter');
@@ -2873,41 +2949,9 @@ class DisasterMap {
             });
         }
 
-        // Update the facility type checkboxes to reflect the selection
-        const typeMapping = {
-            'Primary Health Care Centres': 'show-primary-health',
-            'Ambulance Stations': 'show-ambulance',
-            'Blood Centres': 'show-blood',
-            'Hospitals': 'show-hospitals',
-            'Pharmacies': 'show-pharmacies',
-            'Training Facilities': 'show-training',
-            'Specialized Services': 'show-specialized',
-            'Residential Facilities': 'show-residential',
-            'Other': 'show-other'
-        };
-
-        // Uncheck all facility type checkboxes first
-        Object.values(typeMapping).forEach(checkboxId => {
-            const checkbox = document.getElementById(checkboxId);
-            if (checkbox) {
-                checkbox.checked = false;
-            }
-        });
-
-        // Check only the selected facility type
-        const selectedCheckboxId = typeMapping[facilityType];
-        if (selectedCheckboxId) {
-            const checkbox = document.getElementById(selectedCheckboxId);
-            if (checkbox) {
-                checkbox.checked = true;
-            }
-        }
-
         // Update the display
         this.updateHealthFacilitiesDisplay();
         this.updateLegendCounts();
-
-        console.log(`Filtered to show only ${facilityType} in ${country}`);
     }
 }
 
