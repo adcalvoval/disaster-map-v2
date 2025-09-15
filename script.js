@@ -1588,6 +1588,13 @@ class DisasterMap {
         console.log(`Filtering health facilities by countries: ${countryDisplay}`);
         this.updateHealthFacilitiesDisplay();
         this.updateLegendCounts(); // Update counts after filtering
+
+        // Show country stats if exactly one country is selected
+        if (this.selectedHealthCountries.length === 1) {
+            this.updateCountryStats(this.selectedHealthCountries[0]);
+        } else {
+            this.updateCountryStats(null); // Hide stats box when multiple or no countries selected
+        }
     }
 
     getFacilityTypeCounts() {
