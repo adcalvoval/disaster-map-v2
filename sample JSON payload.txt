@@ -1,0 +1,242 @@
+{
+    "count": 10224,
+    "next": "https://goadmin.ifrc.org/api/v2/local-units/?limit=5&offset=5",
+    "previous": null,
+    "results": [
+        {
+            "id": 29554,
+            "country": 81,
+            "local_branch_name": "Cruz Roja Hondureña - Estación de Ambulancias",
+            "english_branch_name": "",
+            "location_geojson": {
+                "type": "Point",
+                "coordinates": [
+                    -87.1833,
+                    13.3
+                ]
+            },
+            "type": 2,
+            "validated": true,
+            "address_loc": "Choluteca",
+            "address_en": "",
+            "country_details": {
+                "name": "Honduras",
+                "iso3": "HND",
+                "id": 81
+            },
+            "type_details": {
+                "name": "Health Care",
+                "code": 2,
+                "id": 2,
+                "colour": "#011e41",
+                "image_url": "https://goadmin.ifrc.org/static/images/local_units/local_unit_type/Healthcare.png"
+            },
+            "health": 655665,
+            "health_details": {
+                "id": 655665,
+                "health_facility_type": 1,
+                "health_facility_type_details": {
+                    "id": 1,
+                    "image_url": "https://goadmin.ifrc.org/static/images/local_units/health_facility_type/ambulance.png",
+                    "code": 1,
+                    "name": "Ambulance Station"
+                }
+            },
+            "focal_person_loc": "Evelin Amador",
+            "focal_person_en": "",
+            "email": "evelin.amador@cruzroja.org.hn",
+            "phone": "505 3145 2907",
+            "modified_at": "2024-10-02T08:54:28.512380Z",
+            "modified_by_details": null,
+            "is_locked": false
+        },
+        {
+            "id": 29569,
+            "country": 81,
+            "local_branch_name": "Cruz Roja Hondureña - Estación de Ambulancias",
+            "english_branch_name": "",
+            "location_geojson": {
+                "type": "Point",
+                "coordinates": [
+                    -87.0667,
+                    13.6333
+                ]
+            },
+            "type": 2,
+            "validated": true,
+            "address_loc": "Valle",
+            "address_en": "",
+            "country_details": {
+                "name": "Honduras",
+                "iso3": "HND",
+                "id": 81
+            },
+            "type_details": {
+                "name": "Health Care",
+                "code": 2,
+                "id": 2,
+                "colour": "#011e41",
+                "image_url": "https://goadmin.ifrc.org/static/images/local_units/local_unit_type/Healthcare.png"
+            },
+            "health": 655666,
+            "health_details": {
+                "id": 655666,
+                "health_facility_type": 1,
+                "health_facility_type_details": {
+                    "id": 1,
+                    "image_url": "https://goadmin.ifrc.org/static/images/local_units/health_facility_type/ambulance.png",
+                    "code": 1,
+                    "name": "Ambulance Station"
+                }
+            },
+            "focal_person_loc": "Evelin Amador",
+            "focal_person_en": "",
+            "email": "evelin.amador@cruzroja.org.hn",
+            "phone": "506 3145 2907",
+            "modified_at": "2024-10-02T08:54:28.514175Z",
+            "modified_by_details": null,
+            "is_locked": false
+        },
+        {
+            "id": 29560,
+            "country": 81,
+            "local_branch_name": "Cruz Roja Hondureña - Estación de Ambulancias",
+            "english_branch_name": "",
+            "location_geojson": {
+                "type": "Point",
+                "coordinates": [
+                    -86.6,
+                    13.8667
+                ]
+            },
+            "type": 2,
+            "validated": true,
+            "address_loc": "El Paraíso",
+            "address_en": "",
+            "country_details": {
+                "name": "Honduras",
+                "iso3": "HND",
+                "id": 81
+            },
+            "type_details": {
+                "name": "Health Care",
+                "code": 2,
+                "id": 2,
+                "colour": "#011e41",
+                "image_url": "https://goadmin.ifrc.org/static/images/local_units/local_unit_type/Healthcare.png"
+            },
+            "health": 655667,
+            "health_details": {
+                "id": 655667,
+                "health_facility_type": 1,
+                "health_facility_type_details": {
+                    "id": 1,
+                    "image_url": "https://goadmin.ifrc.org/static/images/local_units/health_facility_type/ambulance.png",
+                    "code": 1,
+                    "name": "Ambulance Station"
+                }
+            },
+            "focal_person_loc": "Evelin Amador",
+            "focal_person_en": "",
+            "email": "evelin.amador@cruzroja.org.hn",
+            "phone": "507 3145 2907",
+            "modified_at": "2024-10-02T08:54:28.513085Z",
+            "modified_by_details": null,
+            "is_locked": false
+        },
+        {
+            "id": 29567,
+            "country": 81,
+            "local_branch_name": "Cruz Roja Hondureña - Estación de Ambulancias",
+            "english_branch_name": "",
+            "location_geojson": {
+                "type": "Point",
+                "coordinates": [
+                    -87.1333,
+                    14.4
+                ]
+            },
+            "type": 2,
+            "validated": true,
+            "address_loc": "Talanca, Francisco Morazán",
+            "address_en": "",
+            "country_details": {
+                "name": "Honduras",
+                "iso3": "HND",
+                "id": 81
+            },
+            "type_details": {
+                "name": "Health Care",
+                "code": 2,
+                "id": 2,
+                "colour": "#011e41",
+                "image_url": "https://goadmin.ifrc.org/static/images/local_units/local_unit_type/Healthcare.png"
+            },
+            "health": 655668,
+            "health_details": {
+                "id": 655668,
+                "health_facility_type": 1,
+                "health_facility_type_details": {
+                    "id": 1,
+                    "image_url": "https://goadmin.ifrc.org/static/images/local_units/health_facility_type/ambulance.png",
+                    "code": 1,
+                    "name": "Ambulance Station"
+                }
+            },
+            "focal_person_loc": "Evelin Amador",
+            "focal_person_en": "",
+            "email": "evelin.amador@cruzroja.org.hn",
+            "phone": "508 3145 2907",
+            "modified_at": "2024-10-02T08:54:28.513889Z",
+            "modified_by_details": null,
+            "is_locked": false
+        },
+        {
+            "id": 29565,
+            "country": 81,
+            "local_branch_name": "Cruz Roja Hondureña - Estación de Ambulancias",
+            "english_branch_name": "",
+            "location_geojson": {
+                "type": "Point",
+                "coordinates": [
+                    -85.0,
+                    14.9167
+                ]
+            },
+            "type": 2,
+            "validated": true,
+            "address_loc": "Olancho",
+            "address_en": "",
+            "country_details": {
+                "name": "Honduras",
+                "iso3": "HND",
+                "id": 81
+            },
+            "type_details": {
+                "name": "Health Care",
+                "code": 2,
+                "id": 2,
+                "colour": "#011e41",
+                "image_url": "https://goadmin.ifrc.org/static/images/local_units/local_unit_type/Healthcare.png"
+            },
+            "health": 655669,
+            "health_details": {
+                "id": 655669,
+                "health_facility_type": 1,
+                "health_facility_type_details": {
+                    "id": 1,
+                    "image_url": "https://goadmin.ifrc.org/static/images/local_units/health_facility_type/ambulance.png",
+                    "code": 1,
+                    "name": "Ambulance Station"
+                }
+            },
+            "focal_person_loc": "Evelin Amador",
+            "focal_person_en": "",
+            "email": "evelin.amador@cruzroja.org.hn",
+            "phone": "509 3145 2907",
+            "modified_at": "2024-10-02T08:54:28.513646Z",
+            "modified_by_details": null,
+            "is_locked": false
+        }
+    ]
+}

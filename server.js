@@ -926,58 +926,114 @@ app.get('/api/health', (req, res) => {
 });
 
 // Health facilities endpoint
-app.get('/api/health-facilities', (req, res) => {
+app.get('/api/health-facilities', async (req, res) => {
     try {
-        const fs = require('fs');
-        const path = require('path');
-        
-        const dataPath = path.join(__dirname, 'health-facilities-data.json');
-        if (!fs.existsSync(dataPath)) {
-            return res.status(404).json({
+        const { limit = '50', offset = '0' } = req.query;
+
+        // IFRC API configuration
+        const apiToken = process.env.IFRC_GO_API_TOKEN;
+        const apiBaseUrl = process.env.IFRC_GO_API_BASE_URL;
+
+        if (!apiToken || !apiBaseUrl) {
+            return res.status(500).json({
                 success: false,
-                error: 'Health facilities data not found. Please process the Excel file first.'
+                error: 'IFRC API configuration missing. Check .env file.'
             });
         }
-        
-        const healthFacilities = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-        
-        // Filter by type if specified
-        const { type, functionality, region } = req.query;
-        let filteredFacilities = healthFacilities;
-        
-        if (type) {
-            filteredFacilities = filteredFacilities.filter(facility => 
-                facility.type.toLowerCase() === type.toLowerCase()
-            );
-        }
-        
-        if (functionality) {
-            filteredFacilities = filteredFacilities.filter(facility => 
-                facility.functionality.toLowerCase() === functionality.toLowerCase()
-            );
-        }
-        
-        if (region) {
-            filteredFacilities = filteredFacilities.filter(facility => 
-                facility.region && facility.region.toLowerCase() === region.toLowerCase()
-            );
-        }
-        
+
+        const apiUrl = `${apiBaseUrl}/local-units/`;
+        const params = {
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            type: 2  // Type 2 = Health Care facilities
+        };
+
+        console.log(`Fetching IFRC health facilities: ${apiUrl}?limit=${limit}&offset=${offset}`);
+
+        const response = await axios.get(apiUrl, {
+            params,
+            timeout: 30000,
+            headers: {
+                'Authorization': `Token ${apiToken}`,
+                'User-Agent': 'IFRC-Health-Emergency-Response-Tool/1.0',
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = response.data;
+
+        // Transform the IFRC API data to match the expected frontend format
+        const transformedFacilities = data.results.map(facility => ({
+            id: facility.id,
+            name: facility.local_branch_name || facility.english_branch_name || 'Unknown Facility',
+            country: facility.country_details.name,
+            country_iso3: facility.country_details.iso3,
+            country_id: facility.country,
+            coordinates: facility.location_geojson ? facility.location_geojson.coordinates : null,
+            latitude: facility.location_geojson ? facility.location_geojson.coordinates[1] : null,
+            longitude: facility.location_geojson ? facility.location_geojson.coordinates[0] : null,
+            type: facility.health_details?.health_facility_type_details?.name || 'Health Care',
+            type_id: facility.health_details?.health_facility_type_details?.id || null,
+            type_code: facility.health_details?.health_facility_type_details?.code || null,
+            address: facility.address_loc || facility.address_en || '',
+            focal_person: facility.focal_person_loc || facility.focal_person_en || '',
+            email: facility.email || '',
+            phone: facility.phone || '',
+            validated: facility.validated,
+            modified_at: facility.modified_at,
+            // Map facility type to our existing categories for consistency
+            category: mapFacilityTypeToCategory(facility.health_details?.health_facility_type_details?.name),
+            functionality: 'fully' // Default, as IFRC API doesn't provide this field
+        }));
+
         res.json({
             success: true,
-            count: filteredFacilities.length,
-            total: healthFacilities.length,
-            facilities: filteredFacilities
+            count: transformedFacilities.length,
+            total: data.count,
+            next: data.next,
+            previous: data.previous,
+            facilities: transformedFacilities,
+            pagination: {
+                limit: parseInt(limit),
+                offset: parseInt(offset),
+                has_next: !!data.next,
+                has_previous: !!data.previous,
+                total_pages: Math.ceil(data.count / parseInt(limit))
+            }
         });
-        
+
     } catch (error) {
-        console.error('Error serving health facilities:', error);
-        res.status(500).json({
+        console.error('Error fetching IFRC health facilities:', error.message);
+        console.error('Error details:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data
+        });
+
+        res.status(error.response?.status || 500).json({
             success: false,
-            error: 'Failed to load health facilities data'
+            error: 'Failed to fetch health facilities: ' + error.message,
+            details: error.response?.data,
+            facilities: []
         });
     }
 });
+
+// Helper function to map IFRC facility types to our existing categories
+function mapFacilityTypeToCategory(facilityType) {
+    if (!facilityType) return 'other';
+
+    const type = facilityType.toLowerCase();
+    if (type.includes('hospital')) return 'hospitals';
+    if (type.includes('ambulance')) return 'ambulance';
+    if (type.includes('primary') || type.includes('health care')) return 'primary-health';
+    if (type.includes('blood')) return 'blood';
+    if (type.includes('pharmacy')) return 'pharmacies';
+    if (type.includes('training')) return 'training';
+    if (type.includes('specialized')) return 'specialized';
+    if (type.includes('residential')) return 'residential';
+    return 'other';
+}
 
 app.get('/api/disasters/sample', (req, res) => {
     try {

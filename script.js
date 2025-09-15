@@ -1253,9 +1253,9 @@ class DisasterMap {
                 if (result.success && result.facilities) {
                     allFacilities = allFacilities.concat(result.facilities);
                     console.log(`Batch loaded: ${result.count} facilities. Total: ${allFacilities.length}`);
-                    
-                    // Check if there are more facilities to fetch
-                    hasMore = result.facilities.length === limit && allFacilities.length < result.total;
+
+                    // Check if there are more facilities to fetch using the new pagination structure
+                    hasMore = result.pagination ? result.pagination.has_next : (result.facilities.length === limit && allFacilities.length < result.total);
                     offset += limit;
                 } else {
                     console.warn('No facilities in response or error:', result.error);
@@ -1340,6 +1340,7 @@ class DisasterMap {
                         <p><strong>Functionality:</strong> <span style="color: ${this.getFunctionalityColor(facility.functionality)}; font-weight: bold;">${facility.functionality}</span></p>
                         <p><strong>Visibility:</strong> ${facility.visibility || 'Public'}</p>
                         <p><strong>Country:</strong> ${facility.country}</p>
+                        ${facility.address ? `<p><strong>Address:</strong> ${facility.address}</p>` : ''}
                         ${facility.district ? `<p><strong>District:</strong> ${facility.district}</p>` : ''}
                         ${facility.speciality ? `<p><strong>Speciality:</strong> ${facility.speciality}</p>` : ''}
                     </div>
@@ -1393,9 +1394,16 @@ class DisasterMap {
     }
 
     determineVisibility(facility) {
-        // Determine visibility based on affiliation
+        // Determine visibility based on source or affiliation
+
+        // If facility has an ID from IFRC API, it's a Red Cross/Red Crescent facility
+        if (facility.id && facility.country_iso3) {
+            return 'RCRC Movement';
+        }
+
+        // Legacy check for CSV-based data with affiliation field
         const affiliation = facility.affiliation ? facility.affiliation.toLowerCase() : '';
-        
+
         if (affiliation.includes('red cross') || affiliation.includes('red crescent')) {
             return 'RCRC Movement';
         } else if (affiliation.includes('ifrc') || affiliation.includes('international federation')) {
@@ -2134,7 +2142,7 @@ class DisasterMap {
                 <div class="${cardClass}" 
                      onclick="app.zoomToFacility(${facility.latitude}, ${facility.longitude}, '${facility.name.replace(/'/g, "\\'")}')">
                     <div class="facility-name">${facility.name}</div>
-                    <div class="facility-district">${facility.district || facility.country || 'Unknown location'}</div>
+                    <div class="facility-district">${facility.address || facility.district || facility.country || 'Unknown location'}</div>
                     <div class="facility-functionality ${this.getFunctionalityClass(facility.functionality)}">
                         ${facility.functionality || 'Unknown functionality'}
                     </div>
