@@ -1861,7 +1861,7 @@ class DisasterMap {
             console.log('Loading shapefile health facilities...');
             
             // Try loading the entire shapefile directory as a zip-like structure
-            const baseUrl = './hotosm_pak_health_facilities_points_shp/hotosm_pak_health_facilities_points_shp';
+            const baseUrl = './Geo Files/hotosm_pak_health_facilities_points_shp/hotosm_pak_health_facilities_points_shp';
             
             // Method 1: Try using shpjs with the base filename (it should find .shp and .dbf automatically)
             let geojson;
