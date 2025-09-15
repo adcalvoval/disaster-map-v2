@@ -1499,6 +1499,12 @@ class DisasterMap {
         console.log('Facility type visibility:', this.facilityTypeVisibility);
         console.log('Selected health countries:', this.selectedHealthCountries);
         console.log('Selected health functionality:', this.selectedHealthFunctionality);
+        console.log(`🏥 Total health facilities loaded: ${this.healthFacilities.length}`);
+
+        // Debug: Show sample facility structure
+        if (this.healthFacilities.length > 0) {
+            console.log('📋 Sample facility structure:', this.healthFacilities[0]);
+        }
 
         // Clear existing markers
         this.clearHealthFacilityMarkers();
@@ -1604,6 +1610,22 @@ class DisasterMap {
         });
 
         console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by functionality: ${filteredByFunctionality}`);
+
+        // Debug: Show facility types that are being filtered out
+        if (filteredByType > 0) {
+            console.log('🔍 Debugging facility types that are being filtered out:');
+            const uniqueTypes = [...new Set(this.healthFacilities.map(f => f.type))];
+            console.log('Available facility types in data:', uniqueTypes);
+            console.log('Expected facility types (visibility):', Object.keys(this.facilityTypeVisibility));
+
+            // Check for type mismatches
+            uniqueTypes.forEach(type => {
+                if (!this.facilityTypeVisibility.hasOwnProperty(type)) {
+                    console.warn(`⚠️ Type mismatch: "${type}" not found in facilityTypeVisibility`);
+                }
+            });
+        }
+
         if (this.selectedHealthCountries.length > 0) {
             console.log(`Applied country filter: [${this.selectedHealthCountries.join(', ')}]`);
         }
