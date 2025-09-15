@@ -889,7 +889,7 @@ class DisasterMap {
             console.log('Loading conflict events from ACLED API via proxy...');
 
             const params = new URLSearchParams({
-                limit: '20',
+                limit: '50',
                 disorder_type: 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians'
             });
 

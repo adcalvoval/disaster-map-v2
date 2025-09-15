@@ -1163,7 +1163,7 @@ app.get('/api/ifrc-countries', async (req, res) => {
 // ACLED API proxy endpoint
 app.get('/api/acled', async (req, res) => {
     try {
-        const { limit = '20', disorder_type } = req.query;
+        const { limit = '50', disorder_type } = req.query;
 
         const acledUrl = 'https://acleddata.com/api/acled/read';
         const params = {
