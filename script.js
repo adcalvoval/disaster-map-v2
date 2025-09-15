@@ -1511,6 +1511,17 @@ class DisasterMap {
         this.healthFacilities.forEach(facility => {
             console.log(`Processing facility: ${facility.name} (type: ${facility.type}, country: ${facility.country})`);
 
+            // Debug France facilities specifically
+            if (facility.country === 'France') {
+                console.log(`France facility details:`, {
+                    name: facility.name,
+                    type: facility.type,
+                    lat: facility.latitude,
+                    lng: facility.longitude,
+                    coordinates: `${facility.latitude},${facility.longitude}`
+                });
+            }
+
             // Only add facilities that are visible based on type selection
             if (!this.facilityTypeVisibility[facility.type]) {
                 console.log(`Filtered by type: ${facility.type} not visible`);
@@ -1536,7 +1547,25 @@ class DisasterMap {
             const color = this.getHealthFacilityColor(facility.type);
             const icon = this.createHealthFacilityIcon(color, facility.type);
 
-            const marker = L.marker([facility.latitude, facility.longitude], {
+            // Check for duplicate coordinates and apply small offset to prevent stacking
+            const coordKey = `${facility.latitude},${facility.longitude}`;
+            const existingMarkersAtCoord = this.healthFacilityMarkers.filter(m =>
+                Math.abs(m.getLatLng().lat - facility.latitude) < 0.0001 &&
+                Math.abs(m.getLatLng().lng - facility.longitude) < 0.0001
+            ).length;
+
+            // Apply small random offset if coordinates are duplicated
+            let lat = facility.latitude;
+            let lng = facility.longitude;
+            if (existingMarkersAtCoord > 0) {
+                const offsetDistance = 0.001; // Small offset in degrees
+                const angle = (existingMarkersAtCoord * 60) * (Math.PI / 180); // 60 degrees apart
+                lat += Math.sin(angle) * offsetDistance;
+                lng += Math.cos(angle) * offsetDistance;
+                console.log(`Applied offset to ${facility.name} at ${facility.latitude},${facility.longitude} -> ${lat},${lng}`);
+            }
+
+            const marker = L.marker([lat, lng], {
                 icon: icon,
                 zIndexOffset: 1000
             })
