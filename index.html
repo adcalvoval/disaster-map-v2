@@ -43,18 +43,6 @@
                     <input type="checkbox" id="showSatelliteLayer">
                     Show satellite imagery
                 </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" id="showKasaiProvince">
-                    Show Kasaï Province (DRC)
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" id="showMunicipalities">
-                    Show Municipalities (Mweka, Bulape)
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" id="showGermanStates">
-                    Show German States (NRW, RLP)
-                </label>
                 <button id="refreshData">Refresh Data</button>
             </div>
         </div>
@@ -183,7 +171,7 @@
     <!-- Sliding Drawer for Events and Facilities -->
     <div id="sidebarDrawer" class="sidebar-drawer">
         <div class="drawer-handle">
-            <button class="drawer-close" onclick="app.toggleSidebar()" title="Close Panel">×</button>
+            <button class="drawer-close" id="drawerCloseBtn" title="Close Panel">×</button>
         </div>
         
         <!-- Disaster Events Section -->

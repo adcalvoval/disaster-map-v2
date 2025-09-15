@@ -18,7 +18,7 @@ body {
 
 .header {
     grid-area: header;
-    background: #2c3e50;
+    background: #A50E0E;
     color: white;
     padding: 10px 20px;
     display: flex;
@@ -903,14 +903,14 @@ body.fullscreen-mode .sidebar-drawer {
 /* Footer Styles */
 .footer {
     grid-area: footer;
-    background: #34495e;
+    background: #A50E0E;
     color: white;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 10px 20px;
     font-size: 0.9rem;
-    border-top: 1px solid #2c3e50;
+    border-top: 1px solid #A50E0E;
 }
 
 .footer p {
