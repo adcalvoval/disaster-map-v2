@@ -232,48 +232,50 @@
         <div class="drawer-handle">
             <button class="drawer-close" id="drawerCloseBtn" title="Close Panel">×</button>
         </div>
-        
-        <!-- Disaster Events Section -->
-        <div class="events-section" style="height: 33.33%; display: flex; flex-direction: column;">
-            <div class="section-header">
-                <h3>Disaster Events</h3>
-                <div class="search-container">
-                    <input type="text" id="eventSearch" placeholder="Search events..." class="search-input">
-                    <button id="clearEventSearch" class="clear-search-btn" style="display: none;">×</button>
-                    <button id="clearEventSelection" class="clear-selection-btn" style="display: none;" title="Show all events">⬅️</button>
-                </div>
-            </div>
-            <div id="eventList" style="flex: 1; overflow-y: auto;">
-                Loading disaster events...
-            </div>
-        </div>
 
-        <!-- Conflict Events Section -->
-        <div class="conflict-section" style="height: 33.33%; display: flex; flex-direction: column;">
-            <div class="section-header">
-                <h3>Conflict Events</h3>
-                <div class="search-container">
-                    <input type="text" id="conflictSearch" placeholder="Search conflicts..." class="search-input">
-                    <button id="clearConflictSearch" class="clear-search-btn" style="display: none;">×</button>
+        <div class="drawer-content">
+            <!-- Disaster Events Section -->
+            <div class="events-section drawer-section">
+                <div class="section-header">
+                    <h3>Disaster Events</h3>
+                    <div class="search-container">
+                        <input type="text" id="eventSearch" placeholder="Search events..." class="search-input">
+                        <button id="clearEventSearch" class="clear-search-btn" style="display: none;">×</button>
+                        <button id="clearEventSelection" class="clear-selection-btn" style="display: none;" title="Show all events">⬅️</button>
+                    </div>
+                </div>
+                <div id="eventList" class="section-list">
+                    Loading disaster events...
                 </div>
             </div>
-            <div id="conflictList" style="flex: 1; overflow-y: auto;">
-                Loading conflict events...
-            </div>
-        </div>
 
-        <!-- RCRC Facilities Section -->
-        <div id="impactFacilitiesSection" class="facilities-section" style="height: 33.33%; display: flex; flex-direction: column;">
-            <div class="section-header">
-                <h3>RCRC Health Facilities</h3>
-                <div class="section-controls">
-                    <select id="facilityCountryFilter" class="country-select">
-                        <option value="">All Countries</option>
-                    </select>
+            <!-- Conflict Events Section -->
+            <div class="conflict-section drawer-section">
+                <div class="section-header">
+                    <h3>Conflict Events</h3>
+                    <div class="search-container">
+                        <input type="text" id="conflictSearch" placeholder="Search conflicts..." class="search-input">
+                        <button id="clearConflictSearch" class="clear-search-btn" style="display: none;">×</button>
+                    </div>
+                </div>
+                <div id="conflictList" class="section-list">
+                    Loading conflict events...
                 </div>
             </div>
-            <div id="impactFacilitiesList" class="facilities-list" style="flex: 1; overflow-y: auto;">
-                Loading facilities...
+
+            <!-- RCRC Facilities Section -->
+            <div id="impactFacilitiesSection" class="facilities-section drawer-section">
+                <div class="section-header">
+                    <h3>RCRC Health Facilities</h3>
+                    <div class="section-controls">
+                        <select id="facilityCountryFilter" class="country-select">
+                            <option value="">All Countries</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="impactFacilitiesList" class="facilities-list section-list">
+                    Loading facilities...
+                </div>
             </div>
         </div>
     </div>
