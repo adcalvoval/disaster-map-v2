@@ -163,6 +163,12 @@ class DisasterMap {
         document.getElementById('showAffectedAreas').addEventListener('change', (e) => {
             this.showAffectedAreas = e.target.checked;
             this.toggleDisasterEvents();
+
+            // Hide/show the disaster events control box
+            const disasterControlsBox = document.getElementById('disasterEventsControls');
+            if (disasterControlsBox) {
+                disasterControlsBox.style.display = e.target.checked ? 'block' : 'none';
+            }
         });
 
         document.getElementById('showImpactZones').addEventListener('change', (e) => {
