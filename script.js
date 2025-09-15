@@ -13,6 +13,7 @@ class DisasterMap {
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
         this.showHealthFacilities = false;
+        this.countryClusterGroups = new Map(); // Map to store cluster groups by country
         this.csvHealthFacilityMarkers = [];
         this.csvHealthFacilities = [];
         this.shapefileHealthFacilities = [];
@@ -1287,50 +1288,95 @@ class DisasterMap {
     }
 
     addHealthFacilitiesToMap() {
-        console.log(`Adding health facilities to map. Total facilities: ${this.healthFacilities.length}`);
+        console.log(`Adding health facilities to map with clustering. Total facilities: ${this.healthFacilities.length}`);
         console.log('Facility type visibility:', this.facilityTypeVisibility);
         console.log('Selected health countries:', this.selectedHealthCountries);
         console.log('Selected health functionality:', this.selectedHealthFunctionality);
-        
+
+        // Clear existing cluster groups
+        this.clearHealthFacilityMarkers();
+
+        // Group facilities by country
+        const facilitiesByCountry = new Map();
         let addedCount = 0;
         let filteredByType = 0;
         let filteredByCountry = 0;
         let filteredByFunctionality = 0;
-        
+
         this.healthFacilities.forEach(facility => {
             console.log(`Processing facility: ${facility.name} (type: ${facility.type}, country: ${facility.country})`);
-            
+
             // Only add facilities that are visible based on type selection
             if (!this.facilityTypeVisibility[facility.type]) {
                 console.log(`Filtered by type: ${facility.type} not visible`);
                 filteredByType++;
                 return;
             }
-            
+
             // Filter by countries if any countries are selected
             if (this.selectedHealthCountries.length > 0 && !this.selectedHealthCountries.includes(facility.country)) {
                 filteredByCountry++;
                 return;
             }
-            
 
             // Filter by functionality if a functionality level is selected
             if (!this.matchesFunctionalityFilter(facility.functionality)) {
                 filteredByFunctionality++;
                 return;
             }
-            
+
             addedCount++;
-            console.log(`Adding facility to map: ${facility.name}`);
-            
-            const color = this.getHealthFacilityColor(facility.type);
-            const icon = this.createHealthFacilityIcon(color, facility.type);
-            
-            const marker = L.marker([facility.latitude, facility.longitude], { 
+
+            // Group by country
+            const country = facility.country || 'Unknown';
+            if (!facilitiesByCountry.has(country)) {
+                facilitiesByCountry.set(country, []);
+            }
+            facilitiesByCountry.get(country).push(facility);
+        });
+
+        // Create cluster groups for each country
+        facilitiesByCountry.forEach((facilities, country) => {
+            const clusterGroup = L.markerClusterGroup({
+                iconCreateFunction: (cluster) => {
+                    const count = cluster.getChildCount();
+                    // Dynamic sizing based on facility count
+                    let size = Math.min(Math.max(40 + Math.log(count) * 8, 50), 80);
+                    let fontSize = Math.min(Math.max(12 + Math.log(count), 14), 18);
+                    let smallFontSize = Math.min(Math.max(8 + Math.log(count) * 0.5, 9), 11);
+
+                    // Color coding based on facility count
+                    let backgroundColor = '#3498db';
+                    if (count > 100) backgroundColor = '#e74c3c';
+                    else if (count > 50) backgroundColor = '#f39c12';
+                    else if (count > 20) backgroundColor = '#27ae60';
+
+                    return L.divIcon({
+                        html: `<div class="cluster-content" style="background: linear-gradient(135deg, ${backgroundColor}, ${this.darkenColor(backgroundColor, 0.8)});">
+                                <span class="cluster-count" style="font-size: ${fontSize}px">${count}</span>
+                                <small class="cluster-country" style="font-size: ${smallFontSize}px">${country}</small>
+                                <div class="cluster-label">facilities</div>
+                               </div>`,
+                        className: 'country-cluster-marker',
+                        iconSize: L.point(size, size)
+                    });
+                },
+                maxClusterRadius: 60,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: true,
+                zoomToBoundsOnClick: true,
+                animate: true
+            });
+
+            // Add individual facility markers to the cluster group
+            facilities.forEach(facility => {
+                const color = this.getHealthFacilityColor(facility.type);
+                const icon = this.createHealthFacilityIcon(color, facility.type);
+
+                const marker = L.marker([facility.latitude, facility.longitude], {
                     icon: icon,
-                    zIndexOffset: 1000 // Higher z-index to render on top
+                    zIndexOffset: 1000
                 })
-                .addTo(this.map)
                 .bindPopup(`
                     <div>
                         <h4>${facility.name}</h4>
@@ -1344,12 +1390,21 @@ class DisasterMap {
                     </div>
                 `);
 
-            marker.facilityId = facility.id;
-            marker.facilityType = facility.type;
-            this.healthFacilityMarkers.push(marker);
+                marker.facilityId = facility.id;
+                marker.facilityType = facility.type;
+                clusterGroup.addLayer(marker);
+                this.healthFacilityMarkers.push(marker);
+            });
+
+            // Add the cluster group to the map
+            this.map.addLayer(clusterGroup);
+            this.countryClusterGroups.set(country, clusterGroup);
+
+            console.log(`Created cluster for ${country} with ${facilities.length} facilities`);
         });
-        
+
         console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by functionality: ${filteredByFunctionality}`);
+        console.log(`Created ${facilitiesByCountry.size} country clusters`);
         if (this.selectedHealthCountries.length > 0) {
             console.log(`Applied country filter: [${this.selectedHealthCountries.join(', ')}]`);
         }
@@ -1468,10 +1523,30 @@ class DisasterMap {
         return colors[type] || '#374151';
     }
 
+    darkenColor(hex, factor) {
+        // Remove the # if present
+        hex = hex.replace('#', '');
+
+        // Parse r, g, b values
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+
+        // Darken by factor
+        const newR = Math.floor(r * factor);
+        const newG = Math.floor(g * factor);
+        const newB = Math.floor(b * factor);
+
+        // Convert back to hex
+        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+    }
+
     clearHealthFacilityMarkers() {
-        this.healthFacilityMarkers.forEach(marker => {
-            this.map.removeLayer(marker);
+        // Remove all cluster groups
+        this.countryClusterGroups.forEach((clusterGroup, country) => {
+            this.map.removeLayer(clusterGroup);
         });
+        this.countryClusterGroups.clear();
         this.healthFacilityMarkers = [];
     }
 
