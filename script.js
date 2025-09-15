@@ -309,6 +309,7 @@ class DisasterMap {
                 this.selectedImpactFacilityCountry = e.target.value;
                 console.log(`🔍 Impact facility country filter changed to: "${this.selectedImpactFacilityCountry}"`);
                 this.updateImpactFacilitiesList();
+                this.updateCountryStats(this.selectedImpactFacilityCountry);
             });
             console.log('✅ Impact facility country filter event listener added');
         } else {
@@ -2387,6 +2388,56 @@ class DisasterMap {
             }
         }, duration);
     }
+
+    updateCountryStats(selectedCountry) {
+        const statsBox = document.getElementById('countryStatsBox');
+        const statsCountryName = document.getElementById('statsCountryName');
+        const statsTotal = document.getElementById('statsTotal');
+        const statsBreakdown = document.getElementById('statsBreakdown');
+
+        if (!selectedCountry) {
+            statsBox.style.display = 'none';
+            return;
+        }
+
+        // Filter facilities by selected country
+        const countryFacilities = this.healthFacilities.filter(facility => {
+            return facility.country === selectedCountry;
+        });
+
+        if (countryFacilities.length === 0) {
+            statsBox.style.display = 'none';
+            return;
+        }
+
+        // Count facilities by type
+        const typeCounts = {};
+        countryFacilities.forEach(facility => {
+            const type = facility.type || 'Unknown';
+            typeCounts[type] = (typeCounts[type] || 0) + 1;
+        });
+
+        // Update the stats display
+        statsCountryName.textContent = `${selectedCountry} Health Facilities`;
+        statsTotal.textContent = countryFacilities.length;
+
+        // Clear and populate breakdown
+        statsBreakdown.innerHTML = '';
+        Object.entries(typeCounts)
+            .sort(([,a], [,b]) => b - a) // Sort by count descending
+            .forEach(([type, count]) => {
+                const item = document.createElement('div');
+                item.className = 'stats-item';
+                item.innerHTML = `
+                    <span class="stats-item-type">${type}</span>
+                    <span class="stats-item-count">${count}</span>
+                `;
+                statsBreakdown.appendChild(item);
+            });
+
+        // Show the stats box
+        statsBox.style.display = 'block';
+    }
 }
 
 // Add notification animations
@@ -2415,6 +2466,14 @@ notificationStyles.textContent = `
     }
 `;
 document.head.appendChild(notificationStyles);
+
+// Global function to hide country stats (referenced in HTML onclick)
+function hideCountryStats() {
+    const statsBox = document.getElementById('countryStatsBox');
+    if (statsBox) {
+        statsBox.style.display = 'none';
+    }
+}
 
 // Initialize the application when the page loads
 let app;
