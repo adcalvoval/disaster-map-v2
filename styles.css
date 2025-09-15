@@ -22,16 +22,20 @@ body {
     color: white;
     padding: 10px 20px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
 }
 
 .header h1 {
     font-size: 1.2rem;
+    margin: 0;
 }
 
 .sidebar-toggle {
+    position: absolute;
+    right: 20px;
     background: #3498db;
     color: white;
     border: none;
@@ -150,6 +154,15 @@ body {
     height: 100%;
     width: 100%;
     position: relative;
+}
+
+/* Move Leaflet zoom controls to bottom right */
+.leaflet-control-zoom {
+    position: absolute !important;
+    bottom: 80px !important;
+    right: 20px !important;
+    top: auto !important;
+    left: auto !important;
 }
 
 /* Fullscreen toggle button */
