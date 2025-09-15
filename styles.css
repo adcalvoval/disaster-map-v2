@@ -264,6 +264,23 @@ body.fullscreen-mode .sidebar-drawer {
     border-top-color: #1e40af !important;
 }
 
+/* ERU tooltip styling */
+.eru-tooltip {
+    background: rgba(220, 38, 38, 0.95) !important;
+    color: white !important;
+    border: 2px solid #dc2626 !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4) !important;
+    line-height: 1.4 !important;
+}
+
+.eru-tooltip strong {
+    color: #ffed4e !important;
+}
+
 /* Municipality marker styling */
 .municipality-marker {
     z-index: 1000 !important;
