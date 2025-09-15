@@ -1487,6 +1487,12 @@ class DisasterMap {
             this.initImpactFacilitiesCountryFilter(); // Initialize impact facilities filter
             this.updateImpactFacilitiesList(); // Initialize the facilities list
             this.updateLegendCounts();
+
+            // If health facilities checkbox is checked, display them now that data is loaded
+            if (this.showHealthFacilities) {
+                console.log('📍 Health facilities loaded and checkbox is checked - displaying on map');
+                this.addHealthFacilitiesToMap();
+            }
             
         } catch (error) {
             console.error('Error loading RCRC health facilities:', error);
