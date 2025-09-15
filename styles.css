@@ -225,6 +225,7 @@ body.fullscreen-mode #map {
 /* Hide controls and drawer in fullscreen mode */
 body.fullscreen-mode .health-controls,
 body.fullscreen-mode .disaster-controls,
+body.fullscreen-mode .conflict-controls,
 body.fullscreen-mode .map-controls-section,
 body.fullscreen-mode .sidebar-drawer {
     display: none !important;
@@ -631,6 +632,79 @@ body.fullscreen-mode .sidebar-drawer {
     justify-content: center;
     border: 1px solid white;
     box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Conflict Controls */
+.conflict-controls {
+    background: #34495e;
+    border: 1px solid #5a6c7d;
+    border-radius: 6px;
+    padding: 12px;
+    position: absolute;
+    bottom: 60px;
+    left: 920px;
+    width: 280px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.conflict-controls .conflict-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.conflict-controls .legend-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.conflict-controls .legend-item:hover {
+    background-color: #4a5f7a;
+}
+
+.conflict-controls .legend-item input[type="checkbox"] {
+    margin-right: 6px;
+    cursor: pointer;
+}
+
+.conflict-controls .legend-item label {
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+.conflict-controls .legend-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    margin-right: 4px;
+}
+
+/* Conflict event styling */
+.conflict-event {
+    border-left: 4px solid #dc2626;
+}
+
+.conflict-badge {
+    background: #dc2626;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
 }
 
 /* Collapsible health controls */

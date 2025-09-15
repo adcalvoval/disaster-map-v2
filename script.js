@@ -45,6 +45,17 @@ class DisasterMap {
             'Volcanic Activity': true,
             'Other': true
         };
+        this.conflictEvents = [];
+        this.conflictMarkers = [];
+        this.showConflictEvents = false;
+        this.conflictTypeVisibility = {
+            'Political violence': true,
+            'Battles': true,
+            'Protests': true,
+            'Riots': true,
+            'Explosions/Remote violence': true,
+            'Violence against civilians': true
+        };
         this.init();
     }
 
@@ -52,6 +63,7 @@ class DisasterMap {
         this.initMap();
         this.initEventListeners();
         this.loadDisasterData();
+        this.loadConflictData();
         this.loadImpactZones();
         this.loadHealthFacilities();
         this.loadCsvHealthFacilities();
@@ -123,6 +135,26 @@ class DisasterMap {
             this.loadDisasterData();
         });
 
+        // Conflict type visibility toggles
+        const conflictTypeMapping = {
+            'show-political-violence': 'Political violence',
+            'show-battles': 'Battles',
+            'show-protests': 'Protests',
+            'show-riots': 'Riots',
+            'show-explosions': 'Explosions/Remote violence',
+            'show-violence-civilians': 'Violence against civilians'
+        };
+
+        Object.entries(conflictTypeMapping).forEach(([checkboxId, conflictType]) => {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    this.conflictTypeVisibility[conflictType] = e.target.checked;
+                    this.updateConflictEventsDisplay();
+                });
+            }
+        });
+
 
         document.getElementById('alertLevel').addEventListener('change', (e) => {
             this.filterByAlertLevel(e.target.value);
@@ -141,9 +173,18 @@ class DisasterMap {
         document.getElementById('showHealthFacilities').addEventListener('change', (e) => {
             this.showHealthFacilities = e.target.checked;
             this.toggleHealthFacilities();
-            
+
             // Show/hide the health facilities controls
             const controls = document.getElementById('healthFacilitiesControls');
+            controls.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        document.getElementById('showConflictEvents').addEventListener('change', (e) => {
+            this.showConflictEvents = e.target.checked;
+            this.toggleConflictEvents();
+
+            // Show/hide the conflict events controls
+            const controls = document.getElementById('conflictEventsControls');
             controls.style.display = e.target.checked ? 'block' : 'none';
         });
 
@@ -223,6 +264,14 @@ class DisasterMap {
         if (mapControlsToggle) {
             mapControlsToggle.addEventListener('click', (e) => {
                 this.toggleMapControlsCollapse();
+            });
+        }
+
+        // Conflict controls collapse/expand toggle
+        const conflictToggle = document.getElementById('toggleConflictControls');
+        if (conflictToggle) {
+            conflictToggle.addEventListener('click', (e) => {
+                this.toggleConflictControlsCollapse();
             });
         }
 
@@ -832,6 +881,224 @@ class DisasterMap {
         
         // Update facilities list
         this.updateImpactFacilitiesList();
+    }
+
+    // Conflict Events Methods
+    async loadConflictData() {
+        try {
+            console.log('Loading conflict events from ACLED API...');
+
+            const params = new URLSearchParams({
+                limit: '1000',
+                disorder_type: 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians',
+                email: 'adrian.calvo@ifrc.org',
+                key: '-Gv3itxBQYcsw4SwB-XBoF_qHVkUv2zrUmK-JnCX3AU'
+            });
+
+            const response = await fetch(`https://acleddata.com/api/acled/read?${params}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success !== false && result.data) {
+                this.conflictEvents = result.data.map(event => ({
+                    id: event.data_date + '_' + event.event_id_cnty,
+                    title: event.event_type + ' in ' + event.location,
+                    type: event.disorder_type,
+                    subType: event.event_type,
+                    date: event.event_date,
+                    latitude: parseFloat(event.latitude),
+                    longitude: parseFloat(event.longitude),
+                    location: event.location,
+                    country: event.country,
+                    region: event.region,
+                    fatalities: parseInt(event.fatalities) || 0,
+                    source: 'ACLED',
+                    description: event.notes || '',
+                    actors: {
+                        actor1: event.actor1,
+                        actor2: event.actor2
+                    }
+                }));
+
+                console.log(`✅ Loaded ${this.conflictEvents.length} conflict events from ACLED`);
+                this.addConflictMarkersToMap();
+                this.displayConflictEvents();
+            } else {
+                throw new Error('No conflict events received from ACLED API');
+            }
+        } catch (error) {
+            console.error('❌ Error loading conflict events:', error);
+        }
+    }
+
+    addConflictMarkersToMap() {
+        if (!this.showConflictEvents) return;
+
+        this.clearConflictMarkers();
+
+        this.conflictEvents.forEach(event => {
+            if (!this.conflictTypeVisibility[event.type]) return;
+
+            const icon = this.getConflictEventIcon(event.type);
+            const marker = L.marker([event.latitude, event.longitude], { icon })
+                .bindPopup(this.createConflictEventPopup(event));
+
+            this.conflictMarkers.push(marker);
+            marker.addTo(this.map);
+        });
+    }
+
+    clearConflictMarkers() {
+        this.conflictMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.conflictMarkers = [];
+    }
+
+    getConflictEventIcon(eventType) {
+        const iconMapping = {
+            'Political violence': { color: '#dc2626', symbol: '⚔️' },
+            'Battles': { color: '#b91c1c', symbol: '💥' },
+            'Protests': { color: '#f59e0b', symbol: '✊' },
+            'Riots': { color: '#ef4444', symbol: '🔥' },
+            'Explosions/Remote violence': { color: '#7c2d12', symbol: '💣' },
+            'Violence against civilians': { color: '#991b1b', symbol: '🚨' }
+        };
+
+        const config = iconMapping[eventType] || { color: '#6b7280', symbol: '❗' };
+
+        return L.divIcon({
+            html: `
+                <div style="
+                    background: ${config.color};
+                    color: white;
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    font-weight: bold;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                ">${config.symbol}</div>
+            `,
+            className: 'conflict-marker',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+    }
+
+    createConflictEventPopup(event) {
+        return `
+            <div class="popup-content" style="min-width: 280px;">
+                <h4 style="color: #dc2626; margin-bottom: 8px;">${event.title}</h4>
+                <div><strong>Type:</strong> ${event.subType}</div>
+                <div><strong>Date:</strong> ${event.date}</div>
+                <div><strong>Location:</strong> ${event.location}, ${event.country}</div>
+                <div><strong>Fatalities:</strong> ${event.fatalities}</div>
+                ${event.actors.actor1 ? `<div><strong>Actor 1:</strong> ${event.actors.actor1}</div>` : ''}
+                ${event.actors.actor2 ? `<div><strong>Actor 2:</strong> ${event.actors.actor2}</div>` : ''}
+                ${event.description ? `<div style="margin-top: 8px;"><strong>Notes:</strong> ${event.description}</div>` : ''}
+                <div style="margin-top: 8px; font-size: 0.8em; color: #666;">Source: ACLED</div>
+            </div>
+        `;
+    }
+
+    displayConflictEvents() {
+        const conflictList = document.getElementById('conflictList');
+        if (!conflictList || this.conflictEvents.length === 0) return;
+
+        const sortedEvents = this.conflictEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const eventsHTML = sortedEvents.map(event => `
+            <div class="event-item conflict-event" onclick="app.focusOnConflictEvent('${event.id}')">
+                <div class="event-title">${event.title}</div>
+                <div class="event-details">
+                    Type: ${event.subType}<br>
+                    Date: ${event.date}<br>
+                    Location: ${event.location}, ${event.country}<br>
+                    Fatalities: ${event.fatalities}
+                </div>
+                <span class="conflict-badge">${event.type}</span>
+            </div>
+        `).join('');
+
+        conflictList.innerHTML = eventsHTML;
+    }
+
+    focusOnConflictEvent(eventId) {
+        const event = this.conflictEvents.find(e => e.id === eventId);
+        if (event) {
+            this.map.setView([event.latitude, event.longitude], 10);
+
+            // Find and open the marker popup
+            const marker = this.conflictMarkers.find(m => {
+                const latlng = m.getLatLng();
+                return Math.abs(latlng.lat - event.latitude) < 0.001 &&
+                       Math.abs(latlng.lng - event.longitude) < 0.001;
+            });
+
+            if (marker) {
+                marker.openPopup();
+            }
+        }
+    }
+
+    toggleConflictEvents() {
+        if (this.showConflictEvents) {
+            this.addConflictMarkersToMap();
+        } else {
+            this.clearConflictMarkers();
+        }
+    }
+
+    updateConflictEventsDisplay() {
+        // Filter events based on conflict type visibility
+        const filteredEvents = this.conflictEvents.filter(event => {
+            return this.conflictTypeVisibility[event.type] !== false;
+        });
+
+        // Update markers on map
+        this.clearConflictMarkers();
+        if (this.showConflictEvents) {
+            filteredEvents.forEach(event => {
+                if (this.conflictTypeVisibility[event.type]) {
+                    const icon = this.getConflictEventIcon(event.type);
+                    const marker = L.marker([event.latitude, event.longitude], { icon })
+                        .bindPopup(this.createConflictEventPopup(event));
+
+                    this.conflictMarkers.push(marker);
+                    marker.addTo(this.map);
+                }
+            });
+        }
+
+        // Update sidebar list if it exists
+        const conflictList = document.getElementById('conflictList');
+        if (conflictList) {
+            const sortedEvents = filteredEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const eventsHTML = sortedEvents.map(event => `
+                <div class="event-item conflict-event" onclick="app.focusOnConflictEvent('${event.id}')">
+                    <div class="event-title">${event.title}</div>
+                    <div class="event-details">
+                        Type: ${event.subType}<br>
+                        Date: ${event.date}<br>
+                        Location: ${event.location}, ${event.country}<br>
+                        Fatalities: ${event.fatalities}
+                    </div>
+                    <span class="conflict-badge">${event.type}</span>
+                </div>
+            `).join('');
+
+            conflictList.innerHTML = eventsHTML || '<div class="no-events">No conflict events match current filters.</div>';
+        }
     }
 
     // Impact Zones Methods
@@ -2025,6 +2292,23 @@ class DisasterMap {
             content.classList.add('collapsed');
             toggleBtn.textContent = '+';
             toggleBtn.title = 'Expand Map Controls';
+        }
+    }
+
+    toggleConflictControlsCollapse() {
+        const content = document.getElementById('conflictControlsContent');
+        const toggleBtn = document.getElementById('toggleConflictControls');
+
+        if (content.classList.contains('collapsed')) {
+            // Expand
+            content.classList.remove('collapsed');
+            toggleBtn.textContent = '−';
+            toggleBtn.title = 'Collapse Conflict Events';
+        } else {
+            // Collapse
+            content.classList.add('collapsed');
+            toggleBtn.textContent = '+';
+            toggleBtn.title = 'Expand Conflict Events';
         }
     }
 
