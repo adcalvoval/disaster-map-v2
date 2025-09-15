@@ -1569,11 +1569,20 @@ class DisasterMap {
                         iconSize: L.point(size, size)
                     });
                 },
-                maxClusterRadius: 60,
+                maxClusterRadius: (zoom) => {
+                    // Very aggressive clustering at low zoom levels to ensure one marker per region
+                    if (zoom <= 2) return 2000;  // At default zoom (2), very large radius
+                    if (zoom <= 3) return 1000;  // Still very large
+                    if (zoom <= 4) return 500;   // Large radius
+                    if (zoom <= 5) return 200;   // Medium radius
+                    if (zoom <= 6) return 100;   // Smaller radius
+                    return 60;                   // Default radius for higher zoom levels
+                },
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: true,
                 zoomToBoundsOnClick: true,
-                animate: true
+                animate: true,
+                disableClusteringAtZoom: 12  // Disable clustering completely at zoom 12+
             });
 
             // Add individual facility markers to the cluster group
@@ -1842,7 +1851,9 @@ class DisasterMap {
         countrySelect.onchange = null;
         
         countrySelect.addEventListener('change', (e) => {
-            this.selectedHealthCountries = Array.from(e.target.selectedOptions).map(option => option.value);
+            this.selectedHealthCountries = Array.from(e.target.selectedOptions)
+                .map(option => option.value)
+                .filter(value => value !== ''); // Remove empty values (All Countries)
             console.log(`Selected countries: [${this.selectedHealthCountries.join(', ')}]`);
             console.log(`Total health facilities: ${this.healthFacilities.length}`);
             
