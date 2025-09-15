@@ -62,11 +62,20 @@ body {
     font-weight: 500;
 }
 
-.controls {
-    display: flex;
-    flex-direction: row;
-    gap: 15px;
-    align-items: center;
+/* Map Controls Section */
+.map-controls-section {
+    background: #34495e;
+    border: 1px solid #5a6c7d;
+    border-radius: 6px;
+    padding: 12px;
+    position: absolute;
+    top: 70px;
+    left: 20px;
+    width: 600px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .date-controls {
@@ -83,6 +92,7 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .date-label {
@@ -195,6 +205,7 @@ body.fullscreen-mode #map {
 /* Hide controls and drawer in fullscreen mode */
 body.fullscreen-mode .health-controls,
 body.fullscreen-mode .disaster-controls,
+body.fullscreen-mode .map-controls-section,
 body.fullscreen-mode .sidebar-drawer {
     display: none !important;
 }

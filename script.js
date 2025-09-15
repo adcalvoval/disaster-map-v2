@@ -218,6 +218,14 @@ class DisasterMap {
             });
         }
 
+        // Map controls collapse/expand toggle
+        const mapControlsToggle = document.getElementById('toggleMapControls');
+        if (mapControlsToggle) {
+            mapControlsToggle.addEventListener('click', (e) => {
+                this.toggleMapControlsCollapse();
+            });
+        }
+
 
         // Health facilities country filter (multi-select)
         const healthCountryFilter = document.getElementById('healthCountryFilter');
@@ -2000,6 +2008,23 @@ class DisasterMap {
             content.classList.add('collapsed');
             toggleBtn.textContent = '+';
             toggleBtn.title = 'Expand Disaster Events';
+        }
+    }
+
+    toggleMapControlsCollapse() {
+        const content = document.getElementById('mapControlsContent');
+        const toggleBtn = document.getElementById('toggleMapControls');
+
+        if (content.classList.contains('collapsed')) {
+            // Expand
+            content.classList.remove('collapsed');
+            toggleBtn.textContent = '−';
+            toggleBtn.title = 'Collapse Map Controls';
+        } else {
+            // Collapse
+            content.classList.add('collapsed');
+            toggleBtn.textContent = '+';
+            toggleBtn.title = 'Expand Map Controls';
         }
     }
 

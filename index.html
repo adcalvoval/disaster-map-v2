@@ -10,12 +10,22 @@
 </head>
 <body>
     <div class="header">
-        <h1>Health Capacity Assessment and Emergency Response Planning Tool</h1>
+        <h1>IFRC Health Emergency Response Tool</h1>
         <button id="toggleSidebar" class="sidebar-toggle" title="Toggle Events & Facilities Panel">
             <span class="toggle-icon">📊</span>
             <span class="toggle-text">Events & Facilities</span>
         </button>
-        <div class="controls">
+    </div>
+
+    <!-- Map Controls Section -->
+    <div id="mapControlsSection" class="map-controls-section">
+        <div class="controls-header">
+            <div class="header-with-toggle">
+                <h4>Map Controls</h4>
+                <button id="toggleMapControls" class="toggle-btn" title="Collapse/Expand Map Controls">+</button>
+            </div>
+        </div>
+        <div id="mapControlsContent" class="collapsible-content collapsed">
             <div class="filter-controls">
                 <select id="alertLevel">
                     <option value="">All Alert Levels</option>
