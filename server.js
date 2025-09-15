@@ -925,6 +925,21 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Emergency Response Units endpoint
+app.get('/api/emergency-response-units', async (req, res) => {
+    try {
+        const emergencyResponseHandler = require('./api/emergency-response-units');
+        await emergencyResponseHandler(req, res);
+    } catch (error) {
+        console.error('Error loading ERU handler:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load ERU handler: ' + error.message,
+            erus: []
+        });
+    }
+});
+
 // Health facilities endpoint
 app.get('/api/health-facilities', async (req, res) => {
     try {
