@@ -283,6 +283,85 @@ class DisasterMap {
         return regionMap[country] || 'Other';
     }
 
+    getCountryCoordinates(country) {
+        const countryCoords = {
+            // Major countries with approximate center coordinates and zoom levels
+            'Afghanistan': { lat: 33.0, lng: 65.0, zoom: 6 },
+            'Algeria': { lat: 28.0, lng: 3.0, zoom: 5 },
+            'Angola': { lat: -12.5, lng: 18.5, zoom: 6 },
+            'Argentina': { lat: -38.4, lng: -63.6, zoom: 5 },
+            'Australia': { lat: -25.3, lng: 133.8, zoom: 5 },
+            'Austria': { lat: 47.5, lng: 14.6, zoom: 7 },
+            'Bangladesh': { lat: 23.7, lng: 90.4, zoom: 7 },
+            'Belgium': { lat: 50.5, lng: 4.5, zoom: 8 },
+            'Bolivia': { lat: -16.3, lng: -63.6, zoom: 6 },
+            'Brazil': { lat: -14.2, lng: -51.9, zoom: 5 },
+            'Canada': { lat: 56.1, lng: -106.3, zoom: 4 },
+            'Chad': { lat: 15.5, lng: 19.0, zoom: 6 },
+            'Chile': { lat: -35.7, lng: -71.5, zoom: 5 },
+            'China': { lat: 35.9, lng: 104.2, zoom: 4 },
+            'Colombia': { lat: 4.6, lng: -74.1, zoom: 6 },
+            'Czech Republic': { lat: 49.8, lng: 15.5, zoom: 7 },
+            'Democratic Republic of Congo': { lat: -4.0, lng: 21.8, zoom: 5 },
+            'Ecuador': { lat: -1.8, lng: -78.2, zoom: 7 },
+            'Egypt': { lat: 26.8, lng: 30.8, zoom: 6 },
+            'Ethiopia': { lat: 9.1, lng: 40.5, zoom: 6 },
+            'Finland': { lat: 61.9, lng: 25.7, zoom: 6 },
+            'France': { lat: 46.6, lng: 2.2, zoom: 6 },
+            'Germany': { lat: 51.2, lng: 10.4, zoom: 6 },
+            'Ghana': { lat: 7.9, lng: -1.0, zoom: 7 },
+            'Greece': { lat: 39.1, lng: 21.8, zoom: 7 },
+            'Guatemala': { lat: 15.8, lng: -90.2, zoom: 7 },
+            'Haiti': { lat: 18.9, lng: -72.3, zoom: 8 },
+            'Honduras': { lat: 15.2, lng: -86.2, zoom: 7 },
+            'India': { lat: 20.6, lng: 78.9, zoom: 5 },
+            'Indonesia': { lat: -0.8, lng: 113.9, zoom: 5 },
+            'Iran, Islamic Republic of': { lat: 32.4, lng: 53.7, zoom: 6 },
+            'Iraq': { lat: 33.2, lng: 43.7, zoom: 6 },
+            'Italy': { lat: 41.9, lng: 12.6, zoom: 6 },
+            'Japan': { lat: 36.2, lng: 138.3, zoom: 6 },
+            'Jordan': { lat: 30.6, lng: 36.2, zoom: 7 },
+            'Kenya': { lat: -0.0, lng: 37.9, zoom: 6 },
+            'Libya': { lat: 26.3, lng: 17.2, zoom: 6 },
+            'Madagascar': { lat: -18.8, lng: 47.0, zoom: 6 },
+            'Mali': { lat: 17.6, lng: -4.0, zoom: 6 },
+            'Mexico': { lat: 23.6, lng: -102.6, zoom: 5 },
+            'Morocco': { lat: 31.8, lng: -7.1, zoom: 6 },
+            'Myanmar': { lat: 21.9, lng: 95.9, zoom: 6 },
+            'Nepal': { lat: 28.4, lng: 84.1, zoom: 7 },
+            'Niger': { lat: 17.6, lng: 8.1, zoom: 6 },
+            'Nigeria': { lat: 9.1, lng: 8.7, zoom: 6 },
+            'Norway': { lat: 60.5, lng: 8.5, zoom: 5 },
+            'Pakistan': { lat: 30.4, lng: 69.3, zoom: 6 },
+            'Palestine': { lat: 31.9, lng: 35.2, zoom: 8 },
+            'Paraguay': { lat: -23.4, lng: -58.4, zoom: 6 },
+            'Peru': { lat: -9.2, lng: -75.0, zoom: 6 },
+            'Philippines': { lat: 12.9, lng: 121.8, zoom: 6 },
+            'Poland': { lat: 51.9, lng: 19.1, zoom: 6 },
+            'Portugal': { lat: 39.4, lng: -8.2, zoom: 7 },
+            'Romania': { lat: 45.9, lng: 24.9, zoom: 6 },
+            'Russian Federation': { lat: 61.5, lng: 105.3, zoom: 3 },
+            'Rwanda': { lat: -1.9, lng: 29.9, zoom: 8 },
+            'Saudi Arabia': { lat: 23.9, lng: 45.1, zoom: 6 },
+            'Somalia': { lat: 5.2, lng: 46.2, zoom: 6 },
+            'South Africa': { lat: -30.6, lng: 22.9, zoom: 6 },
+            'South Sudan': { lat: 6.9, lng: 31.3, zoom: 6 },
+            'Spain': { lat: 40.5, lng: -3.7, zoom: 6 },
+            'Sudan': { lat: 12.9, lng: 30.4, zoom: 6 },
+            'Sweden': { lat: 60.1, lng: 18.6, zoom: 5 },
+            'Turkey': { lat: 38.9, lng: 35.2, zoom: 6 },
+            'Uganda': { lat: 1.4, lng: 32.3, zoom: 7 },
+            'Ukraine': { lat: 48.4, lng: 31.2, zoom: 6 },
+            'United Kingdom': { lat: 55.4, lng: -3.4, zoom: 6 },
+            'United States': { lat: 39.8, lng: -98.6, zoom: 4 },
+            'Venezuela': { lat: 6.4, lng: -66.6, zoom: 6 },
+            'Yemen': { lat: 15.6, lng: 48.5, zoom: 7 },
+            'Zimbabwe': { lat: -19.0, lng: 29.2, zoom: 7 }
+        };
+
+        return countryCoords[country] || null;
+    }
+
     initMap() {
         this.map = L.map('map').setView([20, 0], 2);
         
@@ -1870,6 +1949,22 @@ class DisasterMap {
             const sampleCountries = this.healthFacilities.slice(0, 10).map(f => f.country);
             console.log(`Sample countries:`, sampleCountries);
             
+            // Zoom to country if a single country is selected
+            if (this.selectedHealthCountries.length === 1) {
+                const selectedCountry = this.selectedHealthCountries[0];
+                const coords = this.getCountryCoordinates(selectedCountry);
+                if (coords) {
+                    console.log(`🗺️ Zooming to ${selectedCountry} at [${coords.lat}, ${coords.lng}], zoom: ${coords.zoom}`);
+                    this.map.setView([coords.lat, coords.lng], coords.zoom);
+                } else {
+                    console.log(`⚠️ No coordinates found for country: ${selectedCountry}`);
+                }
+            } else if (this.selectedHealthCountries.length === 0) {
+                // Reset to global view when "All Countries" is selected
+                console.log('🌍 Resetting to global view');
+                this.map.setView([20, 0], 2);
+            }
+
             this.updateHealthFacilitiesDisplay();
             this.updateLegendCounts(); // Update counts after filtering
             const countryDisplay = this.selectedHealthCountries.length > 0 ? `[${this.selectedHealthCountries.join(', ')}]` : 'All Countries';
