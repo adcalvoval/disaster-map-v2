@@ -1939,10 +1939,13 @@ class DisasterMap {
                 existingCoordinates.set(coordKey, existingMarkersAtCoord + 1);
 
                 if (existingMarkersAtCoord > 0) {
-                    const offsetDistance = 0.001;
-                    const angle = (existingMarkersAtCoord * 60) * (Math.PI / 180);
+                    // Create circular pattern with increasing distance for better visibility
+                    const baseDistance = 0.003;
+                    const offsetDistance = baseDistance * (1 + existingMarkersAtCoord * 0.3); // Increase distance for outer markers
+                    const angle = (existingMarkersAtCoord * 72) * (Math.PI / 180); // 72° = 360°/5 for better spacing
                     lat += Math.sin(angle) * offsetDistance;
                     lng += Math.cos(angle) * offsetDistance;
+                    console.log(`📍 Offsetting ERU ${eru.id} by ${offsetDistance.toFixed(4)} degrees at angle ${existingMarkersAtCoord * 72}°`);
                 }
 
                 // Create red cross icon
