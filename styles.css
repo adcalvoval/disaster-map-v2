@@ -1231,6 +1231,17 @@ body.fullscreen-mode .sidebar-drawer {
     background: #e9ecef;
 }
 
+.stats-item.clickable {
+    cursor: pointer;
+}
+
+.stats-item.clickable:hover {
+    background: #d4edda;
+    border-left-color: #28a745;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
 .stats-item-type {
     font-weight: 500;
     color: #2c3e50;
@@ -1245,8 +1256,8 @@ body.fullscreen-mode .sidebar-drawer {
     font-size: 0.9rem;
 }
 
-/* Country Cluster Markers */
-.country-cluster-marker {
+/* Region Cluster Markers */
+.region-cluster-marker {
     background: linear-gradient(135deg, #3498db, #2980b9);
     border: 3px solid white;
     border-radius: 50%;
@@ -1262,12 +1273,12 @@ body.fullscreen-mode .sidebar-drawer {
     cursor: pointer;
 }
 
-.country-cluster-marker:hover {
+.region-cluster-marker:hover {
     transform: scale(1.1);
     box-shadow: 0 5px 20px rgba(0,0,0,0.4);
 }
 
-.country-cluster-marker .cluster-content {
+.region-cluster-marker .cluster-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1277,14 +1288,14 @@ body.fullscreen-mode .sidebar-drawer {
     padding: 2px;
 }
 
-.country-cluster-marker .cluster-count {
+.region-cluster-marker .cluster-count {
     font-weight: bold;
     line-height: 1;
     margin-bottom: 1px;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
-.country-cluster-marker .cluster-country {
+.region-cluster-marker .cluster-country {
     font-weight: normal;
     line-height: 1;
     max-width: 90%;
@@ -1295,7 +1306,7 @@ body.fullscreen-mode .sidebar-drawer {
     margin-bottom: 1px;
 }
 
-.country-cluster-marker .cluster-label {
+.region-cluster-marker .cluster-label {
     font-size: 8px;
     font-weight: normal;
     line-height: 1;

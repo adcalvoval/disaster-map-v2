@@ -13,7 +13,7 @@ class DisasterMap {
         this.healthFacilityMarkers = [];
         this.healthFacilities = [];
         this.showHealthFacilities = false;
-        this.countryClusterGroups = new Map(); // Map to store cluster groups by country
+        this.regionClusterGroups = new Map(); // Map to store cluster groups by region
         this.csvHealthFacilityMarkers = [];
         this.csvHealthFacilities = [];
         this.shapefileHealthFacilities = [];
@@ -74,6 +74,213 @@ class DisasterMap {
         
         // Create fallback satellite date caption
         this.createSatelliteDateCaption('ArcGIS World Imagery');
+    }
+
+    getRegionForCountry(country) {
+        const regionMap = {
+            // North America
+            'United States': 'North America',
+            'Canada': 'North America',
+            'Mexico': 'North America',
+
+            // Central America
+            'Guatemala': 'Central America',
+            'Belize': 'Central America',
+            'Honduras': 'Central America',
+            'El Salvador': 'Central America',
+            'Nicaragua': 'Central America',
+            'Costa Rica': 'Central America',
+            'Panama': 'Central America',
+
+            // South America
+            'Brazil': 'South America',
+            'Argentina': 'South America',
+            'Chile': 'South America',
+            'Peru': 'South America',
+            'Colombia': 'South America',
+            'Venezuela': 'South America',
+            'Ecuador': 'South America',
+            'Bolivia': 'South America',
+            'Paraguay': 'South America',
+            'Uruguay': 'South America',
+            'Guyana': 'South America',
+            'Suriname': 'South America',
+            'French Guiana': 'South America',
+
+            // Africa
+            'Nigeria': 'Africa',
+            'South Africa': 'Africa',
+            'Kenya': 'Africa',
+            'Egypt': 'Africa',
+            'Morocco': 'Africa',
+            'Algeria': 'Africa',
+            'Tunisia': 'Africa',
+            'Libya': 'Africa',
+            'Sudan': 'Africa',
+            'South Sudan': 'Africa',
+            'Ethiopia': 'Africa',
+            'Somalia': 'Africa',
+            'Uganda': 'Africa',
+            'Tanzania': 'Africa',
+            'Rwanda': 'Africa',
+            'Burundi': 'Africa',
+            'Democratic Republic of the Congo': 'Africa',
+            'Republic of the Congo': 'Africa',
+            'Central African Republic': 'Africa',
+            'Chad': 'Africa',
+            'Niger': 'Africa',
+            'Mali': 'Africa',
+            'Burkina Faso': 'Africa',
+            'Ghana': 'Africa',
+            'Ivory Coast': 'Africa',
+            'Liberia': 'Africa',
+            'Sierra Leone': 'Africa',
+            'Guinea': 'Africa',
+            'Senegal': 'Africa',
+            'Mauritania': 'Africa',
+            'Gambia': 'Africa',
+            'Guinea-Bissau': 'Africa',
+            'Cape Verde': 'Africa',
+            'Cameroon': 'Africa',
+            'Equatorial Guinea': 'Africa',
+            'Gabon': 'Africa',
+            'São Tomé and Príncipe': 'Africa',
+            'Angola': 'Africa',
+            'Zambia': 'Africa',
+            'Zimbabwe': 'Africa',
+            'Botswana': 'Africa',
+            'Namibia': 'Africa',
+            'Lesotho': 'Africa',
+            'Eswatini': 'Africa',
+            'Madagascar': 'Africa',
+            'Mauritius': 'Africa',
+            'Seychelles': 'Africa',
+            'Comoros': 'Africa',
+            'Djibouti': 'Africa',
+            'Eritrea': 'Africa',
+            'Mozambique': 'Africa',
+            'Malawi': 'Africa',
+
+            // Middle East
+            'Saudi Arabia': 'Middle East',
+            'Iran': 'Middle East',
+            'Iraq': 'Middle East',
+            'Israel': 'Middle East',
+            'Palestine': 'Middle East',
+            'Jordan': 'Middle East',
+            'Lebanon': 'Middle East',
+            'Syria': 'Middle East',
+            'Turkey': 'Middle East',
+            'United Arab Emirates': 'Middle East',
+            'Kuwait': 'Middle East',
+            'Qatar': 'Middle East',
+            'Bahrain': 'Middle East',
+            'Oman': 'Middle East',
+            'Yemen': 'Middle East',
+            'Cyprus': 'Middle East',
+
+            // Europe
+            'Germany': 'Europe',
+            'France': 'Europe',
+            'Italy': 'Europe',
+            'Spain': 'Europe',
+            'Poland': 'Europe',
+            'Romania': 'Europe',
+            'Netherlands': 'Europe',
+            'Belgium': 'Europe',
+            'Greece': 'Europe',
+            'Portugal': 'Europe',
+            'Czech Republic': 'Europe',
+            'Hungary': 'Europe',
+            'Sweden': 'Europe',
+            'Austria': 'Europe',
+            'Belarus': 'Europe',
+            'Switzerland': 'Europe',
+            'Bulgaria': 'Europe',
+            'Serbia': 'Europe',
+            'Denmark': 'Europe',
+            'Finland': 'Europe',
+            'Slovakia': 'Europe',
+            'Norway': 'Europe',
+            'Ireland': 'Europe',
+            'Croatia': 'Europe',
+            'Bosnia and Herzegovina': 'Europe',
+            'Albania': 'Europe',
+            'Lithuania': 'Europe',
+            'Slovenia': 'Europe',
+            'Latvia': 'Europe',
+            'Estonia': 'Europe',
+            'Moldova': 'Europe',
+            'Macedonia': 'Europe',
+            'North Macedonia': 'Europe',
+            'Luxembourg': 'Europe',
+            'Malta': 'Europe',
+            'Iceland': 'Europe',
+            'Monaco': 'Europe',
+            'Liechtenstein': 'Europe',
+            'San Marino': 'Europe',
+            'Vatican': 'Europe',
+            'Montenegro': 'Europe',
+            'Kosovo': 'Europe',
+            'United Kingdom': 'Europe',
+            'Ukraine': 'Europe',
+            'Russia': 'Europe',
+
+            // Central Asia
+            'Kazakhstan': 'Central Asia',
+            'Uzbekistan': 'Central Asia',
+            'Turkmenistan': 'Central Asia',
+            'Tajikistan': 'Central Asia',
+            'Kyrgyzstan': 'Central Asia',
+            'Afghanistan': 'Central Asia',
+            'Mongolia': 'Central Asia',
+
+            // Asia
+            'China': 'Asia',
+            'India': 'Asia',
+            'Indonesia': 'Asia',
+            'Pakistan': 'Asia',
+            'Bangladesh': 'Asia',
+            'Japan': 'Asia',
+            'Philippines': 'Asia',
+            'Vietnam': 'Asia',
+            'Turkey': 'Asia', // Could be Middle East or Asia - keeping Middle East above
+            'Thailand': 'Asia',
+            'Myanmar': 'Asia',
+            'South Korea': 'Asia',
+            'Malaysia': 'Asia',
+            'Nepal': 'Asia',
+            'Sri Lanka': 'Asia',
+            'Cambodia': 'Asia',
+            'Jordan': 'Asia', // Could be Middle East - keeping Middle East above
+            'Laos': 'Asia',
+            'Singapore': 'Asia',
+            'Oman': 'Asia', // Could be Middle East - keeping Middle East above
+            'Lebanon': 'Asia', // Could be Middle East - keeping Middle East above
+            'Bhutan': 'Asia',
+            'Brunei': 'Asia',
+            'Maldives': 'Asia',
+            'North Korea': 'Asia',
+            'East Timor': 'Asia',
+
+            // Oceania
+            'Australia': 'Oceania',
+            'Papua New Guinea': 'Oceania',
+            'New Zealand': 'Oceania',
+            'Fiji': 'Oceania',
+            'Solomon Islands': 'Oceania',
+            'Vanuatu': 'Oceania',
+            'Samoa': 'Oceania',
+            'Micronesia': 'Oceania',
+            'Tonga': 'Oceania',
+            'Kiribati': 'Oceania',
+            'Palau': 'Oceania',
+            'Marshall Islands': 'Oceania',
+            'Tuvalu': 'Oceania',
+            'Nauru': 'Oceania'
+        };
+
+        return regionMap[country] || 'Other';
     }
 
     initMap() {
@@ -306,7 +513,7 @@ class DisasterMap {
                 this.selectedImpactFacilityCountry = e.target.value;
                 console.log(`🔍 Impact facility country filter changed to: "${this.selectedImpactFacilityCountry}"`);
                 this.updateImpactFacilitiesList();
-                this.updateCountryStats(this.selectedImpactFacilityCountry);
+                this.updateCountryStats(this.selectedImpactFacilityCountry || null);
             });
             console.log('✅ Impact facility country filter event listener added');
         } else {
@@ -1296,8 +1503,8 @@ class DisasterMap {
         // Clear existing cluster groups
         this.clearHealthFacilityMarkers();
 
-        // Group facilities by country
-        const facilitiesByCountry = new Map();
+        // Group facilities by region
+        const facilitiesByRegion = new Map();
         let addedCount = 0;
         let filteredByType = 0;
         let filteredByCountry = 0;
@@ -1327,16 +1534,17 @@ class DisasterMap {
 
             addedCount++;
 
-            // Group by country
+            // Group by region
             const country = facility.country || 'Unknown';
-            if (!facilitiesByCountry.has(country)) {
-                facilitiesByCountry.set(country, []);
+            const region = this.getRegionForCountry(country);
+            if (!facilitiesByRegion.has(region)) {
+                facilitiesByRegion.set(region, []);
             }
-            facilitiesByCountry.get(country).push(facility);
+            facilitiesByRegion.get(region).push(facility);
         });
 
-        // Create cluster groups for each country
-        facilitiesByCountry.forEach((facilities, country) => {
+        // Create cluster groups for each region
+        facilitiesByRegion.forEach((facilities, region) => {
             const clusterGroup = L.markerClusterGroup({
                 iconCreateFunction: (cluster) => {
                     const count = cluster.getChildCount();
@@ -1354,10 +1562,10 @@ class DisasterMap {
                     return L.divIcon({
                         html: `<div class="cluster-content" style="background: linear-gradient(135deg, ${backgroundColor}, ${this.darkenColor(backgroundColor, 0.8)});">
                                 <span class="cluster-count" style="font-size: ${fontSize}px">${count}</span>
-                                <small class="cluster-country" style="font-size: ${smallFontSize}px">${country}</small>
+                                <small class="cluster-country" style="font-size: ${smallFontSize}px">${region}</small>
                                 <div class="cluster-label">facilities</div>
                                </div>`,
-                        className: 'country-cluster-marker',
+                        className: 'region-cluster-marker',
                         iconSize: L.point(size, size)
                     });
                 },
@@ -1398,13 +1606,13 @@ class DisasterMap {
 
             // Add the cluster group to the map
             this.map.addLayer(clusterGroup);
-            this.countryClusterGroups.set(country, clusterGroup);
+            this.regionClusterGroups.set(region, clusterGroup);
 
-            console.log(`Created cluster for ${country} with ${facilities.length} facilities`);
+            console.log(`Created cluster for ${region} with ${facilities.length} facilities`);
         });
 
         console.log(`Health facilities added: ${addedCount}, filtered by type: ${filteredByType}, filtered by country: ${filteredByCountry}, filtered by functionality: ${filteredByFunctionality}`);
-        console.log(`Created ${facilitiesByCountry.size} country clusters`);
+        console.log(`Created ${facilitiesByRegion.size} region clusters`);
         if (this.selectedHealthCountries.length > 0) {
             console.log(`Applied country filter: [${this.selectedHealthCountries.join(', ')}]`);
         }
@@ -1543,10 +1751,10 @@ class DisasterMap {
 
     clearHealthFacilityMarkers() {
         // Remove all cluster groups
-        this.countryClusterGroups.forEach((clusterGroup, country) => {
+        this.regionClusterGroups.forEach((clusterGroup, region) => {
             this.map.removeLayer(clusterGroup);
         });
-        this.countryClusterGroups.clear();
+        this.regionClusterGroups.clear();
         this.healthFacilityMarkers = [];
     }
 
@@ -2505,16 +2713,86 @@ class DisasterMap {
             .sort(([,a], [,b]) => b - a) // Sort by count descending
             .forEach(([type, count]) => {
                 const item = document.createElement('div');
-                item.className = 'stats-item';
+                item.className = 'stats-item clickable';
                 item.innerHTML = `
                     <span class="stats-item-type">${type}</span>
                     <span class="stats-item-count">${count}</span>
                 `;
+
+                // Add click handler to filter by this facility type and country
+                item.addEventListener('click', () => {
+                    this.filterByCountryAndType(selectedCountry, type);
+                });
+
                 statsBreakdown.appendChild(item);
             });
 
         // Show the stats box
         statsBox.style.display = 'block';
+    }
+
+    filterByCountryAndType(country, facilityType) {
+        // Set all facility types to hidden first
+        Object.keys(this.facilityTypeVisibility).forEach(type => {
+            this.facilityTypeVisibility[type] = false;
+        });
+
+        // Enable only the selected facility type
+        this.facilityTypeVisibility[facilityType] = true;
+
+        // Set the country filter to only the selected country
+        this.selectedHealthCountries = [country];
+
+        // Update the health country filter dropdown to reflect the selection
+        const healthCountryFilter = document.getElementById('healthCountryFilter');
+        if (healthCountryFilter) {
+            // Clear all selections first
+            Array.from(healthCountryFilter.options).forEach(option => {
+                option.selected = false;
+            });
+            // Select only the target country
+            Array.from(healthCountryFilter.options).forEach(option => {
+                if (option.value === country) {
+                    option.selected = true;
+                }
+            });
+        }
+
+        // Update the facility type checkboxes to reflect the selection
+        const typeMapping = {
+            'Primary Health Care Centres': 'show-primary-health',
+            'Ambulance Stations': 'show-ambulance',
+            'Blood Centres': 'show-blood',
+            'Hospitals': 'show-hospitals',
+            'Pharmacies': 'show-pharmacies',
+            'Training Facilities': 'show-training',
+            'Specialized Services': 'show-specialized',
+            'Residential Facilities': 'show-residential',
+            'Other': 'show-other'
+        };
+
+        // Uncheck all facility type checkboxes first
+        Object.values(typeMapping).forEach(checkboxId => {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        });
+
+        // Check only the selected facility type
+        const selectedCheckboxId = typeMapping[facilityType];
+        if (selectedCheckboxId) {
+            const checkbox = document.getElementById(selectedCheckboxId);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        }
+
+        // Update the display
+        this.updateHealthFacilitiesDisplay();
+        this.updateLegendCounts();
+
+        console.log(`Filtered to show only ${facilityType} in ${country}`);
     }
 }
 
