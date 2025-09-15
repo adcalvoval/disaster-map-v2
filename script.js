@@ -1443,10 +1443,10 @@ class DisasterMap {
             
             let allFacilities = [];
             let offset = 0;
-            const limit = 1000;
+            const limit = 10000; // Increased to fetch all facilities in fewer requests
             let hasMore = true;
-            
-            while (hasMore && allFacilities.length < 5000) { // Cap at 5000 to avoid memory issues
+
+            while (hasMore && allFacilities.length < 15000) { // Cap at 15000 to get all facilities
                 console.log(`Fetching batch ${Math.floor(offset / limit) + 1} (offset: ${offset})`);
                 const response = await fetch(`/api/health-facilities?limit=${limit}&offset=${offset}`);
                 
@@ -1519,6 +1519,19 @@ class DisasterMap {
                     lat: facility.latitude,
                     lng: facility.longitude,
                     coordinates: `${facility.latitude},${facility.longitude}`
+                });
+            }
+
+            // Debug German facilities specifically
+            if (facility.country === 'Germany') {
+                console.log(`Germany facility details:`, {
+                    id: facility.id,
+                    name: facility.name,
+                    type: facility.type,
+                    lat: facility.latitude,
+                    lng: facility.longitude,
+                    coordinates: `${facility.latitude},${facility.longitude}`,
+                    api_source: facility.api_source
                 });
             }
 

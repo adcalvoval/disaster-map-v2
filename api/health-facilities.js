@@ -21,8 +21,11 @@ module.exports = async (req, res) => {
         const { limit = 1000, offset = 0, country = '', functionality = '' } = req.query;
 
         // Try to fetch from IFRC API first
+        console.log(`IFRC API Token configured: ${IFRC_GO_API_TOKEN ? 'YES' : 'NO'}`);
+        console.log(`IFRC API Base URL: ${IFRC_GO_API_BASE_URL}`);
+
         if (IFRC_GO_API_TOKEN) {
-            console.log('Attempting to fetch health facilities from IFRC API...');
+            console.log('✅ Attempting to fetch health facilities from IFRC API...');
 
             try {
                 const headers = {
@@ -30,29 +33,56 @@ module.exports = async (req, res) => {
                     'Content-Type': 'application/json'
                 };
 
-                // Fetch from IFRC local units API
-                const url = `${IFRC_GO_API_BASE_URL}/local-units/?limit=${limit}&offset=${offset}`;
-                console.log(`Fetching from IFRC API: ${url}`);
+                // Fetch from IFRC local units API with high limit to get all facilities
+                const apiLimit = Math.max(limit, 10000); // Use at least 10000 to get all 5607+ facilities
+                const url = `${IFRC_GO_API_BASE_URL}/local-units/?limit=${apiLimit}&offset=${offset}`;
+                console.log(`Fetching from IFRC API: ${url} (requesting ${apiLimit} facilities)`);
 
-                const response = await axios.get(url, { headers, timeout: 15000 });
+                const response = await axios.get(url, { headers, timeout: 30000 }); // Increased timeout for larger datasets
                 const apiData = response.data;
 
                 if (apiData && apiData.results) {
                     console.log(`Retrieved ${apiData.results.length} facilities from IFRC API`);
+                    console.log(`Total available in API: ${apiData.count || 'unknown'}`);
+                    console.log(`Has more pages: ${!!apiData.next}`);
 
                     // Transform API data to match frontend expectations
+                    console.log(`Processing ${apiData.results.length} facilities from IFRC API...`);
+
                     const transformedFacilities = apiData.results
                         .filter(facility => {
-                            // Include facilities with "Health Care" type_details
-                            return facility.type_details &&
-                                   facility.type_details.name === 'Health Care' &&
-                                   facility.location_geojson &&
-                                   facility.location_geojson.coordinates &&
-                                   facility.location_geojson.coordinates.length === 2;
+                            // Debug logging for filtering
+                            const hasTypeDetails = facility.type_details && facility.type_details.name === 'Health Care';
+                            const hasValidCoords = facility.location_geojson &&
+                                                 facility.location_geojson.coordinates &&
+                                                 facility.location_geojson.coordinates.length === 2;
+
+                            // Log facilities that don't pass the filter
+                            if (!hasTypeDetails) {
+                                console.log(`Filtered out facility ${facility.id}: type_details.name = "${facility.type_details?.name}"`);
+                            }
+                            if (!hasValidCoords) {
+                                console.log(`Filtered out facility ${facility.id}: invalid coordinates = ${JSON.stringify(facility.location_geojson?.coordinates)}`);
+                            }
+
+                            // Log facilities that pass the filter
+                            if (hasTypeDetails && hasValidCoords) {
+                                console.log(`Including facility ${facility.id}: ${facility.local_branch_name || facility.english_branch_name}`);
+                            }
+
+                            return hasTypeDetails && hasValidCoords;
                         })
                         .map(facility => {
                             const coords = facility.location_geojson.coordinates;
                             const healthType = facility.health_details?.health_facility_type_details?.name || 'Other';
+
+                            // Validate coordinate ranges
+                            const lat = coords[1]; // GeoJSON is [lng, lat]
+                            const lng = coords[0];
+
+                            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                                console.warn(`Invalid coordinates for facility ${facility.id}: lat=${lat}, lng=${lng}`);
+                            }
 
                             return {
                                 id: facility.id,
@@ -104,18 +134,47 @@ module.exports = async (req, res) => {
                     });
                 }
             } catch (apiError) {
-                console.warn('IFRC API failed, falling back to JSON file:', apiError.message);
+                console.warn('❌ IFRC API failed, falling back to JSON file:', apiError.message);
+                console.warn('API Error details:', {
+                    status: apiError.response?.status,
+                    statusText: apiError.response?.statusText,
+                    url: apiError.config?.url
+                });
             }
+        } else {
+            console.log('⚠️ IFRC API token not configured, using JSON file directly');
         }
 
         // Fallback to JSON file
-        console.log('Loading health facilities from local JSON file');
+        console.log('📁 Loading health facilities from local JSON file');
 
         const dataPath = path.join(process.cwd(), 'health-facilities-data.json');
         const jsonData = fs.readFileSync(dataPath, 'utf-8');
         const allFacilities = JSON.parse(jsonData);
 
         console.log(`Loaded ${allFacilities.length} health facilities from JSON file`);
+
+        // Debug: Check for specific facilities that should be there
+        const targetFacilities = [28640, 28448, 28717, 28409]; // IDs from payloads
+        targetFacilities.forEach(targetId => {
+            const found = allFacilities.find(f => f.id === targetId);
+            if (found) {
+                console.log(`✅ Found target facility ${targetId}: ${found.name}`);
+            } else {
+                console.log(`❌ Missing target facility ${targetId} in JSON file`);
+            }
+        });
+
+        // Debug: Show sample of German facilities in JSON file
+        const germanFacilities = allFacilities.filter(f => f.country === 'Germany');
+        console.log(`German facilities in JSON file: ${germanFacilities.length}`);
+        if (germanFacilities.length > 0) {
+            console.log('Sample German facilities:', germanFacilities.slice(0, 3).map(f => ({
+                id: f.id,
+                name: f.name,
+                type: f.type
+            })));
+        }
 
         // Apply filters
         let filteredFacilities = allFacilities;
@@ -169,17 +228,21 @@ module.exports = async (req, res) => {
 function mapHealthFacilityType(apiType) {
     const mapping = {
         'Primary Health Care': 'Primary Health Care Centres',
+        'Primary Health Care Center': 'Primary Health Care Centres', // Handle both variants
         'Hospital': 'Hospitals',
         'Ambulance Station': 'Ambulance Stations',
         'Blood Centre': 'Blood Centres',
         'Pharmacy': 'Pharmacies',
         'Training Facility': 'Training Facilities',
         'Specialized Service': 'Specialized Services',
+        'Specialized Services': 'Specialized Services', // Handle both variants
         'Residential Facility': 'Residential Facilities',
         'Other': 'Other'
     };
 
-    return mapping[apiType] || 'Other';
+    const mapped = mapping[apiType] || 'Other';
+    console.log(`Mapping facility type "${apiType}" → "${mapped}"`);
+    return mapped;
 }
 
 
