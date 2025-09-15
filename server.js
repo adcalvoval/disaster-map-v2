@@ -928,7 +928,7 @@ app.get('/api/health', (req, res) => {
 // Health facilities endpoint
 app.get('/api/health-facilities', async (req, res) => {
     try {
-        const { limit = '50', offset = '0' } = req.query;
+        const { limit = '50', offset = '0', facility_type } = req.query;
 
         // IFRC API configuration
         const apiToken = process.env.IFRC_GO_API_TOKEN;
@@ -944,11 +944,24 @@ app.get('/api/health-facilities', async (req, res) => {
         const apiUrl = `${apiBaseUrl}/local-units/`;
         const params = {
             limit: parseInt(limit),
-            offset: parseInt(offset),
-            type: 2  // Type 2 = Health Care facilities
+            offset: parseInt(offset)
         };
 
-        console.log(`Fetching IFRC health facilities: ${apiUrl}?limit=${limit}&offset=${offset}`);
+        // Add type filter if specified, default to health facilities (type 2)
+        if (facility_type) {
+            if (facility_type === 'health') {
+                params.type = 2; // Type 2 = Health Care facilities
+            } else if (facility_type === 'all') {
+                // No type filter - get all facility types
+            } else {
+                // Allow specific type numbers to be passed
+                params.type = parseInt(facility_type);
+            }
+        } else {
+            params.type = 2; // Default to health facilities for backward compatibility
+        }
+
+        console.log(`Fetching IFRC facilities: ${apiUrl}`, params);
 
         const response = await axios.get(apiUrl, {
             params,
