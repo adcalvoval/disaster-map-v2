@@ -7,7 +7,12 @@
       "Bash(python:*)",
       "Bash(node server.js)",
       "WebFetch(domain:developers.google.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git rm:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(dir \"C:\\Users\\ADRIAN.CALVO\\webapps\\disaster-map-app\")",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

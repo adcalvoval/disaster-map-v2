@@ -916,6 +916,14 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        hasACLEDEnvVars: !!(process.env.ACLED_ACCESS_TOKEN && process.env.ACLED_REFRESH_TOKEN),
+        envVarStatus: {
+            access_token_length: process.env.ACLED_ACCESS_TOKEN ? process.env.ACLED_ACCESS_TOKEN.length : 0,
+            refresh_token_length: process.env.ACLED_REFRESH_TOKEN ? process.env.ACLED_REFRESH_TOKEN.length : 0,
+            expires_at_set: !!process.env.ACLED_EXPIRES_AT,
+            last_updated_set: !!process.env.ACLED_LAST_UPDATED
+        },
         endpoints: [
             '/api/disasters - Get disaster events',
             '/api/disasters/sample - Get sample disaster events',
