@@ -1311,19 +1311,19 @@ app.get('/api/acled', async (req, res) => {
 
         const acledUrl = 'https://acleddata.com/api/acled/read';
 
-        // Get date range for recent events (last 6 months)
-        const today = new Date();
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(today.getMonth() - 6);
+        // Get date range for recent events (use realistic dates for ACLED data)
+        // ACLED database typically has data up to recent actual dates, not future dates
+        const endDate = new Date('2024-12-31'); // Use end of 2024 as latest data
+        const startDate = new Date('2024-07-01'); // Get 6 months of 2024 data
 
         // Format dates properly for ACLED API
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const sixMonthsAgoStr = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
+        const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+        const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
 
         const params = {
             limit,
             disorder_type: disorder_type || 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians',
-            event_date: `${sixMonthsAgoStr}|${todayStr}`,
+            event_date: `${startDateStr}|${endDateStr}`,
             sort: 'event_date:desc'
         };
 
