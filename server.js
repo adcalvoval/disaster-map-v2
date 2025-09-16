@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// Explicit static file routes for Vercel
+// Explicit static file routes for Vercel deployment
 app.get('/styles.css', (req, res) => {
     res.sendFile(path.join(__dirname, 'styles.css'));
 });
