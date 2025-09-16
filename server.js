@@ -907,6 +907,17 @@ app.get('/api/disasters', async (req, res) => {
             events = events.filter(event => event.alertLevel === alertLevel.toUpperCase());
         }
 
+        // Filter out drought events
+        events = events.filter(event => {
+            const eventType = event.eventType?.toLowerCase() || '';
+            const description = event.description?.toLowerCase() || '';
+            const title = event.title?.toLowerCase() || '';
+
+            return !eventType.includes('drought') &&
+                   !description.includes('drought') &&
+                   !title.includes('drought');
+        });
+
         events.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.json({
@@ -1305,10 +1316,14 @@ app.get('/api/acled', async (req, res) => {
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(today.getMonth() - 6);
 
+        // Format dates properly for ACLED API
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const sixMonthsAgoStr = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
+
         const params = {
             limit,
             disorder_type: disorder_type || 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians',
-            event_date: `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}|${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`,
+            event_date: `${sixMonthsAgoStr}|${todayStr}`,
             sort: 'event_date:desc'
         };
 
