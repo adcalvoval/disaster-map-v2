@@ -673,10 +673,10 @@ class DisasterMap {
             // Use backend proxy to fetch GDACS data
             const alertLevel = document.getElementById('alertLevel').value;
             
-            // Default to last 2 months of data
+            // Default to last 6 months of data for better disaster coverage
             const toDate = new Date();
             const fromDate = new Date();
-            fromDate.setMonth(fromDate.getMonth() - 2);
+            fromDate.setMonth(fromDate.getMonth() - 6);
             
             const params = new URLSearchParams({
                 source: 'ALL',
