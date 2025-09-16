@@ -1298,6 +1298,8 @@ app.get('/api/acled', async (req, res) => {
 
         console.log('Proxying ACLED API request with params:', params);
         console.log('Using ACLED token expiring at:', acledTokenManager.getTokenStatus().expiresAt);
+        console.log('Access token starts with:', accessToken ? accessToken.substring(0, 50) + '...' : 'null');
+        console.log('Access token length:', accessToken ? accessToken.length : 0);
 
         const response = await axios.get(acledUrl, {
             params,
@@ -1321,8 +1323,10 @@ app.get('/api/acled', async (req, res) => {
         console.error('Error details:', {
             status: error.response?.status,
             statusText: error.response?.statusText,
-            data: error.response?.data
+            data: error.response?.data,
+            headers: error.response?.headers
         });
+        console.error('Full error response data:', JSON.stringify(error.response?.data, null, 2));
 
         res.status(error.response?.status || 500).json({
             success: false,
