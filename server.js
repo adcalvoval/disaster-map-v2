@@ -1311,10 +1311,10 @@ app.get('/api/acled', async (req, res) => {
 
         const acledUrl = 'https://acleddata.com/api/acled/read';
 
-        // Get date range for recent events (use realistic dates for ACLED data)
-        // ACLED database typically has data up to recent actual dates, not future dates
-        const endDate = new Date('2024-12-31'); // Use end of 2024 as latest data
-        const startDate = new Date('2024-07-01'); // Get 6 months of 2024 data
+        // Get date range for recent events (ACLED database may have limited 2025 data)
+        // Use a broader range to ensure we get diverse conflict data
+        const endDate = new Date('2025-03-31'); // Use end of Q1 2025 as latest realistic data
+        const startDate = new Date('2024-10-01'); // Get 6 months ending in Q1 2025
 
         // Format dates properly for ACLED API
         const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
