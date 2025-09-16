@@ -1252,6 +1252,9 @@ app.get('/api/ifrc-countries', async (req, res) => {
     }
 });
 
+// Import ACLED token manager
+const acledTokenManager = require('./acled-token-manager');
+
 // ACLED API proxy endpoint
 app.get('/api/acled', async (req, res) => {
     try {
@@ -1263,10 +1266,11 @@ app.get('/api/acled', async (req, res) => {
             disorder_type: disorder_type || 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians'
         };
 
-        // Use JWT token for authentication
-        const accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6Ijk4NGNlMDY2YjVlMzcxODJhZmU4MjJlZTI1OGFkYjE1NThkYzJjZThhOGY4MGNjNTk0OWY1ZmFjYzUyMzZlY2QwZjE2Nzk2NTEwNWY5Y2YxIn0.eyJhdWQiOiJhY2xlZCIsImp0aSI6Ijk4NGNlMDY2YjVlMzcxODJhZmU4MjJlZTI1OGFkYjE1NThkYzJjZThhOGY4MGNjNTk0OWY1ZmFjYzUyMzZlY2QwZjE2Nzk2NTEwNWY5Y2YxIiwiaWF0IjoxNzU3OTE5NzMwLCJuYmYiOjE3NTc5MTk3MzAsImV4cCI6MTc1ODAwNjEzMC4yMTA5Niwic2NvcGUiOlsiYXV0aGVudGljYXRlZCJdLCJzdWIiOiIxMzIwNTUifQ.e2a6Qb8RnXqMCw_68PqWFwmXyhIyzu49GB_kIWRLhkNa08wFUrhyapttXQxOf1FEe0_03t4VXNiRYG7YgMQs8joEouQFmASfdIJhf4TzWzBagWgcFp9h3J-dY8Fpvyw6f6YNQM3TNO3m9WkGH8AV2WmRz0f8xZxsXYXej4M0Mr4p2zv052KtIyvbM0EmUZ0kRcodL6Q18ZdynSryY2fu9C8LsKZ-bE44MQIxHBJmkzbzFrvy48Pr5TJSEl39H9KN2GBRdeOlg-uGtA60FVeZ9zghWDZaksd29TpeK3WWJmESGmd5HRl4H6Ri0czPb2E9wOMyV79kKDaPtonXwlJp_Q";
+        // Get valid access token (automatically refreshes if needed)
+        const accessToken = await acledTokenManager.getValidAccessToken();
 
         console.log('Proxying ACLED API request with params:', params);
+        console.log('Using ACLED token expiring at:', acledTokenManager.getTokenStatus().expiresAt);
 
         const response = await axios.get(acledUrl, {
             params,
@@ -1302,9 +1306,95 @@ app.get('/api/acled', async (req, res) => {
     }
 });
 
+// ACLED token management endpoint
+app.get('/api/acled-tokens/status', async (req, res) => {
+    try {
+        const status = acledTokenManager.getTokenStatus();
+        res.json({
+            success: true,
+            ...status,
+            message: status.hasToken ?
+                (status.isExpired ? 'Token expired, will refresh on next API call' : 'Token is valid') :
+                'No token configured'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ACLED token refresh endpoint
+app.post('/api/acled-tokens/refresh', async (req, res) => {
+    try {
+        const newToken = await acledTokenManager.refreshToken();
+        res.json({
+            success: true,
+            message: 'Token refreshed successfully',
+            expiresAt: acledTokenManager.getTokenStatus().expiresAt
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ACLED token update endpoint
+app.post('/api/acled-tokens/update', async (req, res) => {
+    try {
+        const { access_token, refresh_token } = req.body;
+
+        if (!access_token || !refresh_token) {
+            return res.status(400).json({
+                success: false,
+                error: 'Both access_token and refresh_token are required'
+            });
+        }
+
+        acledTokenManager.updateTokens(access_token, refresh_token);
+
+        res.json({
+            success: true,
+            message: 'Tokens updated successfully',
+            expiresAt: acledTokenManager.getTokenStatus().expiresAt
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
+
+// Scheduled ACLED token refresh (every hour)
+const scheduleTokenRefresh = () => {
+    const refreshInterval = 60 * 60 * 1000; // 1 hour in milliseconds
+
+    setInterval(async () => {
+        try {
+            const status = acledTokenManager.getTokenStatus();
+
+            if (status.hasToken && status.isExpired) {
+                console.log('⏰ Scheduled ACLED token refresh triggered');
+                await acledTokenManager.refreshToken();
+                console.log('✅ Scheduled ACLED token refresh completed');
+            } else {
+                console.log('ℹ️ ACLED token still valid, no refresh needed');
+            }
+        } catch (error) {
+            console.error('❌ Scheduled ACLED token refresh failed:', error.message);
+        }
+    }, refreshInterval);
+
+    console.log(`⏰ ACLED token refresh scheduled every ${refreshInterval / 1000 / 60} minutes`);
+};
 
 app.listen(PORT, () => {
     console.log(`GDACS Proxy Server running on port ${PORT}`);
@@ -1312,4 +1402,29 @@ app.listen(PORT, () => {
     console.log(`API: http://localhost:${PORT}/api/disasters`);
     console.log(`API: http://localhost:${PORT}/api/acled`);
     console.log(`Health: http://localhost:${PORT}/api/health`);
+    console.log(`ACLED Token Management: http://localhost:${PORT}/api/acled-tokens/status`);
+
+    // Start scheduled token refresh
+    scheduleTokenRefresh();
+
+    // Check ACLED token status on startup
+    setTimeout(async () => {
+        try {
+            const status = acledTokenManager.getTokenStatus();
+            console.log('📊 ACLED Token Status on startup:', {
+                hasToken: status.hasToken,
+                hasRefreshToken: status.hasRefreshToken,
+                isExpired: status.isExpired,
+                expiresAt: status.expiresAt
+            });
+
+            if (status.hasToken && status.isExpired) {
+                console.log('⚠️ ACLED token is expired on startup - will refresh on first API call');
+            } else if (!status.hasToken) {
+                console.log('⚠️ No ACLED token configured - please update ACLED_tokens.json');
+            }
+        } catch (error) {
+            console.error('❌ Error checking ACLED token status on startup:', error.message);
+        }
+    }, 1000);
 });
