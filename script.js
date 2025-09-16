@@ -15,7 +15,7 @@ class DisasterMap {
         this.showHealthFacilities = false;
         this.currentCountryFilter = null; // Track current country filter
         this.currentTypeFilter = null; // Track current facility type filter
-        // Removed clustering - markers added directly to map
+        this.healthFacilitiesCluster = null; // Cluster group for health facilities
         this.csvHealthFacilityMarkers = [];
         this.csvHealthFacilities = [];
         this.shapefileHealthFacilities = [];
@@ -373,6 +373,27 @@ class DisasterMap {
         
         // Add base layer by default
         this.baseLayer.addTo(this.map);
+
+        // Initialize health facilities cluster group
+        this.healthFacilitiesCluster = L.markerClusterGroup({
+            maxClusterRadius: 50, // Reduce clustering distance for better separation
+            disableClusteringAtZoom: 15, // Show individual markers at high zoom levels
+            spiderfyOnMaxZoom: true, // Spread markers when clicking cluster at max zoom
+            showCoverageOnHover: false, // Don't show cluster coverage area
+            zoomToBoundsOnClick: true, // Zoom to cluster bounds when clicked
+            iconCreateFunction: function(cluster) {
+                const count = cluster.getChildCount();
+                let className = 'marker-cluster-small';
+                if (count > 100) className = 'marker-cluster-large';
+                else if (count > 10) className = 'marker-cluster-medium';
+
+                return new L.DivIcon({
+                    html: '<div><span>' + count + '</span></div>',
+                    className: 'marker-cluster ' + className,
+                    iconSize: new L.Point(40, 40)
+                });
+            }
+        });
     }
 
 
@@ -1479,8 +1500,8 @@ class DisasterMap {
             marker.facilityId = facility.id;
             marker.facilityType = facility.type;
 
-            // Add marker directly to map
-            this.map.addLayer(marker);
+            // Add marker to cluster group instead of directly to map
+            this.healthFacilitiesCluster.addLayer(marker);
             this.healthFacilityMarkers.push(marker);
         });
 
@@ -1506,6 +1527,12 @@ class DisasterMap {
         }
         if (this.selectedHealthFunctionality) {
             console.log(`Applied functionality filter: "${this.selectedHealthFunctionality}"`);
+        }
+
+        // Add the cluster group to the map
+        if (addedCount > 0) {
+            this.map.addLayer(this.healthFacilitiesCluster);
+            console.log(`✅ Added ${addedCount} health facilities to map with clustering`);
         }
     }
 
@@ -1638,10 +1665,11 @@ class DisasterMap {
     }
 
     clearHealthFacilityMarkers() {
-        // Remove all individual markers
-        this.healthFacilityMarkers.forEach(marker => {
-            this.map.removeLayer(marker);
-        });
+        // Remove the cluster group from the map and clear all markers
+        if (this.healthFacilitiesCluster) {
+            this.map.removeLayer(this.healthFacilitiesCluster);
+            this.healthFacilitiesCluster.clearLayers();
+        }
         this.healthFacilityMarkers = [];
     }
 
