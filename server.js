@@ -928,7 +928,13 @@ app.get('/api/health', (req, res) => {
             '/api/disasters - Get disaster events',
             '/api/disasters/sample - Get sample disaster events',
             '/api/health-facilities - Get health facilities data',
-            '/api/health - Health check'
+            '/api/health - Health check',
+            '/api/acled - Get ACLED conflict data',
+            '/api/acled-tokens/status - Check ACLED token status',
+            '/api/acled-tokens/refresh - Refresh ACLED tokens (POST)',
+            '/api/acled-tokens/update - Update ACLED tokens manually (POST)',
+            '/api/gdacs-cap - Get GDACS impact zones',
+            '/api/emergency-response-units - Get emergency response units'
         ]
     });
 });
