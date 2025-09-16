@@ -941,22 +941,11 @@ app.get('/api/health', (req, res) => {
         status: 'OK',
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development',
-        hasACLEDEnvVars: !!(process.env.ACLED_ACCESS_TOKEN && process.env.ACLED_REFRESH_TOKEN),
-        envVarStatus: {
-            access_token_length: process.env.ACLED_ACCESS_TOKEN ? process.env.ACLED_ACCESS_TOKEN.length : 0,
-            refresh_token_length: process.env.ACLED_REFRESH_TOKEN ? process.env.ACLED_REFRESH_TOKEN.length : 0,
-            expires_at_set: !!process.env.ACLED_EXPIRES_AT,
-            last_updated_set: !!process.env.ACLED_LAST_UPDATED
-        },
         endpoints: [
             '/api/disasters - Get disaster events',
             '/api/disasters/sample - Get sample disaster events',
             '/api/health-facilities - Get health facilities data',
             '/api/health - Health check',
-            '/api/acled - Get ACLED conflict data',
-            '/api/acled-tokens/status - Check ACLED token status',
-            '/api/acled-tokens/refresh - Refresh ACLED tokens (POST)',
-            '/api/acled-tokens/update - Update ACLED tokens manually (POST)',
             '/api/gdacs-cap - Get GDACS impact zones',
             '/api/emergency-response-units - Get emergency response units'
         ]
@@ -1301,195 +1290,18 @@ app.get('/api/ifrc-countries', async (req, res) => {
     }
 });
 
-// Import ACLED token manager
-const acledTokenManager = require('./acled-token-manager');
 
-// ACLED API proxy endpoint
-app.get('/api/acled', async (req, res) => {
-    try {
-        const { limit = '50', disorder_type } = req.query;
 
-        const acledUrl = 'https://acleddata.com/api/acled/read';
 
-        // ACLED database contains historical conflict data (latest available: 2019)
-        // Use most recent 12 months of available data to show diverse conflict events
-        const endDate = new Date('2019-03-31'); // Latest available data period
-        const startDate = new Date('2018-04-01'); // 12 months of historical data
-
-        // Format dates properly for ACLED API
-        const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
-        const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
-
-        const params = {
-            limit,
-            disorder_type: disorder_type || 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians',
-            event_date: `${startDateStr}|${endDateStr}`,
-            sort: 'event_date:desc'
-        };
-
-        // Get valid access token (automatically refreshes if needed)
-        const accessToken = await acledTokenManager.getValidAccessToken();
-
-        console.log('Proxying ACLED API request with params:', params);
-        console.log('Using ACLED token expiring at:', acledTokenManager.getTokenStatus().expiresAt);
-        console.log('Access token starts with:', accessToken ? accessToken.substring(0, 50) + '...' : 'null');
-        console.log('Access token length:', accessToken ? accessToken.length : 0);
-
-        const response = await axios.get(acledUrl, {
-            params,
-            timeout: 30000,
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Referer': 'https://acleddata.com/',
-                'Origin': 'https://acleddata.com'
-            }
-        });
-
-        res.json(response.data);
-
-    } catch (error) {
-        console.error('ACLED API Error:', error.message);
-        console.error('Error details:', {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data,
-            headers: error.response?.headers
-        });
-        console.error('Full error response data:', JSON.stringify(error.response?.data, null, 2));
-
-        res.status(error.response?.status || 500).json({
-            success: false,
-            error: 'Failed to fetch ACLED data: ' + error.message,
-            details: error.response?.data,
-            data: []
-        });
-    }
-});
-
-// ACLED token management endpoint
-app.get('/api/acled-tokens/status', async (req, res) => {
-    try {
-        const status = acledTokenManager.getTokenStatus();
-        res.json({
-            success: true,
-            ...status,
-            message: status.hasToken ?
-                (status.isExpired ? 'Token expired, will refresh on next API call' : 'Token is valid') :
-                'No token configured'
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// ACLED token refresh endpoint
-app.post('/api/acled-tokens/refresh', async (req, res) => {
-    try {
-        const newToken = await acledTokenManager.refreshToken();
-        res.json({
-            success: true,
-            message: 'Token refreshed successfully',
-            expiresAt: acledTokenManager.getTokenStatus().expiresAt
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// ACLED token update endpoint
-app.post('/api/acled-tokens/update', async (req, res) => {
-    try {
-        const { access_token, refresh_token } = req.body;
-
-        if (!access_token || !refresh_token) {
-            return res.status(400).json({
-                success: false,
-                error: 'Both access_token and refresh_token are required'
-            });
-        }
-
-        acledTokenManager.updateTokens(access_token, refresh_token);
-
-        res.json({
-            success: true,
-            message: 'Tokens updated successfully',
-            expiresAt: acledTokenManager.getTokenStatus().expiresAt
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Scheduled ACLED token refresh (every hour)
-const scheduleTokenRefresh = () => {
-    const refreshInterval = 60 * 60 * 1000; // 1 hour in milliseconds
-
-    setInterval(async () => {
-        try {
-            const status = acledTokenManager.getTokenStatus();
-
-            if (status.hasToken && status.isExpired) {
-                console.log('⏰ Scheduled ACLED token refresh triggered');
-                await acledTokenManager.refreshToken();
-                console.log('✅ Scheduled ACLED token refresh completed');
-            } else {
-                console.log('ℹ️ ACLED token still valid, no refresh needed');
-            }
-        } catch (error) {
-            console.error('❌ Scheduled ACLED token refresh failed:', error.message);
-        }
-    }, refreshInterval);
-
-    console.log(`⏰ ACLED token refresh scheduled every ${refreshInterval / 1000 / 60} minutes`);
-};
 
 app.listen(PORT, () => {
     console.log(`GDACS Proxy Server running on port ${PORT}`);
     console.log(`Frontend: http://localhost:${PORT}`);
     console.log(`API: http://localhost:${PORT}/api/disasters`);
-    console.log(`API: http://localhost:${PORT}/api/acled`);
     console.log(`Health: http://localhost:${PORT}/api/health`);
-    console.log(`ACLED Token Management: http://localhost:${PORT}/api/acled-tokens/status`);
-
-    // Start scheduled token refresh
-    scheduleTokenRefresh();
-
-    // Check ACLED token status on startup
-    setTimeout(async () => {
-        try {
-            const status = acledTokenManager.getTokenStatus();
-            console.log('📊 ACLED Token Status on startup:', {
-                hasToken: status.hasToken,
-                hasRefreshToken: status.hasRefreshToken,
-                isExpired: status.isExpired,
-                expiresAt: status.expiresAt
-            });
-
-            if (status.hasToken && status.isExpired) {
-                console.log('⚠️ ACLED token is expired on startup - will refresh on first API call');
-            } else if (!status.hasToken) {
-                console.log('⚠️ No ACLED token configured - please update ACLED_tokens.json');
-            }
-        } catch (error) {
-            console.error('❌ Error checking ACLED token status on startup:', error.message);
-        }
-    }, 1000);
 });
