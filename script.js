@@ -31,13 +31,20 @@ class DisasterMap {
         this.isSatelliteDateCaptionVisible = false; // Track if caption is currently displayed
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
+            'Primary Health Care Center': true,
             'Ambulance Stations': true,
+            'Ambulance Station': true,
             'Blood Centres': true,
+            'Blood Center': true,
             'Hospitals': true,
+            'Hospital': true,
             'Pharmacies': true,
+            'Pharmacy': true,
             'Training Facilities': true,
+            'Training Facility': true,
             'Specialized Services': true,
             'Residential Facilities': true,
+            'Residential Facility': true,
             'Other': true
         };
         this.disasterTypeVisibility = {
@@ -2116,6 +2123,10 @@ class DisasterMap {
         if (this.showOtherHealthFacilities) {
             this.addCsvHealthFacilitiesToMap();
             this.addShapefileHealthFacilitiesToMap();
+            // Ensure cluster group is added to map for other health facilities
+            if (this.healthFacilitiesCluster && !this.map.hasLayer(this.healthFacilitiesCluster)) {
+                this.map.addLayer(this.healthFacilitiesCluster);
+            }
         } else {
             this.clearCsvHealthFacilityMarkers();
         }
@@ -2138,13 +2149,17 @@ class DisasterMap {
                 `);
             
             this.csvHealthFacilityMarkers.push(marker);
-            marker.addTo(this.map);
+            // Add to cluster group instead of directly to map
+            this.healthFacilitiesCluster.addLayer(marker);
         });
     }
 
     clearCsvHealthFacilityMarkers() {
+        // Remove CSV markers from the cluster group instead of directly from map
         this.csvHealthFacilityMarkers.forEach(marker => {
-            this.map.removeLayer(marker);
+            if (this.healthFacilitiesCluster) {
+                this.healthFacilitiesCluster.removeLayer(marker);
+            }
         });
         this.csvHealthFacilityMarkers = [];
     }
@@ -2298,7 +2313,8 @@ class DisasterMap {
                 `);
             
             this.csvHealthFacilityMarkers.push(marker); // Use same array for consistency
-            marker.addTo(this.map);
+            // Add to cluster group instead of directly to map
+            this.healthFacilitiesCluster.addLayer(marker);
         });
     }
 
