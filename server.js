@@ -940,6 +940,17 @@ app.get('/api/emergency-response-units', async (req, res) => {
     }
 });
 
+// GDACS-CAP API endpoint
+app.get('/api/gdacs-cap', async (req, res) => {
+    try {
+        const gdacsCapHandler = require('./api/gdacs-cap');
+        await gdacsCapHandler(req, res);
+    } catch (error) {
+        console.error('Error in GDACS-CAP proxy:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Health facilities endpoint
 app.get('/api/health-facilities', async (req, res) => {
     try {
@@ -1261,9 +1272,17 @@ app.get('/api/acled', async (req, res) => {
         const { limit = '50', disorder_type } = req.query;
 
         const acledUrl = 'https://acleddata.com/api/acled/read';
+
+        // Get date range for recent events (last 6 months)
+        const today = new Date();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(today.getMonth() - 6);
+
         const params = {
             limit,
-            disorder_type: disorder_type || 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians'
+            disorder_type: disorder_type || 'Political violence|Battles|Protests|Riots|Explosions/Remote violence|Violence against civilians',
+            event_date: `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}|${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`,
+            sort: 'event_date:desc'
         };
 
         // Get valid access token (automatically refreshes if needed)
