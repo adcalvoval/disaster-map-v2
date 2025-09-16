@@ -4,7 +4,22 @@ This system automatically manages ACLED API tokens with automatic refresh functi
 
 ## Setup Instructions
 
-### 1. Initial Token Configuration
+### 1. Token Configuration
+
+The system supports two methods for token configuration:
+
+#### Option A: Environment Variables (Recommended for Production)
+
+Set the following environment variables:
+
+```bash
+ACLED_ACCESS_TOKEN=your_access_token_here
+ACLED_REFRESH_TOKEN=your_refresh_token_here
+ACLED_EXPIRES_AT=2025-09-17T11:23:21.120Z
+ACLED_LAST_UPDATED=2025-09-16T11:23:21.120Z
+```
+
+#### Option B: JSON File (Development)
 
 Update the `ACLED_tokens.json` file with your valid tokens:
 

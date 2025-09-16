@@ -10,15 +10,28 @@ class ACLEDTokenManager {
         this.loadTokens();
     }
 
-    // Load tokens from file
+    // Load tokens from environment variables or file
     loadTokens() {
         try {
+            // First, try to load from environment variables (for production)
+            if (process.env.ACLED_ACCESS_TOKEN && process.env.ACLED_REFRESH_TOKEN) {
+                this.tokenData = {
+                    access_token: process.env.ACLED_ACCESS_TOKEN,
+                    refresh_token: process.env.ACLED_REFRESH_TOKEN,
+                    expires_at: process.env.ACLED_EXPIRES_AT || new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString(),
+                    last_updated: process.env.ACLED_LAST_UPDATED || new Date().toISOString()
+                };
+                console.log('✅ ACLED tokens loaded from environment variables');
+                return;
+            }
+
+            // Fallback to file-based loading (for development)
             if (fs.existsSync(this.tokenFilePath)) {
                 const data = fs.readFileSync(this.tokenFilePath, 'utf-8');
                 this.tokenData = JSON.parse(data);
                 console.log('✅ ACLED tokens loaded from file');
             } else {
-                console.warn('⚠️ ACLED tokens file not found');
+                console.warn('⚠️ ACLED tokens not found in environment variables or file');
                 this.tokenData = null;
             }
         } catch (error) {
@@ -27,7 +40,7 @@ class ACLEDTokenManager {
         }
     }
 
-    // Save tokens to file
+    // Save tokens to file or environment (in memory)
     saveTokens(tokenData) {
         try {
             const dataToSave = {
@@ -37,9 +50,18 @@ class ACLEDTokenManager {
                 last_updated: new Date().toISOString()
             };
 
+            // If using environment variables, update in memory only
+            if (process.env.ACLED_ACCESS_TOKEN && process.env.ACLED_REFRESH_TOKEN) {
+                this.tokenData = dataToSave;
+                console.log('✅ ACLED tokens updated in memory (environment variable mode)');
+                console.log(`🕒 Token expires at: ${dataToSave.expires_at}`);
+                return;
+            }
+
+            // Otherwise save to file (development mode)
             fs.writeFileSync(this.tokenFilePath, JSON.stringify(dataToSave, null, 2));
             this.tokenData = dataToSave;
-            console.log('✅ ACLED tokens saved successfully');
+            console.log('✅ ACLED tokens saved to file');
             console.log(`🕒 Token expires at: ${dataToSave.expires_at}`);
         } catch (error) {
             console.error('❌ Error saving ACLED tokens:', error.message);
