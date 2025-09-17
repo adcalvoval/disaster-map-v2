@@ -1000,8 +1000,11 @@ app.get('/api/health-facilities', async (req, res) => {
             offset: parseInt(offset)
         };
 
-        // Always filter to health facilities only (type 2)
-        params.type = 2; // Type 2 = Health Care facilities
+        // Only validated facilities
+        params.validated = true;
+
+        // Don't use search parameter as it's too restrictive
+        // We'll filter based on the data structure after fetching
 
         console.log(`Fetching IFRC facilities: ${apiUrl}`, params);
 
@@ -1017,18 +1020,73 @@ app.get('/api/health-facilities', async (req, res) => {
 
         const data = response.data;
 
-        // Filter out non-health facility types
+        // Filter out non-health facility types more comprehensively
         const excludedTypes = [
             'Administrative',
             'Emergency Response',
             'Humanitarian Assistance Centres',
             'Training and Education',
-            'Other'
+            'Other',
+            'Logistics',
+            'Communication',
+            'Information Management',
+            'Shelter',
+            'WASH', // Water, Sanitation, Hygiene
+            'Food Security',
+            'Livelihood',
+            'Protection',
+            'Community Engagement'
         ];
 
+        // Define what we consider actual health facilities
+        const healthFacilityTypes = [
+            'Hospital',
+            'Primary Health Care Center',
+            'Ambulance Station',
+            'Blood Center',
+            'Pharmacy',
+            'Clinic',
+            'Medical Center',
+            'Health Post',
+            'Dispensary',
+            'Specialized Services',
+            'Residential Facility', // Nursing homes, elderly care
+            'Rehabilitation Center',
+            'Mental Health Center',
+            'Maternity Center',
+            'Emergency Medical Services'
+        ];
+
+        // Debug: log the first facility structure to understand the data
+        if (data.results && data.results.length > 0) {
+            console.log('First facility structure:', JSON.stringify(data.results[0], null, 2));
+        }
+
         const healthOnlyResults = data.results.filter(facility => {
-            const facilityType = facility.health_details?.health_facility_type_details?.name;
-            return facilityType && !excludedTypes.includes(facilityType);
+            const facilityName = String(facility.local_branch_name || facility.english_branch_name || '');
+            const typeName = facility.type_details?.name || '';
+
+            // Debug: log facility details for first few
+            if (data.results.indexOf(facility) < 5) {
+                console.log(`Facility ${facility.id}: name="${facilityName}", type_name="${typeName}", has_health="${!!facility.health}"`);
+            }
+
+            // Based on the original sample JSON data you provided,
+            // health facilities should have health information or be specifically health-related
+
+            // Check if facility has health-related data
+            const hasHealthInfo = facility.health !== null || facility.health_details !== null;
+
+            // Check if the facility name contains health-related keywords
+            const healthKeywords = /\b(health|hospital|clinic|medical|ambulance|blood|pharmacy|dispensary|maternity|rehabilitation|centro|clinica|salud|santé|gesundheit|cruz roja|red cross|croix rouge|rotes kreuz)\b/i;
+            const hasHealthName = healthKeywords.test(facilityName);
+
+            // Check if type name suggests health facility
+            const healthTypeKeywords = /\b(health|medical|hospital|clinic|ambulance|blood|pharmacy)\b/i;
+            const isHealthType = healthTypeKeywords.test(typeName);
+
+            // For now, include facilities that match health criteria
+            return hasHealthInfo || hasHealthName || isHealthType;
         });
 
         // Transform the IFRC API data to match the expected frontend format
