@@ -1099,7 +1099,7 @@ app.get('/api/health-facilities', async (req, res) => {
             coordinates: facility.location_geojson ? facility.location_geojson.coordinates : null,
             latitude: facility.location_geojson ? facility.location_geojson.coordinates[1] : null,
             longitude: facility.location_geojson ? facility.location_geojson.coordinates[0] : null,
-            type: facility.health_details?.health_facility_type_details?.name || 'Health Care',
+            type: mapFacilityTypeToDisplayName(facility.health_details?.health_facility_type_details?.name),
             type_id: facility.health_details?.health_facility_type_details?.id || null,
             type_code: facility.health_details?.health_facility_type_details?.code || null,
             address: facility.address_loc || facility.address_en || '',
@@ -1110,7 +1110,7 @@ app.get('/api/health-facilities', async (req, res) => {
             modified_at: facility.modified_at,
             // Map facility type to our existing categories for consistency
             category: mapFacilityTypeToCategory(facility.health_details?.health_facility_type_details?.name),
-            functionality: 'fully' // Default, as IFRC API doesn't provide this field
+            functionality: mapFunctionalityLevel(facility.health_details?.functionality || 'fully')
         }));
 
         res.json({
@@ -1165,6 +1165,40 @@ function mapFacilityTypeToCategory(facilityType) {
     if (type.includes('specialized')) return 'specialized';
     if (type.includes('residential')) return 'residential';
     return 'other';
+}
+
+// Helper function to map functionality levels to full descriptive text
+function mapFunctionalityLevel(functionality) {
+    if (!functionality) return 'Fully functional'; // Default
+
+    const level = functionality.toLowerCase();
+    if (level === 'fully' || level.includes('fully')) return 'Fully functional';
+    if (level === 'partially' || level.includes('partially')) return 'Partially functional';
+    if (level === 'not' || level.includes('not functional') || level.includes('non-functional')) return 'Not functional';
+
+    // Default to fully functional if unclear
+    return 'Fully functional';
+}
+
+// Helper function to map IFRC facility types to display names expected by frontend
+function mapFacilityTypeToDisplayName(facilityType) {
+    if (!facilityType) return 'Other';
+
+    const type = facilityType.toLowerCase();
+
+    // Map to expected frontend display names that match the legend
+    if (type.includes('hospital')) return 'Hospitals';
+    if (type.includes('ambulance')) return 'Ambulance Stations';
+    if (type.includes('primary') || type.includes('health care') || type.includes('primary health care')) return 'Primary Health Care Centres';
+    if (type.includes('blood')) return 'Blood Centres';
+    if (type.includes('pharmacy')) return 'Pharmacies';
+    if (type.includes('training')) return 'Training Facilities';
+    if (type.includes('specialized') || type.includes('specialist')) return 'Specialized Services';
+    if (type.includes('residential') || type.includes('nursing') || type.includes('elderly')) return 'Residential Facilities';
+
+    // For debugging - log unknown types
+    console.log(`Unknown facility type: "${facilityType}" - mapping to Other`);
+    return 'Other';
 }
 
 app.get('/api/disasters/sample', (req, res) => {
