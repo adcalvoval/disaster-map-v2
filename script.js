@@ -393,7 +393,7 @@ class DisasterMap {
 
         this.healthFacilitiesCluster = L.markerClusterGroup({
             maxClusterRadius: 50, // Reduce clustering distance for better separation
-            disableClusteringAtZoom: shouldDisableClustering ? 1 : 12, // Disable at zoom 1 (always) if clustering should be disabled, otherwise at zoom 12
+            disableClusteringAtZoom: shouldDisableClustering ? 1 : 8, // Disable at zoom 1 (always) if clustering should be disabled, otherwise at zoom 8
             spiderfyOnMaxZoom: true, // Spread markers when clicking cluster at max zoom
             showCoverageOnHover: false, // Don't show cluster coverage area
             zoomToBoundsOnClick: true, // Zoom to cluster bounds when clicked
@@ -431,9 +431,9 @@ class DisasterMap {
             return true;
         }
 
-        // Check zoom level (disable clustering at zoom 12+ for better detail)
+        // Check zoom level (disable clustering at zoom 8+ for better detail)
         const currentZoom = this.map ? this.map.getZoom() : 0;
-        if (currentZoom >= 12) {
+        if (currentZoom >= 8) {
             return true;
         }
 
