@@ -1331,3 +1331,36 @@ body.fullscreen-mode .sidebar-drawer {
     text-transform: lowercase;
 }
 
+/* Clustering Control Styles */
+.clustering-controls {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 8px;
+}
+
+.clustering-btn {
+    width: 100%;
+    background: #2c5aa0;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-weight: 500;
+}
+
+.clustering-btn:hover {
+    background: #1e4080;
+}
+
+.clustering-btn:active {
+    background: #163060;
+}
+
+.clustering-btn:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+

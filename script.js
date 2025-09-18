@@ -29,6 +29,8 @@ class DisasterMap {
         this.showSatelliteLayer = false; // Satellite layer visibility
         this.satelliteDateCaption = null; // Date caption control for satellite imagery
         this.isSatelliteDateCaptionVisible = false; // Track if caption is currently displayed
+        this.clusteringEnabled = true; // Control clustering state
+        this.disableClusteringOnCountryFilter = true; // Disable clustering when filtering by country
         this.facilityTypeVisibility = {
             'Primary Health Care Centres': true,
             'Primary Health Care Center': true,
@@ -381,10 +383,17 @@ class DisasterMap {
         // Add base layer by default
         this.baseLayer.addTo(this.map);
 
-        // Initialize health facilities cluster group
+        // Initialize health facilities cluster group with dynamic clustering
+        this.initializeClusterGroup();
+    }
+
+    initializeClusterGroup() {
+        // Create cluster group with dynamic settings based on current state
+        const shouldDisableClustering = this.shouldDisableClustering();
+
         this.healthFacilitiesCluster = L.markerClusterGroup({
             maxClusterRadius: 50, // Reduce clustering distance for better separation
-            disableClusteringAtZoom: 15, // Show individual markers at high zoom levels
+            disableClusteringAtZoom: shouldDisableClustering ? 1 : 12, // Disable at zoom 1 (always) if clustering should be disabled, otherwise at zoom 12
             spiderfyOnMaxZoom: true, // Spread markers when clicking cluster at max zoom
             showCoverageOnHover: false, // Don't show cluster coverage area
             zoomToBoundsOnClick: true, // Zoom to cluster bounds when clicked
@@ -401,8 +410,88 @@ class DisasterMap {
                 });
             }
         });
+
+        // Add zoom event listener for dynamic clustering control
+        this.map.on('zoomend', () => {
+            this.handleZoomBasedClustering();
+        });
     }
 
+    shouldDisableClustering() {
+        // Disable clustering if:
+        // 1. User has manually disabled clustering
+        // 2. User has selected specific countries and the setting is enabled
+        // 3. Zoom level is high enough
+
+        if (!this.clusteringEnabled) {
+            return true;
+        }
+
+        if (this.disableClusteringOnCountryFilter && this.selectedHealthCountries.length > 0) {
+            return true;
+        }
+
+        // Check zoom level (disable clustering at zoom 12+ for better detail)
+        const currentZoom = this.map ? this.map.getZoom() : 0;
+        if (currentZoom >= 12) {
+            return true;
+        }
+
+        return false;
+    }
+
+    handleZoomBasedClustering() {
+        // Only recreate cluster group if clustering state has changed
+        const shouldDisable = this.shouldDisableClustering();
+        const currentDisableZoom = this.healthFacilitiesCluster.options.disableClusteringAtZoom;
+
+        // If we need to change clustering behavior, recreate the cluster group
+        if ((shouldDisable && currentDisableZoom !== 1) || (!shouldDisable && currentDisableZoom === 1)) {
+            this.recreateClusterGroup();
+        }
+    }
+
+    recreateClusterGroup() {
+        // Store current markers
+        const currentMarkers = [];
+        this.healthFacilitiesCluster.eachLayer(layer => {
+            currentMarkers.push(layer);
+        });
+
+        // Remove old cluster group from map
+        if (this.map.hasLayer(this.healthFacilitiesCluster)) {
+            this.map.removeLayer(this.healthFacilitiesCluster);
+        }
+
+        // Reinitialize cluster group with new settings
+        this.initializeClusterGroup();
+
+        // Re-add all markers to new cluster group
+        currentMarkers.forEach(marker => {
+            this.healthFacilitiesCluster.addLayer(marker);
+        });
+
+        // Add cluster group back to map if health facilities are visible
+        if (this.showHealthFacilities) {
+            this.map.addLayer(this.healthFacilitiesCluster);
+        }
+
+        console.log(`🔄 Recreated cluster group. Clustering ${this.shouldDisableClustering() ? 'DISABLED' : 'ENABLED'}`);
+    }
+
+    toggleClustering() {
+        this.clusteringEnabled = !this.clusteringEnabled;
+        this.recreateClusterGroup();
+
+        // Update UI button if it exists
+        const clusterBtn = document.getElementById('toggle-clustering-btn');
+        if (clusterBtn) {
+            clusterBtn.textContent = this.clusteringEnabled ? '🔗 Disable Clustering' : '🔗 Enable Clustering';
+            clusterBtn.title = this.clusteringEnabled ? 'Disable facility clustering' : 'Enable facility clustering';
+        }
+
+        console.log(`Clustering ${this.clusteringEnabled ? 'enabled' : 'disabled'} by user`);
+    }
 
     createSatelliteDateCaption(dateText) {
         // Remove existing caption if it exists
@@ -477,6 +566,14 @@ class DisasterMap {
             this.showOtherHealthFacilities = e.target.checked;
             this.toggleOtherHealthFacilities();
         });
+
+        // Clustering toggle button
+        const clusteringBtn = document.getElementById('toggle-clustering-btn');
+        if (clusteringBtn) {
+            clusteringBtn.addEventListener('click', () => {
+                this.toggleClustering();
+            });
+        }
 
         // Event search functionality
         document.getElementById('eventSearch').addEventListener('input', (e) => {
@@ -1868,7 +1965,12 @@ class DisasterMap {
                 .filter(value => value !== ''); // Remove empty values (All Countries)
             console.log(`Selected countries: [${this.selectedHealthCountries.join(', ')}]`);
             console.log(`Total health facilities: ${this.healthFacilities.length}`);
-            
+
+            // Update clustering based on country selection
+            if (this.disableClusteringOnCountryFilter) {
+                this.recreateClusterGroup();
+            }
+
             // Debug: Show some sample countries from the data
             const sampleCountries = this.healthFacilities.slice(0, 10).map(f => f.country);
             console.log(`Sample countries:`, sampleCountries);
