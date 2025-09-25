@@ -12,7 +12,7 @@ body {
         "header"
         "map"
         "footer";
-    grid-template-rows: 60px 1fr 40px;
+    grid-template-rows: 70px 1fr 40px;
     grid-template-columns: 1fr;
 }
 
@@ -39,8 +39,8 @@ body {
 }
 
 .ifrc-logo {
-    max-height: 36px;
-    max-width: 120px;
+    max-height: 50px;
+    max-width: 140px;
     height: auto;
     width: auto;
     flex-shrink: 0;
@@ -299,7 +299,7 @@ body.fullscreen-mode .sidebar-drawer {
 /* Sidebar Drawer Styles */
 .sidebar-drawer {
     position: fixed;
-    top: 60px; /* Account for header height (roughly 60px with padding) */
+    top: 70px; /* Account for header height (roughly 70px with padding) */
     bottom: 50px; /* Account for footer height (roughly 50px with padding) */
     right: 0;
     width: 350px;
@@ -1044,7 +1044,7 @@ body.fullscreen-mode .sidebar-drawer {
             "header"
             "map"
             "sidebar";
-        grid-template-rows: 60px 60vh 1fr;
+        grid-template-rows: 70px 60vh 1fr;
         grid-template-columns: 1fr;
     }
     
