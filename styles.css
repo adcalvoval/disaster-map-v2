@@ -12,7 +12,7 @@ body {
         "header"
         "map"
         "footer";
-    grid-template-rows: 70px 1fr 40px;
+    grid-template-rows: 60px 1fr 40px;
     grid-template-columns: 1fr;
 }
 
@@ -22,20 +22,10 @@ body {
     color: white;
     padding: 10px 20px;
     display: flex;
-    justify-content: space-between;
-    align-items: stretch;
+    justify-content: center;
+    align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     position: relative;
-    overflow: visible;
-    min-height: 50px;
-}
-
-.header-center {
-    flex: 1;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .header h1 {
@@ -44,15 +34,15 @@ body {
 }
 
 .ifrc-logo {
-    height: 50px;
+    position: absolute;
+    left: 20px;
+    height: 40px;
     width: auto;
-    flex-shrink: 0;
-    object-fit: contain;
-    display: block;
-    align-self: center;
 }
 
 .sidebar-toggle {
+    position: absolute;
+    right: 20px;
     background: #3498db;
     color: white;
     border: none;
@@ -64,8 +54,6 @@ body {
     align-items: center;
     gap: 6px;
     transition: all 0.2s ease;
-    flex-shrink: 0;
-    align-self: center;
 }
 
 .sidebar-toggle:hover {
@@ -305,7 +293,7 @@ body.fullscreen-mode .sidebar-drawer {
 /* Sidebar Drawer Styles */
 .sidebar-drawer {
     position: fixed;
-    top: 70px; /* Account for header height (roughly 70px with padding) */
+    top: 60px; /* Account for header height (roughly 60px with padding) */
     bottom: 50px; /* Account for footer height (roughly 50px with padding) */
     right: 0;
     width: 350px;
@@ -1050,7 +1038,7 @@ body.fullscreen-mode .sidebar-drawer {
             "header"
             "map"
             "sidebar";
-        grid-template-rows: 70px 60vh 1fr;
+        grid-template-rows: 60px 60vh 1fr;
         grid-template-columns: 1fr;
     }
     
