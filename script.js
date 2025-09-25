@@ -1825,8 +1825,8 @@ class DisasterMap {
                 // Create red cross icon
                 const redCrossIcon = L.divIcon({
                     html: `<div style="
-                        background-color: #dc2626;
-                        color: white;
+                        background-color: white;
+                        color: #dc2626;
                         width: 24px;
                         height: 24px;
                         border-radius: 50%;
@@ -1835,7 +1835,7 @@ class DisasterMap {
                         justify-content: center;
                         font-size: 16px;
                         font-weight: bold;
-                        border: 2px solid white;
+                        border: 2px solid #dc2626;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                     ">✚</div>`,
                     className: 'eru-marker',
