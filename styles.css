@@ -39,9 +39,12 @@ body {
 }
 
 .ifrc-logo {
-    height: 40px;
+    max-height: 36px;
+    max-width: 120px;
+    height: auto;
     width: auto;
     flex-shrink: 0;
+    object-fit: contain;
 }
 
 .sidebar-toggle {
