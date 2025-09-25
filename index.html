@@ -41,10 +41,6 @@
                     Show Disaster Events
                 </label>
                 <label class="checkbox-label">
-                    <input type="checkbox" id="showConflictEvents">
-                    Show Conflict Events
-                </label>
-                <label class="checkbox-label">
                     <input type="checkbox" id="showImpactZones">
                     Show Impact Zones
                 </label>
@@ -191,49 +187,6 @@
         </div>
     </div>
 
-    <!-- Conflict Events Controls -->
-    <div id="conflictEventsControls" class="conflict-controls" style="display: none;">
-        <div class="controls-header">
-            <div class="header-with-toggle">
-                <h4>Conflict Events</h4>
-                <button id="toggleConflictControls" class="toggle-btn" title="Collapse/Expand Conflict Events">+</button>
-            </div>
-        </div>
-        <div id="conflictControlsContent" class="collapsible-content collapsed">
-            <div class="conflict-legend">
-                <div class="legend-item">
-                    <input type="checkbox" id="show-political-violence" checked>
-                    <span class="legend-icon" style="background: #dc2626;">⚔️</span>
-                    <label for="show-political-violence">Political Violence</label>
-                </div>
-                <div class="legend-item">
-                    <input type="checkbox" id="show-battles" checked>
-                    <span class="legend-icon" style="background: #b91c1c;">💥</span>
-                    <label for="show-battles">Battles</label>
-                </div>
-                <div class="legend-item">
-                    <input type="checkbox" id="show-protests" checked>
-                    <span class="legend-icon" style="background: #f59e0b;">✊</span>
-                    <label for="show-protests">Protests</label>
-                </div>
-                <div class="legend-item">
-                    <input type="checkbox" id="show-riots" checked>
-                    <span class="legend-icon" style="background: #ef4444;">🔥</span>
-                    <label for="show-riots">Riots</label>
-                </div>
-                <div class="legend-item">
-                    <input type="checkbox" id="show-explosions" checked>
-                    <span class="legend-icon" style="background: #7c2d12;">💣</span>
-                    <label for="show-explosions">Explosions/Remote Violence</label>
-                </div>
-                <div class="legend-item">
-                    <input type="checkbox" id="show-violence-civilians" checked>
-                    <span class="legend-icon" style="background: #991b1b;">🚨</span>
-                    <label for="show-violence-civilians">Violence Against Civilians</label>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div id="map">
         <button id="fullscreenToggle" class="fullscreen-toggle" title="Toggle Fullscreen">
@@ -263,21 +216,7 @@
                 </div>
             </div>
 
-            <!-- Conflict Events Section -->
-            <div class="conflict-section drawer-section">
-                <div class="section-header">
-                    <h3>Conflict Events</h3>
-                    <div class="search-container">
-                        <input type="text" id="conflictSearch" placeholder="Search conflicts..." class="search-input">
-                        <button id="clearConflictSearch" class="clear-search-btn" style="display: none;">×</button>
-                    </div>
-                </div>
-                <div id="conflictList" class="section-list">
-                    Loading conflict events...
-                </div>
-            </div>
-
-            <!-- RCRC Facilities Section -->
+<!-- RCRC Facilities Section -->
             <div id="impactFacilitiesSection" class="facilities-section drawer-section">
                 <div class="section-header">
                     <h3>RCRC Health Facilities</h3>
