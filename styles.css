@@ -22,10 +22,15 @@ body {
     color: white;
     padding: 10px 20px;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     position: relative;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center;
 }
 
 .header h1 {
@@ -34,21 +39,12 @@ body {
 }
 
 .ifrc-logo {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
     height: 40px;
     width: auto;
-    z-index: 100;
-    display: block;
-    visibility: visible;
-    opacity: 1;
+    flex-shrink: 0;
 }
 
 .sidebar-toggle {
-    position: absolute;
-    right: 20px;
     background: #3498db;
     color: white;
     border: none;
@@ -60,6 +56,7 @@ body {
     align-items: center;
     gap: 6px;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .sidebar-toggle:hover {
