@@ -38,30 +38,10 @@ body {
     margin: 0;
 }
 
-.logo-container {
-    flex-shrink: 0;
-    height: 40px;
-    display: flex;
-    align-items: center;
-}
-
 .ifrc-logo {
     height: 40px;
     width: auto;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
-    padding: 2px;
-}
-
-.text-logo {
-    color: white;
-    font-weight: bold;
-    font-size: 1.5rem;
-    padding: 8px 12px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
+    flex-shrink: 0;
 }
 
 .sidebar-toggle {
