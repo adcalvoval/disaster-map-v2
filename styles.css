@@ -36,8 +36,11 @@ body {
 .ifrc-logo {
     position: absolute;
     left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
     height: 40px;
     width: auto;
+    z-index: 100;
 }
 
 .sidebar-toggle {
