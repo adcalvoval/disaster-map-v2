@@ -1297,15 +1297,27 @@ class DisasterMap {
     }
 
     displayImpactZones() {
-        if (!this.showImpactZones) return;
-        
+        console.log(`🗺️ displayImpactZones called - showImpactZones: ${this.showImpactZones}, zones: ${this.impactZones.length}`);
+
+        if (!this.showImpactZones) {
+            console.log('🚫 Not showing impact zones - returning early');
+            return;
+        }
+
+        if (this.impactZones.length === 0) {
+            console.warn('⚠️ No impact zones to display');
+            return;
+        }
+
         // Remove existing impact zone layer
         if (this.impactZoneLayer) {
             this.map.removeLayer(this.impactZoneLayer);
+            console.log('🗑️ Removed existing impact zone layer');
         }
-        
+
         // Create a layer group for impact zones
         this.impactZoneLayer = L.layerGroup();
+        console.log(`📍 Creating layer group for ${this.impactZones.length} impact zones`);
         
         this.impactZones.forEach(zone => {
             let layer;
@@ -1379,15 +1391,27 @@ class DisasterMap {
     }
 
     toggleImpactZones() {
+        console.log(`🎯 Toggle impact zones: ${this.showImpactZones ? 'ON' : 'OFF'}`);
+        console.log(`📊 Impact zones available: ${this.impactZones.length}`);
+
         if (this.showImpactZones) {
+            if (this.impactZones.length === 0) {
+                console.warn('⚠️ No impact zones data available. Trying to reload...');
+                this.loadImpactZones();
+                return;
+            }
+
             // If a disaster is selected, show only impact zones for that disaster
             if (this.selectedEventId) {
+                console.log(`🎯 Filtering impact zones for event: ${this.selectedEventId}`);
                 this.filterImpactZonesForEvent(this.selectedEventId);
             } else {
                 // Show all impact zones
+                console.log(`🌍 Displaying all ${this.impactZones.length} impact zones`);
                 this.displayImpactZones();
             }
         } else {
+            console.log(`🚫 Hiding impact zones`);
             if (this.impactZoneLayer) {
                 this.map.removeLayer(this.impactZoneLayer);
             }
