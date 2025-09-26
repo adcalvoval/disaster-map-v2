@@ -1259,7 +1259,10 @@ class DisasterMap {
         if (this.showImpactZones && this.impactZones.length > 0) {
             this.addImpactZonesToMap();
         }
-        
+
+        // Reset to global view
+        this.map.setView([20, 0], 2);
+
         // Update facilities list
         this.updateImpactFacilitiesList();
     }
