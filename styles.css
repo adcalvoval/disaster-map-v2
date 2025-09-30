@@ -226,6 +226,7 @@ body.fullscreen-mode #map {
 body.fullscreen-mode .health-controls,
 body.fullscreen-mode .disaster-controls,
 body.fullscreen-mode .conflict-controls,
+body.fullscreen-mode .schools-controls,
 body.fullscreen-mode .map-controls-section,
 body.fullscreen-mode .sidebar-drawer {
     display: none !important;
@@ -752,6 +753,69 @@ body.fullscreen-mode .sidebar-drawer {
     border-radius: 12px;
     font-size: 0.7rem;
     font-weight: bold;
+}
+
+/* Schools Controls */
+.schools-controls {
+    background: #34495e;
+    border: 1px solid #5a6c7d;
+    border-radius: 6px;
+    padding: 12px;
+    position: absolute;
+    bottom: 60px;
+    left: 1220px;
+    width: 280px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.schools-controls .schools-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.schools-controls .legend-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.schools-controls .legend-item:hover {
+    background-color: #4a5f7a;
+}
+
+.schools-controls .legend-item input[type="checkbox"] {
+    margin-right: 6px;
+    cursor: pointer;
+}
+
+.schools-controls .legend-item label {
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-left: 4px;
+    flex: 1;
+    line-height: 1.2;
+}
+
+.schools-controls .legend-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    margin-right: 4px;
+    border: 1px solid white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 /* Collapsible health controls */
