@@ -8,6 +8,14 @@
   ],
   "routes": [
     {
+      "src": "/js/(.*\\.js)",
+      "dest": "/server.js",
+      "headers": {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/server.js"
     },
