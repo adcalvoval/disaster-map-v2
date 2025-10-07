@@ -1110,6 +1110,13 @@ app.get('/api/gdacs-events', async (req, res) => {
             console.error('Error fetching RSS events:', error);
         }
 
+        // Filter out drought events
+        events = events.filter(e => {
+            const isDrought = e.type === 'Drought' ||
+                            (e.title && e.title.toLowerCase().includes('drought'));
+            return !isDrought;
+        });
+
         // Filter by alert level if specified
         if (alertLevel && alertLevel !== '') {
             events = events.filter(e => e.alertLevel && e.alertLevel.toUpperCase() === alertLevel.toUpperCase());
