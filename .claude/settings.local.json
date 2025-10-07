@@ -16,7 +16,10 @@
       "WebFetch(domain:disaster-map-v3.vercel.app)",
       "Bash(node:*)",
       "Bash(git checkout:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "WebFetch(domain:disaster-map-v4.vercel.app)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

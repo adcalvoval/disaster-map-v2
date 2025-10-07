@@ -1077,7 +1077,7 @@ app.get('/api/rapid-response-personnel', async (req, res) => {
     }
 });
 
-// GDACS Events endpoint (alias for /api/disasters)
+// GDACS Events endpoint - combines API (Orange/Red) and RSS (all levels including Green)
 app.get('/api/gdacs-events', async (req, res) => {
     try {
         const { source = 'ALL', alertLevel = '', from = '', to = '' } = req.query;
@@ -1086,11 +1086,32 @@ app.get('/api/gdacs-events', async (req, res) => {
 
         let events = [];
 
+        // Try GDACS API first (gets Orange and Red alerts)
         try {
             const gdacsEvents = await gdacsProxy.fetchGDACSData(source, alertLevel, from, to);
             events.push(...gdacsEvents);
+            console.log(`Got ${gdacsEvents.length} events from GDACS API`);
         } catch (error) {
-            console.error('Error fetching GDACS events:', error);
+            console.error('Error fetching GDACS API events:', error);
+        }
+
+        // Also fetch from RSS to get Green alerts and additional events
+        try {
+            const rssEvents = await gdacsProxy.fetchRSSData(from, to);
+            console.log(`Got ${rssEvents.length} events from RSS feed`);
+
+            // Merge with API events, avoiding duplicates
+            const existingIds = new Set(events.map(e => e.id));
+            const newRssEvents = rssEvents.filter(e => !existingIds.has(e.id));
+            events.push(...newRssEvents);
+            console.log(`Added ${newRssEvents.length} new events from RSS`);
+        } catch (error) {
+            console.error('Error fetching RSS events:', error);
+        }
+
+        // Filter by alert level if specified
+        if (alertLevel && alertLevel !== '') {
+            events = events.filter(e => e.alertLevel && e.alertLevel.toUpperCase() === alertLevel.toUpperCase());
         }
 
         events.sort((a, b) => new Date(b.date) - new Date(a.date));
