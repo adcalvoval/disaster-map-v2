@@ -1,7 +1,7 @@
 // Main entry point for the modularized application
 import { DisasterMap } from './disaster-map.js';
 
-// Global app instance for backward compatibility
+// Global app instance
 let app;
 
 // Initialize the application when DOM is loaded
@@ -19,6 +19,3 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('❌ Failed to initialize Disaster Map Application:', error);
     }
 });
-
-// Export for module usage
-export { app };
