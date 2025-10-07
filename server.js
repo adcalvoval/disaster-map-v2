@@ -302,13 +302,14 @@ class GDACSProxy {
                 };
             });
 
-            // Filter by alert level if specified
-            let filteredEvents = allEvents;
+            // Filter by alert level if specified and remove drought events
+            let filteredEvents = allEvents.filter(e => e.type !== 'Drought');
+
             if (alertLevel && alertLevel !== '') {
-                filteredEvents = allEvents.filter(e => e.alertLevel === alertLevel);
+                filteredEvents = filteredEvents.filter(e => e.alertLevel === alertLevel);
             }
 
-            console.log(`📊 Returning ${filteredEvents.length} events after filtering`);
+            console.log(`📊 Returning ${filteredEvents.length} events after filtering (excluded droughts)`);
             return filteredEvents;
         } catch (error) {
             console.error('❌ Error fetching GDACS data:', error.message);
