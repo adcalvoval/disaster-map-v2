@@ -121,8 +121,7 @@ export class RapidResponseManager {
 
                 const tooltipContent = `
                     <div class="personnel-tooltip">
-                        <div class="tooltip-header">🧑‍🚒 Rapid Response Personnel</div>
-                        <div><strong>Role:</strong> ${person.jobTitle}</div>
+                        <div class="tooltip-header">${person.jobTitle}</div>
                         <div><strong>Crisis:</strong> ${person.crisis}</div>
                         <div><strong>Deploying Society:</strong> ${person.deployingNationalSociety}</div>
                         <div><strong>Deployed To:</strong> ${person.deployedToCountry}</div>
