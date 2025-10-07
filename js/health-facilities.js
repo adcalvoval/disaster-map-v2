@@ -143,7 +143,8 @@ export class HealthFacilities {
                     .bindTooltip(tooltipContent, {
                         permanent: false,
                         direction: 'top',
-                        offset: [0, -10]
+                        offset: [0, -10],
+                        className: 'health-facility-tooltip'
                     });
 
                 marker.facilityData = facility;
