@@ -23,21 +23,10 @@ export class DisasterEvents {
 
             const result = await this.fetchGDACSData();
 
-            if (result.success && result.events && result.events.length > 0) {
+            if (result.success && result.events) {
                 this.disasters = result.events;
                 console.log(`✅ Loaded ${this.disasters.length} disaster events from backend`);
 
-                if (this.showAffectedAreas) {
-                    this.addMarkersToMap(this.disasters);
-                    this.addAffectedAreasToMap(this.disasters);
-                    this.displayEvents(this.disasters);
-                }
-            } else {
-                // No real events available, use sample data
-                console.log('No real disaster events available, using sample data');
-                document.getElementById('eventList').innerHTML = '<div class="loading">No current disasters from GDACS. Displaying sample data...</div>';
-
-                this.disasters = this.getSampleData();
                 if (this.showAffectedAreas) {
                     this.addMarkersToMap(this.disasters);
                     this.addAffectedAreasToMap(this.disasters);
