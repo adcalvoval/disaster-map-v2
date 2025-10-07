@@ -368,9 +368,9 @@ export class HealthFacilities {
     toggleClustering() {
         this.clusteringEnabled = !this.clusteringEnabled;
 
-        const clusterBtn = document.querySelector('.cluster-toggle-btn');
+        const clusterBtn = document.getElementById('toggle-clustering-btn');
         if (clusterBtn) {
-            clusterBtn.textContent = this.clusteringEnabled ? 'Disable Clustering' : 'Enable Clustering';
+            clusterBtn.textContent = this.clusteringEnabled ? '🔗 Disable Clustering' : '🔗 Enable Clustering';
             clusterBtn.classList.toggle('disabled', !this.clusteringEnabled);
         }
 

@@ -50,7 +50,7 @@ export class UIControls {
         }
 
         // Clustering toggle
-        const clusteringBtn = document.querySelector('.cluster-toggle-btn');
+        const clusteringBtn = document.getElementById('toggle-clustering-btn');
         if (clusteringBtn) {
             clusteringBtn.addEventListener('click', () => {
                 this.disasterMap.healthFacilities.toggleClustering();
