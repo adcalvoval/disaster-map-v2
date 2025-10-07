@@ -29,8 +29,9 @@ app.get('/IFRC-Logo.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'IFRC-Logo.png'));
 });
 
-// Serve JS modules
+// Serve JS modules with correct MIME type
 app.get('/js/:filename', (req, res) => {
+    res.type('application/javascript');
     res.sendFile(path.join(__dirname, 'js', req.params.filename));
 });
 
