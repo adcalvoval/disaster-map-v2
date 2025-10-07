@@ -8,7 +8,8 @@ export class HealthFacilities {
         this.healthFacilities = [];
         this.healthFacilityMarkers = [];
         this.healthFacilitiesCluster = null;
-        this.showHealthFacilities = true;
+        this.showHealthFacilities = false;
+        this.dataLoaded = false; // Track if data has been loaded
         this.selectedHealthCountries = [];
         this.selectedHealthFunctionalities = [];
         this.selectedHealthFacilityTypes = {
@@ -24,6 +25,11 @@ export class HealthFacilities {
     }
 
     async loadHealthFacilities() {
+        // Skip loading if already loaded or not showing
+        if (this.dataLoaded) {
+            return;
+        }
+
         try {
             console.log('Loading RCRC health facilities...');
 
@@ -32,6 +38,7 @@ export class HealthFacilities {
 
             if (result.success && result.facilities) {
                 this.healthFacilities = result.facilities;
+                this.dataLoaded = true;
                 console.log(`✅ Loaded ${this.healthFacilities.length} health facilities from IFRC API`);
 
                 if (this.showHealthFacilities) {
@@ -253,9 +260,14 @@ export class HealthFacilities {
         this.healthFacilityMarkers = [];
     }
 
-    toggleHealthFacilities() {
+    async toggleHealthFacilities() {
         if (this.showHealthFacilities) {
-            this.addHealthFacilitiesToMap();
+            // Load data on first toggle if not already loaded
+            if (!this.dataLoaded) {
+                await this.loadHealthFacilities();
+            } else {
+                this.addHealthFacilitiesToMap();
+            }
         } else {
             this.clearHealthFacilityMarkers();
         }

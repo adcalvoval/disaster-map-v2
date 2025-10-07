@@ -50,11 +50,10 @@ export class DisasterMap {
     }
 
     async loadData() {
-        // Load all data sources
+        // Load all data sources (health facilities loaded on-demand when user enables them)
         await Promise.all([
             this.disasterEvents.loadDisasterData(),
             this.loadImpactZones(),
-            this.healthFacilities.loadHealthFacilities(),
             this.eruManager.loadActiveERUs(),
             this.rapidResponseManager.loadRapidResponsePersonnel()
         ]);
