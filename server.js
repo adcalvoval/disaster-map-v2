@@ -1263,11 +1263,11 @@ app.get('/api/health-facilities', async (req, res) => {
             previous: data.previous,
             facilities: transformedFacilities,
             pagination: {
-                limit: parseInt(limit),
-                offset: parseInt(offset),
+                limit: params.limit,
+                offset: params.offset,
                 has_next: !!data.next,
                 has_previous: !!data.previous,
-                total_pages: Math.ceil(data.count / parseInt(limit))
+                total_pages: Math.ceil(data.count / params.limit)
             },
             filtered_info: {
                 original_count: data.results.length,
