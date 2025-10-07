@@ -1,4 +1,6 @@
 // Rapid Response Personnel Management
+import { Utils } from './utils.js';
+
 export class RapidResponseManager {
     constructor(map, config) {
         this.map = map;
@@ -114,8 +116,8 @@ export class RapidResponseManager {
                 });
 
                 // Create tooltip content
-                const startDate = person.startDate ? new Date(person.startDate).toLocaleDateString() : 'Unknown';
-                const endDate = person.endDate ? new Date(person.endDate).toLocaleDateString() : 'Ongoing';
+                const startDate = Utils.formatDate(person.startDate);
+                const endDate = person.endDate ? Utils.formatDate(person.endDate) : 'Ongoing';
 
                 const tooltipContent = `
                     <div class="personnel-tooltip">

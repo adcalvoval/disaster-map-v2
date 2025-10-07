@@ -1,4 +1,6 @@
 // Disaster Events Management
+import { Utils } from './utils.js';
+
 export class DisasterEvents {
     constructor(map, config) {
         this.map = map;
@@ -238,7 +240,7 @@ export class DisasterEvents {
                         <h3>${event.title}</h3>
                         <p><strong>Type:</strong> ${event.type}</p>
                         <p><strong>Alert Level:</strong> <span class="alert-${event.alertLevel.toLowerCase()}">${event.alertLevel}</span></p>
-                        <p><strong>Date:</strong> ${event.date}</p>
+                        <p><strong>Date:</strong> ${Utils.formatDate(event.date)}</p>
                         <p>${event.description}</p>
                     </div>
                 `);

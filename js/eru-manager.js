@@ -1,4 +1,6 @@
 // Emergency Response Units Management
+import { Utils } from './utils.js';
+
 export class ERUManager {
     constructor(map, config) {
         this.map = map;
@@ -110,7 +112,7 @@ export class ERUManager {
                 });
 
                 // Create tooltip content
-                const startDate = eru.start_date ? new Date(eru.start_date).toLocaleDateString() : 'Unknown';
+                const startDate = Utils.formatDate(eru.start_date);
                 const tooltipContent = `
                     <div class="eru-tooltip">
                         <strong>Emergency Response Unit</strong><br>

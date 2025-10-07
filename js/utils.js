@@ -1,5 +1,23 @@
 // Utility functions and helpers
 export class Utils {
+    // Format date to DD/MM/YYYY
+    static formatDate(dateString) {
+        if (!dateString) return 'N/A';
+
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString; // Return original if invalid
+
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+
+            return `${day}/${month}/${year}`;
+        } catch (error) {
+            return dateString; // Return original if error
+        }
+    }
+
     static getRegionForCountry(country) {
         const regions = {
             'Africa': ['Democratic Republic of the Congo', 'Chad', 'Central African Republic', 'Niger', 'Mali', 'South Sudan',
