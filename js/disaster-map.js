@@ -11,8 +11,8 @@ export class DisasterMap {
     constructor() {
         // Configuration
         this.config = {
-            defaultCenter: [-4.0383, 21.7587],
-            defaultZoom: 6
+            defaultCenter: [20, 0],  // Center on equator, prime meridian
+            defaultZoom: 2  // World view
         };
 
         // Impact zones data

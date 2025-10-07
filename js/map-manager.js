@@ -9,10 +9,10 @@ export class MapManager {
     }
 
     initMap() {
-        // Initialize the map with the center over DRC
+        // Initialize the map with world view
         this.map = L.map('map', {
             zoomControl: false
-        }).setView([-4.0383, 21.7587], 6);
+        }).setView(this.config.defaultCenter, this.config.defaultZoom);
 
         // Add custom zoom control to bottom-right
         L.control.zoom({
