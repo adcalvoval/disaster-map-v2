@@ -49,6 +49,14 @@ export class UIControls {
             });
         }
 
+        // Disaster controls collapse
+        const toggleDisasterControlsBtn = document.getElementById('toggleDisasterControls');
+        if (toggleDisasterControlsBtn) {
+            toggleDisasterControlsBtn.addEventListener('click', () => {
+                this.toggleDisasterControlsCollapse();
+            });
+        }
+
         // Clustering toggle
         const clusteringBtn = document.getElementById('toggle-clustering-btn');
         if (clusteringBtn) {
@@ -233,15 +241,12 @@ export class UIControls {
     }
 
     toggleDisasterControlsCollapse() {
-        const disasterControlsBox = document.querySelector('.disaster-controls-box');
-        if (disasterControlsBox) {
-            const content = disasterControlsBox.querySelector('.controls-content');
-            const toggleBtn = disasterControlsBox.querySelector('.collapse-toggle');
+        const content = document.getElementById('disasterControlsContent');
+        const toggleBtn = document.getElementById('toggleDisasterControls');
 
-            if (content && toggleBtn) {
-                content.classList.toggle('collapsed');
-                toggleBtn.textContent = content.classList.contains('collapsed') ? '+' : '−';
-            }
+        if (content && toggleBtn) {
+            content.classList.toggle('collapsed');
+            toggleBtn.textContent = content.classList.contains('collapsed') ? '+' : '−';
         }
     }
 
