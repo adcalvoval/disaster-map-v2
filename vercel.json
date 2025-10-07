@@ -4,16 +4,32 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "js/**/*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "styles.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "IFRC-Logo.png",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/js/(.*)",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/css/(.*)",
-      "dest": "/server.js"
+      "src": "/js/(.*\\.js)",
+      "dest": "/js/$1",
+      "headers": {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
     },
     {
       "src": "/api/(.*)",
