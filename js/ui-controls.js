@@ -73,11 +73,15 @@ export class UIControls {
         });
 
         // Sidebar toggle
-        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarToggle = document.getElementById('toggleSidebar');
         if (sidebarToggle) {
+            console.log('✅ Sidebar toggle button found, attaching event listener');
             sidebarToggle.addEventListener('click', () => {
+                console.log('🖱️ Sidebar toggle clicked');
                 this.toggleSidebar();
             });
+        } else {
+            console.warn('❌ Sidebar toggle button not found');
         }
 
         // Drawer close button
@@ -184,9 +188,13 @@ export class UIControls {
 
     toggleSidebar() {
         const drawer = document.getElementById('sidebarDrawer');
+        console.log('toggleSidebar called, drawer found:', !!drawer);
 
         if (drawer) {
             drawer.classList.toggle('open');
+            console.log('Drawer classes after toggle:', drawer.className);
+        } else {
+            console.error('❌ sidebarDrawer element not found');
         }
     }
 
