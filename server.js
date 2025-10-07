@@ -282,13 +282,25 @@ class GDACSProxy {
 
             console.log(`✅ Retrieved ${response.data.features.length} events from GDACS`);
 
-            // Transform GDACS GeoJSON to our format and filter for current events only
+            // Calculate date 7 days ago for filtering recent events
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            // Transform GDACS GeoJSON to our format and filter
             const allEvents = response.data.features
                 .filter(feature => {
-                    // Only include current, active disasters
-                    const isCurrent = feature.properties.iscurrent === 'true' || feature.properties.iscurrent === true;
-                    const isTemporary = feature.properties.istemporary === 'true' || feature.properties.istemporary === true;
-                    return isCurrent && !isTemporary;
+                    const props = feature.properties;
+
+                    // Include if: current OR recent (last 7 days)
+                    const isCurrent = props.iscurrent === 'true' || props.iscurrent === true;
+                    const isTemporary = props.istemporary === 'true' || props.istemporary === true;
+
+                    // Check if event is recent (within last 7 days)
+                    const eventDate = new Date(props.fromdate);
+                    const isRecent = eventDate >= sevenDaysAgo;
+
+                    // Include current events, OR recent events that aren't temporary
+                    return (isCurrent || isRecent) && !isTemporary;
                 })
                 .map(feature => {
                     const props = feature.properties;
@@ -316,7 +328,7 @@ class GDACSProxy {
                 filteredEvents = filteredEvents.filter(e => e.alertLevel === alertLevel);
             }
 
-            console.log(`📊 Returning ${filteredEvents.length} current, active disaster events (excluded droughts)`);
+            console.log(`📊 Returning ${filteredEvents.length} disaster events (current or from last 7 days, excluded droughts)`);
             return filteredEvents;
         } catch (error) {
             console.error('❌ Error fetching GDACS data:', error.message);
