@@ -49,9 +49,6 @@ export class MapManager {
             imperial: false
         }).addTo(this.map);
 
-        // Custom control for satellite date caption
-        this.createSatelliteDateCaption("Satellite imagery may be up to 3 years old");
-
         return this.map;
     }
 
