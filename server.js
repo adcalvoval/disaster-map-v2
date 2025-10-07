@@ -282,6 +282,10 @@ class GDACSProxy {
 
             console.log(`✅ Retrieved ${response.data.features.length} events from GDACS`);
 
+            // Calculate date 30 days ago for filtering recent events only
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
             // Transform GDACS GeoJSON to our format
             const allEvents = response.data.features.map(feature => {
                 const props = feature.properties;
@@ -302,14 +306,19 @@ class GDACSProxy {
                 };
             });
 
-            // Filter by alert level if specified and remove drought events
-            let filteredEvents = allEvents.filter(e => e.type !== 'Drought');
+            // Filter by date (last 30 days), alert level, and remove drought events
+            let filteredEvents = allEvents.filter(e => {
+                const eventDate = new Date(e.date);
+                const isRecent = eventDate >= thirtyDaysAgo;
+                const isDrought = e.type === 'Drought';
+                return isRecent && !isDrought;
+            });
 
             if (alertLevel && alertLevel !== '') {
                 filteredEvents = filteredEvents.filter(e => e.alertLevel === alertLevel);
             }
 
-            console.log(`📊 Returning ${filteredEvents.length} events after filtering (excluded droughts)`);
+            console.log(`📊 Returning ${filteredEvents.length} recent events (last 30 days, excluded droughts)`);
             return filteredEvents;
         } catch (error) {
             console.error('❌ Error fetching GDACS data:', error.message);
@@ -973,10 +982,10 @@ app.get('/api/disasters', async (req, res) => {
                 console.warn('RSS feed also failed:', rssError.message);
             }
         }
-        
+
+        // Don't use sample data - only return real data from GDACS
         if (events.length === 0) {
-            console.log('All external sources failed, using sample data for demonstration');
-            events = gdacsProxy.getSampleData();
+            console.log('⚠️ No events available from GDACS API or RSS feed');
         }
 
         if (alertLevel) {
