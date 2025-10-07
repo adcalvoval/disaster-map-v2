@@ -29,6 +29,16 @@ app.get('/IFRC-Logo.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'IFRC-Logo.png'));
 });
 
+// Serve JS modules
+app.get('/js/:filename', (req, res) => {
+    res.sendFile(path.join(__dirname, 'js', req.params.filename));
+});
+
+// Serve images
+app.get('/images/:filename', (req, res) => {
+    res.sendFile(path.join(__dirname, 'images', req.params.filename));
+});
+
 const parser = new xml2js.Parser();
 
 class PopulationEstimator {
