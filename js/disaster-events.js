@@ -189,9 +189,15 @@ export class DisasterEvents {
     }
 
     sortEventsByAlertLevel(events) {
-        const alertLevelPriority = { 'Red': 0, 'Orange': 1, 'Green': 2 };
+        const alertLevelPriority = {
+            'RED': 0, 'Red': 0,
+            'ORANGE': 1, 'Orange': 1,
+            'GREEN': 2, 'Green': 2
+        };
         return events.sort((a, b) => {
-            return alertLevelPriority[a.alertLevel] - alertLevelPriority[b.alertLevel];
+            const aPriority = alertLevelPriority[a.alertLevel] !== undefined ? alertLevelPriority[a.alertLevel] : 2;
+            const bPriority = alertLevelPriority[b.alertLevel] !== undefined ? alertLevelPriority[b.alertLevel] : 2;
+            return aPriority - bPriority;
         });
     }
 
@@ -284,8 +290,11 @@ export class DisasterEvents {
 
     getAlertColor(alertLevel) {
         const colors = {
+            'RED': '#dc2626',
             'Red': '#dc2626',
+            'ORANGE': '#ea580c',
             'Orange': '#ea580c',
+            'GREEN': '#16a34a',
             'Green': '#16a34a'
         };
         return colors[alertLevel] || colors['Green'];
