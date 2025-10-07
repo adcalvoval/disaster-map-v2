@@ -282,43 +282,41 @@ class GDACSProxy {
 
             console.log(`✅ Retrieved ${response.data.features.length} events from GDACS`);
 
-            // Calculate date 30 days ago for filtering recent events only
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            // Transform GDACS GeoJSON to our format and filter for current events only
+            const allEvents = response.data.features
+                .filter(feature => {
+                    // Only include current, active disasters
+                    const isCurrent = feature.properties.iscurrent === 'true' || feature.properties.iscurrent === true;
+                    const isTemporary = feature.properties.istemporary === 'true' || feature.properties.istemporary === true;
+                    return isCurrent && !isTemporary;
+                })
+                .map(feature => {
+                    const props = feature.properties;
+                    const coords = feature.geometry.coordinates;
 
-            // Transform GDACS GeoJSON to our format
-            const allEvents = response.data.features.map(feature => {
-                const props = feature.properties;
-                const coords = feature.geometry.coordinates;
+                    return {
+                        id: `${props.eventtype}-${props.eventid}`,
+                        title: props.name || props.eventname || 'Unnamed Event',
+                        description: props.description || props.htmldescription || '',
+                        type: this.mapEventType(props.eventtype),
+                        alertLevel: this.normalizeAlertLevel(props.alertlevel),
+                        coordinates: [coords[1], coords[0]], // GeoJSON is [lng, lat], we need [lat, lng]
+                        severity: props.episodealertscore || 0,
+                        affectedRadius: this.calculateRadius(props.eventtype, props.episodealertscore),
+                        date: props.fromdate || new Date().toISOString(),
+                        country: props.country || '',
+                        source: 'GDACS'
+                    };
+                });
 
-                return {
-                    id: `${props.eventtype}-${props.eventid}`,
-                    title: props.name || props.eventname || 'Unnamed Event',
-                    description: props.description || props.htmldescription || '',
-                    type: this.mapEventType(props.eventtype),
-                    alertLevel: this.normalizeAlertLevel(props.alertlevel),
-                    coordinates: [coords[1], coords[0]], // GeoJSON is [lng, lat], we need [lat, lng]
-                    severity: props.episodealertscore || 0,
-                    affectedRadius: this.calculateRadius(props.eventtype, props.episodealertscore),
-                    date: props.fromdate || new Date().toISOString(),
-                    country: props.country || '',
-                    source: 'GDACS'
-                };
-            });
-
-            // Filter by date (last 30 days), alert level, and remove drought events
-            let filteredEvents = allEvents.filter(e => {
-                const eventDate = new Date(e.date);
-                const isRecent = eventDate >= thirtyDaysAgo;
-                const isDrought = e.type === 'Drought';
-                return isRecent && !isDrought;
-            });
+            // Filter by alert level and remove drought events
+            let filteredEvents = allEvents.filter(e => e.type !== 'Drought');
 
             if (alertLevel && alertLevel !== '') {
                 filteredEvents = filteredEvents.filter(e => e.alertLevel === alertLevel);
             }
 
-            console.log(`📊 Returning ${filteredEvents.length} recent events (last 30 days, excluded droughts)`);
+            console.log(`📊 Returning ${filteredEvents.length} current, active disaster events (excluded droughts)`);
             return filteredEvents;
         } catch (error) {
             console.error('❌ Error fetching GDACS data:', error.message);
