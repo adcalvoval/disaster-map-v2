@@ -282,22 +282,22 @@ class GDACSProxy {
 
             console.log(`✅ Retrieved ${response.data.features.length} events from GDACS`);
 
-            // Calculate date 7 days ago for filtering recent events
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            // Calculate date 30 days ago for filtering recent events
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
             // Transform GDACS GeoJSON to our format and filter
             const allEvents = response.data.features
                 .filter(feature => {
                     const props = feature.properties;
 
-                    // Include if: current OR recent (last 7 days)
+                    // Include if: current OR recent (last 30 days)
                     const isCurrent = props.iscurrent === 'true' || props.iscurrent === true;
                     const isTemporary = props.istemporary === 'true' || props.istemporary === true;
 
-                    // Check if event is recent (within last 7 days)
+                    // Check if event is recent (within last 30 days)
                     const eventDate = new Date(props.fromdate);
-                    const isRecent = eventDate >= sevenDaysAgo;
+                    const isRecent = eventDate >= thirtyDaysAgo;
 
                     // Include current events, OR recent events that aren't temporary
                     return (isCurrent || isRecent) && !isTemporary;
@@ -328,7 +328,7 @@ class GDACSProxy {
                 filteredEvents = filteredEvents.filter(e => e.alertLevel === alertLevel);
             }
 
-            console.log(`📊 Returning ${filteredEvents.length} disaster events (current or from last 7 days, excluded droughts)`);
+            console.log(`📊 Returning ${filteredEvents.length} disaster events (current or from last 30 days, excluded droughts)`);
             return filteredEvents;
         } catch (error) {
             console.error('❌ Error fetching GDACS data:', error.message);
