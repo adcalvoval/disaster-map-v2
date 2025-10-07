@@ -10,6 +10,22 @@ const PORT = process.env.PORT || 3003;
 
 app.use(cors());
 app.use(express.json());
+
+// Serve JS modules with correct MIME type and no-cache headers BEFORE static middleware
+app.get('/js/:filename', (req, res) => {
+    res.type('application/javascript');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(__dirname, 'js', req.params.filename));
+});
+
+// Serve images
+app.get('/images/:filename', (req, res) => {
+    res.sendFile(path.join(__dirname, 'images', req.params.filename));
+});
+
+// Static file middleware (must come AFTER specific routes)
 app.use(express.static('.'));
 
 // Explicit static file routes for Vercel deployment
@@ -27,20 +43,6 @@ app.get('/index.html', (req, res) => {
 
 app.get('/IFRC-Logo.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'IFRC-Logo.png'));
-});
-
-// Serve JS modules with correct MIME type and no-cache headers
-app.get('/js/:filename', (req, res) => {
-    res.type('application/javascript');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.sendFile(path.join(__dirname, 'js', req.params.filename));
-});
-
-// Serve images
-app.get('/images/:filename', (req, res) => {
-    res.sendFile(path.join(__dirname, 'images', req.params.filename));
 });
 
 const parser = new xml2js.Parser();
