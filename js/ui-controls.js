@@ -34,25 +34,19 @@ export class UIControls {
         }
 
         // Health facilities controls collapse
-        const healthControlsBox = document.querySelector('.health-controls-box');
-        if (healthControlsBox) {
-            const toggleBtn = healthControlsBox.querySelector('.collapse-toggle');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', () => {
-                    this.toggleHealthControlsCollapse();
-                });
-            }
+        const toggleHealthControlsBtn = document.getElementById('toggleHealthControls');
+        if (toggleHealthControlsBtn) {
+            toggleHealthControlsBtn.addEventListener('click', () => {
+                this.toggleHealthControlsCollapse();
+            });
         }
 
         // Map controls collapse
-        const mapControlsBox = document.querySelector('.map-controls-box');
-        if (mapControlsBox) {
-            const toggleBtn = mapControlsBox.querySelector('.collapse-toggle');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', () => {
-                    this.toggleMapControlsCollapse();
-                });
-            }
+        const toggleMapControlsBtn = document.getElementById('toggleMapControls');
+        if (toggleMapControlsBtn) {
+            toggleMapControlsBtn.addEventListener('click', () => {
+                this.toggleMapControlsCollapse();
+            });
         }
 
         // Clustering toggle
@@ -233,15 +227,12 @@ export class UIControls {
     }
 
     toggleHealthControlsCollapse() {
-        const healthControlsBox = document.querySelector('.health-controls-box');
-        if (healthControlsBox) {
-            const content = healthControlsBox.querySelector('.controls-content');
-            const toggleBtn = healthControlsBox.querySelector('.collapse-toggle');
+        const content = document.getElementById('healthControlsContent');
+        const toggleBtn = document.getElementById('toggleHealthControls');
 
-            if (content && toggleBtn) {
-                content.classList.toggle('collapsed');
-                toggleBtn.textContent = content.classList.contains('collapsed') ? '+' : '−';
-            }
+        if (content && toggleBtn) {
+            content.classList.toggle('collapsed');
+            toggleBtn.textContent = content.classList.contains('collapsed') ? '+' : '−';
         }
     }
 
@@ -259,15 +250,12 @@ export class UIControls {
     }
 
     toggleMapControlsCollapse() {
-        const mapControlsBox = document.querySelector('.map-controls-box');
-        if (mapControlsBox) {
-            const content = mapControlsBox.querySelector('.controls-content');
-            const toggleBtn = mapControlsBox.querySelector('.collapse-toggle');
+        const content = document.getElementById('mapControlsContent');
+        const toggleBtn = document.getElementById('toggleMapControls');
 
-            if (content && toggleBtn) {
-                content.classList.toggle('collapsed');
-                toggleBtn.textContent = content.classList.contains('collapsed') ? '+' : '−';
-            }
+        if (content && toggleBtn) {
+            content.classList.toggle('collapsed');
+            toggleBtn.textContent = content.classList.contains('collapsed') ? '+' : '−';
         }
     }
 
