@@ -544,6 +544,7 @@ class GDACSProxy {
                 title: title,
                 type: disasterType,
                 alertLevel: alertLevel,
+                coordinates: [coordinates.lat, coordinates.lon], // Add coordinates array for frontend
                 latitude: coordinates.lat,
                 longitude: coordinates.lon,
                 magnitude: magnitude,
