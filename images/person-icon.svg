@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+  <!-- Red jacket/body -->
+  <path d="M12 14c-3.5 0-6 1.5-6 3v4h12v-4c0-1.5-2.5-3-6-3z" fill="#dc2626"/>
+  <!-- Head -->
+  <circle cx="12" cy="8" r="4" fill="#f9d8b4"/>
+  <!-- Jacket collar -->
+  <path d="M8 14.5c1-0.5 2.5-0.5 4-0.5s3 0 4 0.5" stroke="#991b1b" stroke-width="0.5" fill="none"/>
+</svg>

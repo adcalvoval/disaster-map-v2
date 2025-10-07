@@ -971,6 +971,21 @@ app.get('/api/emergency-response-units', async (req, res) => {
     }
 });
 
+// Rapid Response Personnel endpoint
+app.get('/api/rapid-response-personnel', async (req, res) => {
+    try {
+        const rapidResponseHandler = require('./api/rapid-response-personnel');
+        await rapidResponseHandler(req, res);
+    } catch (error) {
+        console.error('Error loading Rapid Response Personnel handler:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load Rapid Response Personnel handler: ' + error.message,
+            personnel: []
+        });
+    }
+});
+
 // GDACS-CAP API endpoint
 app.get('/api/gdacs-cap', async (req, res) => {
     try {

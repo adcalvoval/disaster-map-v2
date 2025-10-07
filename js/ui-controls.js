@@ -161,6 +161,15 @@ export class UIControls {
             });
         }
 
+        // Rapid Response Personnel toggle
+        const rapidResponseToggle = document.getElementById('showRapidResponse');
+        if (rapidResponseToggle) {
+            rapidResponseToggle.addEventListener('change', (e) => {
+                this.disasterMap.rapidResponseManager.showRapidResponse = e.target.checked;
+                this.disasterMap.rapidResponseManager.toggleRapidResponse();
+            });
+        }
+
         // Schools toggle
         const schoolsToggle = document.getElementById('showSchools');
         if (schoolsToggle) {
