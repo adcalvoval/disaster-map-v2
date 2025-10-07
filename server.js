@@ -29,9 +29,12 @@ app.get('/IFRC-Logo.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'IFRC-Logo.png'));
 });
 
-// Serve JS modules with correct MIME type
+// Serve JS modules with correct MIME type and no-cache headers
 app.get('/js/:filename', (req, res) => {
     res.type('application/javascript');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(__dirname, 'js', req.params.filename));
 });
 
