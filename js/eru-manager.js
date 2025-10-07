@@ -79,23 +79,23 @@ export class ERUManager {
                 existingCoordinates.set(coordKey, existingMarkersAtCoord + 1);
 
                 if (existingMarkersAtCoord > 0) {
-                    // Create circular pattern with increasing distance for better visibility
-                    const baseDistance = 0.003;
-                    const offsetDistance = baseDistance * (1 + existingMarkersAtCoord * 0.3); // Increase distance for outer markers
-                    const angle = (existingMarkersAtCoord * 72) * (Math.PI / 180); // 72° = 360°/5 for better spacing
+                    // Create tight circular pattern to keep markers within country borders
+                    const baseDistance = 0.05; // Small offset to stay within country borders
+                    const offsetDistance = baseDistance * (1 + existingMarkersAtCoord * 0.2);
+                    const angle = (existingMarkersAtCoord * 60) * (Math.PI / 180); // 60° = 360°/6 for tighter spacing
                     lat += Math.sin(angle) * offsetDistance;
                     lng += Math.cos(angle) * offsetDistance;
-                    console.log(`📍 Offsetting ERU ${eru.id} by ${offsetDistance.toFixed(4)} degrees at angle ${existingMarkersAtCoord * 72}°`);
+                    console.log(`📍 Offsetting ERU ${eru.id} by ${offsetDistance.toFixed(4)} degrees at angle ${existingMarkersAtCoord * 60}°`);
                 }
 
-                // Create red cross icon
+                // Create red cross icon (square shape)
                 const redCrossIcon = L.divIcon({
                     html: `<div style="
                         background-color: white;
                         color: #dc2626;
                         width: 24px;
                         height: 24px;
-                        border-radius: 50%;
+                        border-radius: 3px;
                         display: flex;
                         align-items: center;
                         justify-content: center;

@@ -1124,7 +1124,7 @@ app.get('/api/gdacs-cap', async (req, res) => {
 // Health facilities endpoint
 app.get('/api/health-facilities', async (req, res) => {
     try {
-        const { limit = '50', offset = '0', facility_type } = req.query;
+        const { facility_type } = req.query;
 
         // IFRC API configuration
         const apiToken = process.env.IFRC_GO_API_TOKEN;
@@ -1138,22 +1138,20 @@ app.get('/api/health-facilities', async (req, res) => {
         }
 
         const apiUrl = `${apiBaseUrl}/local-units/`;
+
+        // Fetch all health facilities by requesting a large limit
+        // The IFRC API has ~5600 health facilities
         const params = {
-            limit: parseInt(limit),
-            offset: parseInt(offset)
+            limit: 10000, // Request all facilities at once
+            offset: 0,
+            validated: true // Only validated facilities
         };
 
-        // Only validated facilities
-        params.validated = true;
-
-        // Don't use search parameter as it's too restrictive
-        // We'll filter based on the data structure after fetching
-
-        console.log(`Fetching IFRC facilities: ${apiUrl}`, params);
+        console.log(`Fetching all IFRC facilities: ${apiUrl}`, params);
 
         const response = await axios.get(apiUrl, {
             params,
-            timeout: 30000,
+            timeout: 60000, // Increased timeout for large request
             headers: {
                 'Authorization': `Token ${apiToken}`,
                 'User-Agent': 'IFRC-Health-Emergency-Response-Tool/1.0',
@@ -1162,6 +1160,7 @@ app.get('/api/health-facilities', async (req, res) => {
         });
 
         const data = response.data;
+        console.log(`Received ${data.results.length} facilities from IFRC API`);
 
         // Filter out non-health facility types more comprehensively
         const excludedTypes = [

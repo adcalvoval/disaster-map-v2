@@ -79,13 +79,13 @@ export class RapidResponseManager {
                 existingCoordinates.set(coordKey, existingMarkersAtCoord + 1);
 
                 if (existingMarkersAtCoord > 0) {
-                    // Create circular pattern with increasing distance for better visibility
-                    const baseDistance = 0.003;
-                    const offsetDistance = baseDistance * (1 + existingMarkersAtCoord * 0.3);
-                    const angle = (existingMarkersAtCoord * 72) * (Math.PI / 180); // 72° = 360°/5 for better spacing
+                    // Create tight circular pattern to keep markers within country borders
+                    const baseDistance = 0.05; // Small offset to stay within country borders
+                    const offsetDistance = baseDistance * (1 + existingMarkersAtCoord * 0.2);
+                    const angle = (existingMarkersAtCoord * 60) * (Math.PI / 180); // 60° = 360°/6 for tighter spacing
                     lat += Math.sin(angle) * offsetDistance;
                     lng += Math.cos(angle) * offsetDistance;
-                    console.log(`📍 Offsetting personnel ${person.id} by ${offsetDistance.toFixed(4)} degrees at angle ${existingMarkersAtCoord * 72}°`);
+                    console.log(`📍 Offsetting personnel ${person.id} by ${offsetDistance.toFixed(4)} degrees at angle ${existingMarkersAtCoord * 60}°`);
                 }
 
                 // Create person icon with red jacket
@@ -119,13 +119,13 @@ export class RapidResponseManager {
 
                 const tooltipContent = `
                     <div class="personnel-tooltip">
-                        <strong>Rapid Response Personnel</strong><br>
-                        <strong>Role:</strong> ${person.jobTitle}<br>
-                        <strong>Crisis:</strong> ${person.crisis}<br>
-                        <strong>Deploying Society:</strong> ${person.deployingNationalSociety}<br>
-                        <strong>Deployed To:</strong> ${person.deployedToCountry}<br>
-                        <strong>Start Date:</strong> ${startDate}<br>
-                        <strong>End Date:</strong> ${endDate}
+                        <div class="tooltip-header">🧑‍🚒 Rapid Response Personnel</div>
+                        <div><strong>Role:</strong> ${person.jobTitle}</div>
+                        <div><strong>Crisis:</strong> ${person.crisis}</div>
+                        <div><strong>Deploying Society:</strong> ${person.deployingNationalSociety}</div>
+                        <div><strong>Deployed To:</strong> ${person.deployedToCountry}</div>
+                        <div><strong>Start Date:</strong> ${startDate}</div>
+                        <div><strong>End Date:</strong> ${endDate}</div>
                     </div>
                 `;
 

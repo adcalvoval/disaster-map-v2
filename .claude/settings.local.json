@@ -14,7 +14,9 @@
       "Bash(dir \"C:\\Users\\ADRIAN.CALVO\\webapps\\disaster-map-app\")",
       "Bash(findstr:*)",
       "WebFetch(domain:disaster-map-v3.vercel.app)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []

@@ -180,6 +180,19 @@ export class HealthFacilities {
                             this.selectedHealthCountries.includes(facility.country);
         const functionalityMatch = this.matchesFunctionalityFilter(facility.functionality);
 
+        // Debug first few facilities
+        if (this.healthFacilities.indexOf(facility) < 3) {
+            console.log(`Facility visibility check:`, {
+                name: facility.name,
+                country: facility.country,
+                functionality: facility.functionality,
+                countryMatch,
+                functionalityMatch,
+                selectedCountries: this.selectedHealthCountries,
+                selectedFunctionalities: this.selectedHealthFunctionalities
+            });
+        }
+
         return countryMatch && functionalityMatch;
     }
 

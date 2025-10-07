@@ -282,6 +282,49 @@ body.fullscreen-mode .sidebar-drawer {
     color: #ffed4e !important;
 }
 
+/* Personnel tooltip styling */
+.personnel-tooltip {
+    background: rgba(30, 58, 138, 0.95) !important;
+    color: white !important;
+    border: 2px solid #1e3a8a !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+    box-shadow: 0 4px 16px rgba(30, 58, 138, 0.4) !important;
+    line-height: 1.4 !important;
+    min-width: 200px !important;
+    max-width: 240px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+}
+
+.personnel-tooltip div {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+}
+
+.personnel-tooltip strong {
+    color: #93c5fd !important;
+    display: inline-block !important;
+    margin-top: 2px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+.personnel-tooltip .tooltip-header {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    margin-bottom: 6px !important;
+    padding-bottom: 4px !important;
+    border-bottom: 1px solid rgba(147, 197, 253, 0.3) !important;
+    color: #93c5fd !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
 /* Municipality marker styling */
 .municipality-marker {
     z-index: 1000 !important;
