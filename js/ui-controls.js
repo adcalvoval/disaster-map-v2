@@ -170,48 +170,6 @@ export class UIControls {
             });
         }
 
-        // Schools toggle
-        const schoolsToggle = document.getElementById('showSchools');
-        if (schoolsToggle) {
-            schoolsToggle.addEventListener('change', (e) => {
-                this.disasterMap.schoolsManager.showSchools = e.target.checked;
-                this.disasterMap.schoolsManager.toggleSchoolsDisplay();
-            });
-        }
-
-        // Schools controls toggle
-        const toggleSchoolsControls = document.getElementById('toggleSchoolsControls');
-        if (toggleSchoolsControls) {
-            toggleSchoolsControls.addEventListener('click', () => {
-                this.toggleSchoolsControlsCollapse();
-            });
-        }
-
-        // School education level filters
-        const schoolLevelCheckboxes = [
-            'show-school-primary',
-            'show-school-secondary',
-            'show-school-unknown'
-        ];
-
-        schoolLevelCheckboxes.forEach(checkboxId => {
-            const checkbox = document.getElementById(checkboxId);
-            if (checkbox) {
-                checkbox.addEventListener('change', (e) => {
-                    const level = checkboxId.replace('show-school-', '').replace('-', ' ');
-                    const levelName = level.charAt(0).toUpperCase() + level.slice(1);
-
-                    // Map the checkbox IDs to education levels
-                    let educationLevel;
-                    if (checkboxId === 'show-school-primary') educationLevel = 'Primary';
-                    else if (checkboxId === 'show-school-secondary') educationLevel = 'Secondary';
-                    else if (checkboxId === 'show-school-unknown') educationLevel = 'Unknown';
-
-                    this.disasterMap.schoolsManager.toggleEducationLevel(educationLevel);
-                });
-            }
-        });
-
         // Impact zones toggle
         const impactToggle = document.getElementById('showImpactZones');
         if (impactToggle) {
@@ -284,15 +242,6 @@ export class UIControls {
                 content.classList.toggle('collapsed');
                 toggleBtn.textContent = content.classList.contains('collapsed') ? '+' : '−';
             }
-        }
-    }
-
-    toggleSchoolsControlsCollapse() {
-        const content = document.getElementById('schoolsControlsContent');
-        const toggleBtn = document.getElementById('toggleSchoolsControls');
-        if (content && toggleBtn) {
-            content.classList.toggle('collapsed');
-            toggleBtn.textContent = content.classList.contains('collapsed') ? '+' : '−';
         }
     }
 
