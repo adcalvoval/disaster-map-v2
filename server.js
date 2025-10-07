@@ -264,34 +264,89 @@ class GDACSProxy {
 
     async fetchGDACSData(source = 'ALL', alertLevel = '', fromDate = '', toDate = '') {
         try {
-            const sources = source === 'ALL' ? [] : [source]; // Removed problematic flood APIs
-            const allEvents = [];
+            console.log('📡 Fetching GDACS events from API...');
+            const url = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH';
 
-            // Try different approaches for GDACS flood data
-            for (const src of sources) {
-                try {
-                    // Try JSON format first
-                    const jsonResult = await this.tryFloodDataFormat(src, 'json', alertLevel, fromDate, toDate);
-                    if (jsonResult.length > 0) {
-                        allEvents.push(...jsonResult);
-                        continue;
-                    }
-
-                    // Try CSV format as fallback
-                    const csvResult = await this.tryFloodDataFormat(src, 'csv', alertLevel, fromDate, toDate);
-                    if (csvResult.length > 0) {
-                        allEvents.push(...csvResult);
-                    }
-                } catch (sourceError) {
-                    console.warn(`Failed to fetch from source ${src}:`, sourceError.message);
+            const response = await axios.get(url, {
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'application/json'
                 }
+            });
+
+            if (!response.data || !response.data.features) {
+                console.warn('No features in GDACS response');
+                return [];
             }
 
-            return allEvents;
+            console.log(`✅ Retrieved ${response.data.features.length} events from GDACS`);
+
+            // Transform GDACS GeoJSON to our format
+            const allEvents = response.data.features.map(feature => {
+                const props = feature.properties;
+                const coords = feature.geometry.coordinates;
+
+                return {
+                    id: `${props.eventtype}-${props.eventid}`,
+                    title: props.name || props.eventname || 'Unnamed Event',
+                    description: props.description || props.htmldescription || '',
+                    type: this.mapEventType(props.eventtype),
+                    alertLevel: this.normalizeAlertLevel(props.alertlevel),
+                    coordinates: [coords[1], coords[0]], // GeoJSON is [lng, lat], we need [lat, lng]
+                    severity: props.episodealertscore || 0,
+                    affectedRadius: this.calculateRadius(props.eventtype, props.episodealertscore),
+                    date: props.fromdate || new Date().toISOString(),
+                    country: props.country || '',
+                    source: 'GDACS'
+                };
+            });
+
+            // Filter by alert level if specified
+            let filteredEvents = allEvents;
+            if (alertLevel && alertLevel !== '') {
+                filteredEvents = allEvents.filter(e => e.alertLevel === alertLevel);
+            }
+
+            console.log(`📊 Returning ${filteredEvents.length} events after filtering`);
+            return filteredEvents;
         } catch (error) {
-            console.error('Error fetching GDACS data:', error.message);
-            throw error;
+            console.error('❌ Error fetching GDACS data:', error.message);
+            return [];
         }
+    }
+
+    mapEventType(gdacsType) {
+        const typeMap = {
+            'EQ': 'Earthquake',
+            'TC': 'Cyclone',
+            'FL': 'Flood',
+            'VO': 'Volcanic Activity',
+            'DR': 'Drought',
+            'WF': 'Wildfire'
+        };
+        return typeMap[gdacsType] || 'Other';
+    }
+
+    normalizeAlertLevel(level) {
+        if (!level) return 'Green';
+        const normalized = level.charAt(0).toUpperCase() + level.slice(1).toLowerCase();
+        return ['Red', 'Orange', 'Green'].includes(normalized) ? normalized : 'Green';
+    }
+
+    calculateRadius(eventType, alertScore) {
+        const baseRadii = {
+            'Earthquake': 50,
+            'Flood': 30,
+            'Cyclone': 100,
+            'Wildfire': 20,
+            'Volcanic Activity': 25,
+            'Drought': 100,
+            'Other': 40
+        };
+        const base = baseRadii[eventType] || 40;
+        const multiplier = alertScore ? (alertScore / 2) : 1;
+        return base * multiplier;
     }
 
     async tryFloodDataFormat(src, format, alertLevel, fromDate, toDate, retries = 2) {
