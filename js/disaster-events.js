@@ -233,17 +233,54 @@ export class DisasterEvents {
             const alertColor = this.getAlertColor(event.alertLevel);
             const icon = this.createCustomIcon(alertColor, event.type);
 
+            // Build popup content with available information
+            let popupContent = `
+                <div class="popup-content">
+                    <h3>${event.title}</h3>
+                    <p><strong>Type:</strong> ${event.type}</p>
+                    <p><strong>Alert Level:</strong> <span class="alert-${event.alertLevel.toLowerCase()}">${event.alertLevel}</span></p>
+                    <p><strong>Date:</strong> ${Utils.formatDate(event.date)}</p>`;
+
+            // Add country if available
+            if (event.country) {
+                popupContent += `<p><strong>Country:</strong> ${event.country}</p>`;
+            }
+
+            // Add affected population if available
+            if (event.affectedPopulation) {
+                const population = typeof event.affectedPopulation === 'number'
+                    ? event.affectedPopulation.toLocaleString()
+                    : event.affectedPopulation;
+                popupContent += `<p><strong>Population Affected:</strong> ${population}</p>`;
+            }
+
+            // Add severity information if available
+            if (event.severityText) {
+                popupContent += `<p><strong>Severity:</strong> ${event.severityText}</p>`;
+            } else if (event.severityValue && event.severityUnit) {
+                popupContent += `<p><strong>Severity:</strong> ${event.severityValue} ${event.severityUnit}</p>`;
+            }
+
+            // Add affected radius if available
+            if (event.affectedRadius) {
+                popupContent += `<p><strong>Affected Radius:</strong> ${event.affectedRadius} km</p>`;
+            }
+
+            // Add impact description if available
+            if (event.impactDescription) {
+                popupContent += `<p><strong>Impact:</strong> ${event.impactDescription}</p>`;
+            }
+
+            // Add main description
+            if (event.description) {
+                popupContent += `<p>${event.description}</p>`;
+            }
+
+            popupContent += `</div>`;
+
             const marker = L.marker(event.coordinates, { icon: icon })
                 .addTo(this.map)
-                .bindPopup(`
-                    <div class="popup-content">
-                        <h3>${event.title}</h3>
-                        <p><strong>Type:</strong> ${event.type}</p>
-                        <p><strong>Alert Level:</strong> <span class="alert-${event.alertLevel.toLowerCase()}">${event.alertLevel}</span></p>
-                        <p><strong>Date:</strong> ${Utils.formatDate(event.date)}</p>
-                        <p>${event.description}</p>
-                    </div>
-                `);
+                .bindPopup(popupContent);
 
             marker.eventId = event.id;
             this.disasterMarkers.push(marker);

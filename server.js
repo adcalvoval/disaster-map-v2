@@ -306,6 +306,11 @@ class GDACSProxy {
                     const props = feature.properties;
                     const coords = feature.geometry.coordinates;
 
+                    // Extract severity details if available
+                    const severityText = props.severitydata?.severitytext || '';
+                    const severityValue = props.severitydata?.severity || '';
+                    const severityUnit = props.severitydata?.severityunit || '';
+
                     return {
                         id: `${props.eventtype}-${props.eventid}`,
                         title: props.name || props.eventname || 'Unnamed Event',
@@ -317,7 +322,10 @@ class GDACSProxy {
                         affectedRadius: this.calculateRadius(props.eventtype, props.episodealertscore),
                         date: props.fromdate || new Date().toISOString(),
                         country: props.country || '',
-                        source: 'GDACS'
+                        source: 'GDACS',
+                        severityText: severityText,
+                        severityValue: severityValue,
+                        severityUnit: severityUnit
                     };
                 });
 
