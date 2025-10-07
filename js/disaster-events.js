@@ -12,7 +12,6 @@ export class DisasterEvents {
             'Flood': true,
             'Cyclone': true,
             'Wildfire': true,
-            'Drought': true,
             'Volcanic Activity': true,
             'Other': true
         };
@@ -146,7 +145,6 @@ export class DisasterEvents {
             'Flood': 30,
             'Cyclone': 100,
             'Wildfire': 20,
-            'Drought': 150,
             'Volcanic Activity': 25,
             'Other': 40
         };
@@ -188,14 +186,14 @@ export class DisasterEvents {
                 date: '2024-01-12'
             },
             {
-                id: 'DR003',
-                title: 'Prolonged Drought Conditions',
-                description: 'Extended dry period affecting agricultural regions',
-                type: 'Drought',
-                alertLevel: 'Orange',
-                coordinates: [-8.1, 25.6],
-                severity: 'high',
-                affectedRadius: 180,
+                id: 'CY003',
+                title: 'Tropical Cyclone',
+                description: 'Category 3 cyclone approaching coastal areas',
+                type: 'Cyclone',
+                alertLevel: 'Red',
+                coordinates: [-3.2, 29.1],
+                severity: 'very-high',
+                affectedRadius: 120,
                 date: '2024-01-10'
             }
         ];
@@ -289,7 +287,6 @@ export class DisasterEvents {
             'Flood': '🌊',
             'Cyclone': '🌀',
             'Wildfire': '🔥',
-            'Drought': '☀️',
             'Volcanic Activity': '🌋',
             'Other': '⚠️'
         };
