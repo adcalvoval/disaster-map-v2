@@ -997,6 +997,58 @@ app.get('/api/rapid-response-personnel', async (req, res) => {
     }
 });
 
+// GDACS Events endpoint (alias for /api/disasters)
+app.get('/api/gdacs-events', async (req, res) => {
+    try {
+        const { source = 'ALL', alertLevel = '', from = '', to = '' } = req.query;
+
+        console.log('Fetching GDACS events with params:', { source, alertLevel, from, to });
+
+        let events = [];
+
+        try {
+            const gdacsEvents = await gdacsProxy.fetchGDACSData(source, alertLevel, from, to);
+            events.push(...gdacsEvents);
+        } catch (error) {
+            console.error('Error fetching GDACS events:', error);
+        }
+
+        events.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        res.json({
+            success: true,
+            count: events.length,
+            events: events,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error in GDACS events endpoint:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            events: []
+        });
+    }
+});
+
+// Impact Zones endpoint (placeholder - returns empty array for now)
+app.get('/api/impact-zones', async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            zones: [],
+            message: 'Impact zones feature not yet implemented'
+        });
+    } catch (error) {
+        console.error('Error in impact zones endpoint:', error);
+        res.status(500).json({
+            success: false,
+            zones: [],
+            error: error.message
+        });
+    }
+});
+
 // GDACS-CAP API endpoint
 app.get('/api/gdacs-cap', async (req, res) => {
     try {
