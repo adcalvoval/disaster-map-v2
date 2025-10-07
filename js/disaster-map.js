@@ -75,20 +75,20 @@ export class DisasterMap {
     // Impact Zones functionality
     async loadImpactZones() {
         try {
-            console.log('Loading impact zones...');
+            console.log('Loading impact zones from GDACS CAP...');
 
-            const response = await fetch('/api/impact-zones');
+            const response = await fetch('/api/gdacs-cap');
             const result = await response.json();
 
-            if (result.success && result.zones) {
-                this.impactZones = result.zones;
-                console.log(`✅ Loaded ${this.impactZones.length} impact zones`);
+            if (result.success && result.impactZones) {
+                this.impactZones = result.impactZones;
+                console.log(`✅ Loaded ${this.impactZones.length} impact zones from GDACS CAP`);
 
                 if (this.showImpactZones) {
                     this.displayImpactZones();
                 }
             } else {
-                console.warn('❌ Failed to load impact zones from API');
+                console.warn('❌ Failed to load impact zones from GDACS CAP API');
                 this.impactZones = [];
             }
 
@@ -102,8 +102,8 @@ export class DisasterMap {
         this.clearImpactZones();
 
         this.impactZones.forEach(zone => {
-            if (zone.geometry && zone.geometry.coordinates) {
-                const color = this.getImpactZoneColor(zone.properties.severity);
+            if (zone.geometry) {
+                const color = this.getImpactZoneColor(zone.severity);
 
                 let layer;
                 if (zone.geometry.type === 'Polygon') {
@@ -112,6 +112,16 @@ export class DisasterMap {
                         color: color,
                         fillColor: color,
                         fillOpacity: 0.3,
+                        weight: 2
+                    });
+                } else if (zone.geometry.type === 'Circle') {
+                    // Handle circle geometry from GDACS CAP
+                    const center = [zone.geometry.center[1], zone.geometry.center[0]];
+                    layer = L.circle(center, {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.2,
+                        radius: zone.geometry.radius,
                         weight: 2
                     });
                 } else if (zone.geometry.type === 'Point') {
@@ -125,14 +135,17 @@ export class DisasterMap {
                 }
 
                 if (layer) {
-                    layer.bindPopup(`
+                    const popupContent = `
                         <div class="impact-zone-popup">
-                            <h3>Impact Zone</h3>
-                            <p><strong>Severity:</strong> ${zone.properties.severity}</p>
-                            <p><strong>Type:</strong> ${zone.properties.type || 'Unknown'}</p>
-                            <p>${zone.properties.description || 'No description available'}</p>
+                            <h3>${zone.title || 'Impact Zone'}</h3>
+                            <p><strong>Event:</strong> ${zone.eventType || 'Unknown'}</p>
+                            <p><strong>Severity:</strong> ${zone.severity || 'Unknown'}</p>
+                            ${zone.populationAffected ? `<p><strong>Population Affected:</strong> ${zone.populationAffected.toLocaleString()}</p>` : ''}
+                            ${zone.areaDescription ? `<p><strong>Area:</strong> ${zone.areaDescription}</p>` : ''}
+                            ${zone.summary ? `<p>${zone.summary}</p>` : ''}
                         </div>
-                    `);
+                    `;
+                    layer.bindPopup(popupContent);
                     layer.addTo(this.map);
                     this.impactZoneLayers.push(layer);
                 }
@@ -143,7 +156,12 @@ export class DisasterMap {
     }
 
     getImpactZoneColor(severity) {
+        // Handle both old format (high/medium/low) and GDACS CAP format (Extreme/Severe/Moderate/Minor)
         const colors = {
+            'Extreme': '#dc2626',
+            'Severe': '#dc2626',
+            'Moderate': '#ea580c',
+            'Minor': '#16a34a',
             'high': '#dc2626',
             'medium': '#ea580c',
             'low': '#16a34a'
