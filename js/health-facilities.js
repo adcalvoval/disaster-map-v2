@@ -124,8 +124,9 @@ export class HealthFacilities {
                 }
 
                 const functionality = facility.functionality || 'Unknown';
+                const facilityType = facility.type || 'Other';
                 const color = this.getFunctionalityColor(functionality);
-                const icon = this.createHealthFacilityIcon(color, functionality);
+                const icon = this.createHealthFacilityIcon(color, facilityType);
 
                 const tooltipContent = `
                     <div class="health-facility-tooltip">
@@ -230,18 +231,19 @@ export class HealthFacilities {
     }
 
     getHealthFacilitySymbol(type) {
+        // Map facility types to their corresponding emoji icons
         const symbols = {
-            'Hospital': '🏥',
-            'Clinic': '⚕️',
-            'Health Center': '🩺',
-            'Dispensary': '💊',
-            'Mobile Unit': '🚑',
-            'Fully functional': '✅',
-            'Partially functional': '⚠️',
-            'Non functional': '❌',
-            'Unknown': '❓'
+            'Primary Health Care Centres': '🏥',
+            'Hospitals': '🏨',
+            'Ambulance Stations': '🚑',
+            'Blood Centres': '🩸',
+            'Pharmacies': '💊',
+            'Training Facilities': '🎓',
+            'Specialized Services': '🔬',
+            'Residential Facilities': '🏠',
+            'Other': '⚕️'
         };
-        return symbols[type] || symbols['Unknown'];
+        return symbols[type] || symbols['Other'];
     }
 
     clearHealthFacilityMarkers() {
