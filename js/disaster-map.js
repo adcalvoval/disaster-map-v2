@@ -17,6 +17,7 @@ export class DisasterMap {
 
         // Impact zones data
         this.impactZones = [];
+        this.impactZoneLayers = [];
         this.showImpactZones = false;
 
         // Initialize modules
@@ -133,9 +134,12 @@ export class DisasterMap {
                         </div>
                     `);
                     layer.addTo(this.map);
+                    this.impactZoneLayers.push(layer);
                 }
             }
         });
+
+        console.log(`✅ Displayed ${this.impactZoneLayers.length} impact zones on map`);
     }
 
     getImpactZoneColor(severity) {
@@ -148,8 +152,15 @@ export class DisasterMap {
     }
 
     clearImpactZones() {
-        // Implementation would clear impact zone layers from map
-        console.log('Clearing impact zones');
+        console.log(`Clearing ${this.impactZoneLayers.length} impact zones`);
+
+        this.impactZoneLayers.forEach(layer => {
+            if (this.map.hasLayer(layer)) {
+                this.map.removeLayer(layer);
+            }
+        });
+
+        this.impactZoneLayers = [];
     }
 
     // Facility type listeners

@@ -175,22 +175,18 @@ export class UIControls {
     }
 
     toggleSidebar() {
-        const drawer = document.querySelector('.drawer');
-        const overlay = document.querySelector('.drawer-overlay');
+        const drawer = document.getElementById('sidebarDrawer');
 
-        if (drawer && overlay) {
+        if (drawer) {
             drawer.classList.toggle('open');
-            overlay.classList.toggle('active');
         }
     }
 
     closeSidebar() {
-        const drawer = document.querySelector('.drawer');
-        const overlay = document.querySelector('.drawer-overlay');
+        const drawer = document.getElementById('sidebarDrawer');
 
-        if (drawer && overlay) {
+        if (drawer) {
             drawer.classList.remove('open');
-            overlay.classList.remove('active');
         }
     }
 
