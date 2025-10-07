@@ -125,7 +125,7 @@ export class HealthFacilities {
 
                 const functionality = facility.functionality || 'Unknown';
                 const facilityType = facility.type || 'Other';
-                const color = this.getFunctionalityColor(functionality);
+                const color = this.getFacilityTypeColor(facilityType);
                 const icon = this.createHealthFacilityIcon(color, facilityType);
 
                 const tooltipContent = `
@@ -163,6 +163,23 @@ export class HealthFacilities {
         });
 
         console.log(`✅ Added ${addedCount} health facility markers to map`);
+    }
+
+    getFacilityTypeColor(type) {
+        // Colors matching the legend in the Health Facilities filter box
+        const colors = {
+            'Primary Health Care Centres': '#1e3a8a', // Blue
+            'Hospitals': '#fbbf24',                    // Yellow
+            'Ambulance Stations': '#166534',           // Dark Green
+            'Blood Centres': '#8b0000',                // Dark Red
+            'Pharmacies': '#84cc16',                   // Lime Green
+            'Training Facilities': '#ea580c',          // Orange
+            'Specialized Services': '#a16207',         // Brown
+            'Residential Facilities': '#7dd3fc',       // Light Blue
+            'Other': '#374151'                         // Gray
+        };
+
+        return colors[type] || colors['Other'];
     }
 
     getFunctionalityColor(functionality) {
@@ -207,26 +224,29 @@ export class HealthFacilities {
     createHealthFacilityIcon(color, type) {
         const iconSymbol = this.getHealthFacilitySymbol(type);
 
+        // Use white text for dark backgrounds, black for light backgrounds
+        const textColor = ['#fbbf24', '#7dd3fc'].includes(color) ? '#000' : '#fff';
+
         return L.divIcon({
             className: 'health-facility-icon',
             html: `
                 <div style="
                     background-color: ${color};
-                    color: white;
-                    border-radius: 50%;
-                    width: 32px;
-                    height: 32px;
+                    color: ${textColor};
+                    border-radius: 4px;
+                    width: 24px;
+                    height: 24px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     font-weight: bold;
-                    font-size: 16px;
-                    border: 2px solid #8B0000;
+                    font-size: 14px;
+                    border: 1px solid white;
                     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                 ">${iconSymbol}</div>
             `,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
         });
     }
 
