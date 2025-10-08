@@ -17,6 +17,7 @@ export class DisasterEvents {
             'Volcanic Activity': true,
             'Other': true
         };
+        this.currentlyFocusedEvent = null;
     }
 
     async loadDisasterData() {
@@ -388,9 +389,31 @@ export class DisasterEvents {
     }
 
     focusOnEvent(eventId) {
+        console.log('focusOnEvent called with:', eventId);
+        console.log('currentlyFocusedEvent:', this.currentlyFocusedEvent);
+        console.log('Are they equal?', this.currentlyFocusedEvent === eventId);
+
+        // If clicking on the same event, zoom back out to global view
+        if (this.currentlyFocusedEvent === eventId) {
+            console.log('Zooming back out to global view');
+            this.map.setView([20, 0], 2);
+            this.currentlyFocusedEvent = null;
+
+            // Remove all highlights
+            document.querySelectorAll('.event-item').forEach(item => {
+                item.classList.remove('selected-event');
+            });
+
+            // Close any open popups
+            this.map.closePopup();
+            return;
+        }
+
         const event = this.disasters.find(e => e.id === eventId);
         if (event) {
+            console.log('Zooming to event:', event.title);
             this.map.setView(event.coordinates, 10);
+            this.currentlyFocusedEvent = eventId;
 
             const marker = this.disasterMarkers.find(m => m.eventId === eventId);
             if (marker) {
