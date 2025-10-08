@@ -22,6 +22,7 @@ export class HealthFacilities {
         };
         this.clusteringEnabled = true;
         this.disableClusteringOnCountryFilter = true;
+        this.onDataLoadedCallback = null;
     }
 
     async loadHealthFacilities() {
@@ -44,6 +45,11 @@ export class HealthFacilities {
                 if (this.showHealthFacilities) {
                     this.addHealthFacilitiesToMap();
                     this.updateLegendCounts();
+                }
+
+                // Trigger callback if set
+                if (this.onDataLoadedCallback) {
+                    this.onDataLoadedCallback();
                 }
             } else {
                 console.warn('❌ Failed to load health facilities from API');

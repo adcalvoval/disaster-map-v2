@@ -45,6 +45,13 @@ export class DisasterMap {
         this.rapidResponseManager = new RapidResponseManager(this.map, this.config);
         this.uiControls = new UIControls(this);
 
+        // Set callback for when health facilities finish loading
+        this.healthFacilities.onDataLoadedCallback = () => {
+            if (this.impactZones.length > 0) {
+                this.uiControls.updateImpactFacilitiesList();
+            }
+        };
+
         // Load data and initialize UI
         this.loadData();
         this.initializeUI();
@@ -86,6 +93,11 @@ export class DisasterMap {
 
                 if (this.showImpactZones) {
                     this.displayImpactZones();
+                }
+
+                // Update impact facilities list if health facilities are already loaded
+                if (this.healthFacilities.dataLoaded) {
+                    this.uiControls.updateImpactFacilitiesList();
                 }
             } else {
                 console.warn('❌ Failed to load impact zones from GDACS CAP API');

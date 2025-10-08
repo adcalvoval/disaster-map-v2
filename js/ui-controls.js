@@ -276,8 +276,176 @@ export class UIControls {
         }
     }
 
-    updateImpactFacilitiesList() {
-        // This would be implemented if impact facilities functionality is needed
-        console.log('Update impact facilities list');
+    async updateImpactFacilitiesList() {
+        // Always show the section
+        document.getElementById('impactFacilitiesSection').style.display = 'block';
+
+        // Load health facilities if not already loaded
+        if (!this.disasterMap.healthFacilities.dataLoaded) {
+            await this.disasterMap.healthFacilities.loadHealthFacilities();
+        }
+
+        // Get all RCRC health facilities
+        const allFacilities = this.disasterMap.healthFacilities.healthFacilities || [];
+        console.log(`📊 Updating impact facilities list - Total facilities: ${allFacilities.length}`);
+
+        // Always find which facilities are in impact zones, regardless of impact zones visibility
+        const facilitiesInImpactZones = this.disasterMap.impactZones.length > 0
+            ? this.findFacilitiesInImpactZones()
+            : [];
+
+        // Filter facilities that are in impact zones
+        let facilitiesToShow = facilitiesInImpactZones;
+
+        // Then filter by selected country if specified
+        const selectedCountry = document.getElementById('facilityCountryFilter')?.value;
+        if (selectedCountry) {
+            facilitiesToShow = facilitiesToShow.filter(f => f.country === selectedCountry);
+            console.log(`📊 After country filter: ${facilitiesToShow.length} facilities in impact zones`);
+        }
+
+        console.log(`📊 Showing ${facilitiesToShow.length} facilities that are within impact zones`);
+        this.displayImpactFacilities(facilitiesToShow, facilitiesInImpactZones);
+    }
+
+    findFacilitiesInImpactZones() {
+        const impactZones = this.disasterMap.impactZones;
+        const healthFacilities = this.disasterMap.healthFacilities.healthFacilities;
+
+        if (!impactZones.length || !healthFacilities.length) {
+            return [];
+        }
+
+        const facilitiesInImpact = [];
+
+        healthFacilities.forEach(facility => {
+            const facilityPoint = L.latLng(facility.latitude, facility.longitude);
+
+            for (const zone of impactZones) {
+                if (zone.geometry && zone.geometry.coordinates) {
+                    if (this.isPointInPolygon(facilityPoint, zone.geometry.coordinates)) {
+                        facilitiesInImpact.push(facility);
+                        break;
+                    }
+                }
+            }
+        });
+
+        console.log(`🏥 Found ${facilitiesInImpact.length} facilities within ${impactZones.length} impact zones`);
+        return facilitiesInImpact;
+    }
+
+    isPointInPolygon(point, coordinates) {
+        // Handle GeoJSON polygon structure
+        let polygonCoords = coordinates;
+
+        // If it's a Polygon, coordinates[0] is the outer ring
+        if (Array.isArray(coordinates[0]) && Array.isArray(coordinates[0][0])) {
+            polygonCoords = coordinates[0];
+        }
+
+        let inside = false;
+        const x = point.lng;
+        const y = point.lat;
+
+        for (let i = 0, j = polygonCoords.length - 1; i < polygonCoords.length; j = i++) {
+            const xi = polygonCoords[i][0], yi = polygonCoords[i][1];
+            const xj = polygonCoords[j][0], yj = polygonCoords[j][1];
+
+            const intersect = ((yi > y) !== (yj > y))
+                && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+
+        return inside;
+    }
+
+    displayImpactFacilities(facilities, facilitiesInImpactZones = []) {
+        const facilitiesList = document.getElementById('impactFacilitiesList');
+
+        // Show only facilities that fall within impact zones
+        if (!facilities || facilities.length === 0) {
+            facilitiesList.innerHTML = '<div class="no-facilities">No RCRC health facilities found within impact zones</div>';
+            return;
+        }
+
+        console.log(`🏥 Displaying ${facilities.length} facilities in sidebar`);
+
+        // Sort facilities by country first, then by name
+        const sortedFacilities = [...facilities].sort((a, b) => {
+            const countryA = a.country || 'Unknown';
+            const countryB = b.country || 'Unknown';
+
+            if (countryA !== countryB) {
+                return countryA.localeCompare(countryB);
+            }
+
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+        const facilitiesHtml = sortedFacilities.map(facility => {
+            // Check if this facility is in impact zones
+            const isInImpactZone = facilitiesInImpactZones.some(f => f.id === facility.id);
+            const cardClass = isInImpactZone ? 'facility-card in-impact-zone' : 'facility-card';
+
+            return `
+                <div class="${cardClass}"
+                     onclick="app.zoomToFacility(${facility.latitude}, ${facility.longitude}, '${(facility.name || '').replace(/'/g, "\\'")}')">
+                    <div class="facility-name">${facility.name || 'Unknown'}</div>
+                    <div class="facility-district">${facility.address || facility.district || facility.country || 'Unknown location'}</div>
+                    <div class="facility-functionality ${this.getFunctionalityClass(facility.functionality)}">
+                        ${facility.functionality || 'Unknown functionality'}
+                    </div>
+                    ${isInImpactZone ? '<div class="impact-indicator">⚠️ In Impact Zone</div>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        facilitiesList.innerHTML = facilitiesHtml;
+
+        // Initialize country filter if not already done
+        this.initImpactFacilitiesCountryFilter();
+    }
+
+    initImpactFacilitiesCountryFilter() {
+        const countrySelect = document.getElementById('facilityCountryFilter');
+        if (!countrySelect) return;
+
+        // Only initialize if it hasn't been populated yet
+        if (countrySelect.options.length > 1) return;
+
+        const healthFacilities = this.disasterMap.healthFacilities.healthFacilities || [];
+
+        // Get unique countries from health facilities
+        const countries = [...new Set(healthFacilities.map(facility => facility.country))].sort();
+
+        countries.forEach(country => {
+            const option = document.createElement('option');
+            option.value = country;
+            option.textContent = country;
+            countrySelect.appendChild(option);
+        });
+
+        // Add change event listener
+        countrySelect.addEventListener('change', () => {
+            this.updateImpactFacilitiesList();
+        });
+
+        console.log(`🌍 Country filter initialized with ${countries.length} countries`);
+    }
+
+    getFunctionalityClass(functionality) {
+        if (!functionality) return 'functionality-unknown';
+
+        const status = functionality.toLowerCase();
+        if (status.includes('fully functional') || status.includes('fully functioning') || status === 'functional') {
+            return 'functionality-fully';
+        } else if (status.includes('partially functional') || status.includes('partially functioning') || status.includes('partial')) {
+            return 'functionality-partially';
+        } else if (status.includes('not functional') || status.includes('non-functional') || status.includes('damaged') || status.includes('closed')) {
+            return 'functionality-not';
+        } else {
+            return 'functionality-unknown';
+        }
     }
 }

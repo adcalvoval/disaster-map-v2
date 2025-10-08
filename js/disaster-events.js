@@ -389,13 +389,8 @@ export class DisasterEvents {
     }
 
     focusOnEvent(eventId) {
-        console.log('focusOnEvent called with:', eventId);
-        console.log('currentlyFocusedEvent:', this.currentlyFocusedEvent);
-        console.log('Are they equal?', this.currentlyFocusedEvent === eventId);
-
         // If clicking on the same event, zoom back out to global view
         if (this.currentlyFocusedEvent === eventId) {
-            console.log('Zooming back out to global view');
             this.map.setView([20, 0], 2);
             this.currentlyFocusedEvent = null;
 
@@ -411,7 +406,6 @@ export class DisasterEvents {
 
         const event = this.disasters.find(e => e.id === eventId);
         if (event) {
-            console.log('Zooming to event:', event.title);
             this.map.setView(event.coordinates, 10);
             this.currentlyFocusedEvent = eventId;
 
