@@ -191,7 +191,7 @@ export class UIControls {
         console.log('toggleSidebar called, drawer found:', !!drawer);
 
         if (drawer) {
-            drawer.classList.toggle('open');
+            drawer.classList.toggle('active');
             console.log('Drawer classes after toggle:', drawer.className);
         } else {
             console.error('❌ sidebarDrawer element not found');
@@ -202,7 +202,7 @@ export class UIControls {
         const drawer = document.getElementById('sidebarDrawer');
 
         if (drawer) {
-            drawer.classList.remove('open');
+            drawer.classList.remove('active');
         }
     }
 
