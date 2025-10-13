@@ -4,30 +4,28 @@ const cors = require('cors');
 const axios = require('axios');
 const xml2js = require('xml2js');
 const path = require('path');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3003;
 
-app.use(cors());
-app.use(express.json());
+// Cookie secret for signing
+const COOKIE_SECRET = process.env.SESSION_SECRET || 'ifrc-emergency-response-secret-key-change-this';
 
-// Session configuration
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'ifrc-emergency-response-secret-key-change-this',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production', // HTTPS in production
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+app.use(cors({
+    origin: true,
+    credentials: true
 }));
+app.use(express.json());
+app.use(cookieParser(COOKIE_SECRET));
 
 // Authentication middleware
 function requireAuth(req, res, next) {
-    if (req.session && req.session.authenticated) {
+    const authToken = req.signedCookies.auth_token;
+
+    if (authToken && authToken === 'authenticated') {
         return next();
     }
 
@@ -66,8 +64,14 @@ app.post('/api/login', async (req, res) => {
         const isValid = await bcrypt.compare(password, passwordHash);
 
         if (isValid) {
-            req.session.authenticated = true;
-            req.session.loginTime = new Date().toISOString();
+            // Set a signed cookie for authentication
+            res.cookie('auth_token', 'authenticated', {
+                signed: true,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 24 * 60 * 60 * 1000, // 24 hours
+                sameSite: 'lax'
+            });
 
             return res.json({
                 success: true,
@@ -90,12 +94,8 @@ app.post('/api/login', async (req, res) => {
 
 // Logout endpoint
 app.post('/api/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            return res.status(500).json({ error: 'Logout failed' });
-        }
-        res.json({ success: true, message: 'Logged out successfully' });
-    });
+    res.clearCookie('auth_token');
+    res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // Public routes (no authentication required)
