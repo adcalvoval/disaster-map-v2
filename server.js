@@ -4,6 +4,8 @@ const cors = require('cors');
 const axios = require('axios');
 const xml2js = require('xml2js');
 const path = require('path');
+const session = require('express-session');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -11,8 +13,102 @@ const PORT = process.env.PORT || 3003;
 app.use(cors());
 app.use(express.json());
 
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'ifrc-emergency-response-secret-key-change-this',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // HTTPS in production
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Authentication middleware
+function requireAuth(req, res, next) {
+    if (req.session && req.session.authenticated) {
+        return next();
+    }
+
+    // If not authenticated, redirect to login or send 401
+    if (req.path.startsWith('/api/')) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    res.redirect('/login.html');
+}
+
+// Login endpoint
+app.post('/api/login', async (req, res) => {
+    try {
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Password is required'
+            });
+        }
+
+        // Get password hash from environment variable
+        const passwordHash = process.env.APP_PASSWORD_HASH;
+
+        if (!passwordHash) {
+            console.error('APP_PASSWORD_HASH not set in environment variables');
+            return res.status(500).json({
+                success: false,
+                error: 'Authentication not configured'
+            });
+        }
+
+        // Compare password with hash
+        const isValid = await bcrypt.compare(password, passwordHash);
+
+        if (isValid) {
+            req.session.authenticated = true;
+            req.session.loginTime = new Date().toISOString();
+
+            return res.json({
+                success: true,
+                message: 'Login successful'
+            });
+        } else {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid password'
+            });
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Login failed'
+        });
+    }
+});
+
+// Logout endpoint
+app.post('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Logout failed' });
+        }
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
+});
+
+// Public routes (no authentication required)
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/IFRC-Logo.png', (req, res) => {
+    res.sendFile(path.join(__dirname, 'IFRC-Logo.png'));
+});
+
 // Serve JS modules with correct MIME type and no-cache headers BEFORE static middleware
-app.get('/js/:filename', (req, res) => {
+app.get('/js/:filename', requireAuth, (req, res) => {
     res.type('application/javascript');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -20,29 +116,22 @@ app.get('/js/:filename', (req, res) => {
     res.sendFile(path.join(__dirname, 'js', req.params.filename));
 });
 
-// Serve images
-app.get('/images/:filename', (req, res) => {
+// Serve images (protected)
+app.get('/images/:filename', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'images', req.params.filename));
 });
 
-// Static file middleware (must come AFTER specific routes)
-app.use(express.static('.'));
-
-// Explicit static file routes for Vercel deployment
-app.get('/styles.css', (req, res) => {
+// Explicit static file routes for Vercel deployment (all protected except already defined public ones)
+app.get('/styles.css', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'styles.css'));
 });
 
-app.get('/script.js', (req, res) => {
+app.get('/script.js', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'script.js'));
 });
 
-app.get('/index.html', (req, res) => {
+app.get('/index.html', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/IFRC-Logo.png', (req, res) => {
-    res.sendFile(path.join(__dirname, 'IFRC-Logo.png'));
 });
 
 const parser = new xml2js.Parser();
@@ -976,7 +1065,7 @@ class GDACSProxy {
 
 const gdacsProxy = new GDACSProxy();
 
-app.get('/api/disasters', async (req, res) => {
+app.get('/api/disasters', requireAuth, async (req, res) => {
     try {
         const { source = 'ALL', alertLevel = '', from = '', to = '' } = req.query;
         
@@ -1040,7 +1129,7 @@ app.get('/api/disasters', async (req, res) => {
     }
 });
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', requireAuth, (req, res) => {
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
@@ -1057,7 +1146,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Emergency Response Units endpoint
-app.get('/api/emergency-response-units', async (req, res) => {
+app.get('/api/emergency-response-units', requireAuth, async (req, res) => {
     try {
         const emergencyResponseHandler = require('./api/emergency-response-units');
         await emergencyResponseHandler(req, res);
@@ -1072,7 +1161,7 @@ app.get('/api/emergency-response-units', async (req, res) => {
 });
 
 // Rapid Response Personnel endpoint
-app.get('/api/rapid-response-personnel', async (req, res) => {
+app.get('/api/rapid-response-personnel', requireAuth, async (req, res) => {
     try {
         const rapidResponseHandler = require('./api/rapid-response-personnel');
         await rapidResponseHandler(req, res);
@@ -1087,7 +1176,7 @@ app.get('/api/rapid-response-personnel', async (req, res) => {
 });
 
 // GDACS Events endpoint - combines API (Orange/Red) and RSS (all levels including Green)
-app.get('/api/gdacs-events', async (req, res) => {
+app.get('/api/gdacs-events', requireAuth, async (req, res) => {
     try {
         const { source = 'ALL', alertLevel = '', from = '', to = '' } = req.query;
 
@@ -1149,7 +1238,7 @@ app.get('/api/gdacs-events', async (req, res) => {
 });
 
 // Impact Zones endpoint (placeholder - returns empty array for now)
-app.get('/api/impact-zones', async (req, res) => {
+app.get('/api/impact-zones', requireAuth, async (req, res) => {
     try {
         res.json({
             success: true,
@@ -1167,7 +1256,7 @@ app.get('/api/impact-zones', async (req, res) => {
 });
 
 // GDACS-CAP API endpoint
-app.get('/api/gdacs-cap', async (req, res) => {
+app.get('/api/gdacs-cap', requireAuth, async (req, res) => {
     try {
         const gdacsCapHandler = require('./api/gdacs-cap');
         await gdacsCapHandler(req, res);
@@ -1178,7 +1267,7 @@ app.get('/api/gdacs-cap', async (req, res) => {
 });
 
 // Health facilities endpoint
-app.get('/api/health-facilities', async (req, res) => {
+app.get('/api/health-facilities', requireAuth, async (req, res) => {
     try {
         const { facility_type } = req.query;
 
@@ -1399,7 +1488,7 @@ function mapFacilityTypeToDisplayName(facilityType) {
     return 'Other';
 }
 
-app.get('/api/disasters/sample', (req, res) => {
+app.get('/api/disasters/sample', requireAuth, (req, res) => {
     try {
         const { alertLevel = '' } = req.query;
         let events = gdacsProxy.getSampleData();
@@ -1480,7 +1569,7 @@ async function fetchFromIfrcGo(endpoint, params = {}) {
 }
 
 // Get IFRC documents by country
-app.get('/api/ifrc-documents', async (req, res) => {
+app.get('/api/ifrc-documents', requireAuth, async (req, res) => {
     try {
         // Check if IFRC API is configured
         if (!IFRC_GO_API_TOKEN || IFRC_GO_API_TOKEN === 'your_token_here') {
@@ -1554,7 +1643,7 @@ app.get('/api/ifrc-documents', async (req, res) => {
 });
 
 // Get IFRC countries list
-app.get('/api/ifrc-countries', async (req, res) => {
+app.get('/api/ifrc-countries', requireAuth, async (req, res) => {
     try {
         // Check if IFRC API is configured
         if (!IFRC_GO_API_TOKEN || IFRC_GO_API_TOKEN === 'your_token_here') {
@@ -1584,7 +1673,7 @@ app.get('/api/ifrc-countries', async (req, res) => {
 
 
 
-app.get('/', (req, res) => {
+app.get('/', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
