@@ -418,8 +418,9 @@ body.fullscreen-mode .sidebar-drawer {
 
 .section-list {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: auto !important;
     min-height: 0; /* Important for proper scrolling */
+    overflow-x: hidden;
 }
 
 .drawer-close {
@@ -473,6 +474,7 @@ body.fullscreen-mode .sidebar-drawer {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
 }
 
 .facilities-section .section-header {
@@ -481,7 +483,7 @@ body.fullscreen-mode .sidebar-drawer {
 
 .facilities-section .facilities-list {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: auto !important;
     min-height: 0;
 }
 
@@ -1304,6 +1306,14 @@ body.fullscreen-mode .sidebar-drawer {
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+}
+
+/* Ensure the impact facilities list specifically can scroll */
+#impactFacilitiesList {
+    flex: 1;
+    overflow-y: auto !important;
+    min-height: 0;
+    max-height: 100%;
 }
 
 .no-facilities {
