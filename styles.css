@@ -401,11 +401,10 @@ body.fullscreen-mode .sidebar-drawer {
 }
 
 .drawer-section {
-    flex: 0 1 50%; /* Allow sections to share space but not grow beyond 50% */
+    flex: 1 1 0; /* Allow sections to share space equally */
     display: flex;
     flex-direction: column;
     min-height: 0; /* Important for proper flexbox behavior */
-    max-height: 50%; /* Ensure each section doesn't take more than half */
     border-bottom: 1px solid #e0e0e0;
     margin-bottom: 8px;
     padding-bottom: 8px;
