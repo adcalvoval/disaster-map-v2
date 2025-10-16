@@ -468,6 +468,24 @@ body.fullscreen-mode .sidebar-drawer {
     min-height: 0;
 }
 
+/* RCRC Facilities Section */
+.facilities-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.facilities-section .section-header {
+    flex-shrink: 0;
+}
+
+.facilities-section .facilities-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
 .event-item {
     background: white;
     border-radius: 6px;
