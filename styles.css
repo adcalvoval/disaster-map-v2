@@ -366,7 +366,7 @@ body.fullscreen-mode .sidebar-drawer {
 .sidebar-drawer {
     position: fixed;
     top: 60px; /* Account for header height */
-    bottom: 90px; /* Leave space for footer and Leaflet attribution box */
+    bottom: 65px; /* Leave space just above Leaflet attribution box */
     right: 0;
     width: 350px;
     height: auto;
