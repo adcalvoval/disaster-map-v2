@@ -107,8 +107,11 @@ app.get('/IFRC-Logo.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'IFRC-Logo.png'));
 });
 
+// TEMPORARY: Authentication disabled for sharing (restore by uncommenting requireAuth)
+// To restore authentication: uncomment all requireAuth middleware below
+
 // Serve JS modules with correct MIME type and no-cache headers BEFORE static middleware
-app.get('/js/:filename', requireAuth, (req, res) => {
+app.get('/js/:filename', /* requireAuth, */ (req, res) => {
     res.type('application/javascript');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -117,20 +120,20 @@ app.get('/js/:filename', requireAuth, (req, res) => {
 });
 
 // Serve images (protected)
-app.get('/images/:filename', requireAuth, (req, res) => {
+app.get('/images/:filename', /* requireAuth, */ (req, res) => {
     res.sendFile(path.join(__dirname, 'images', req.params.filename));
 });
 
 // Explicit static file routes for Vercel deployment (all protected except already defined public ones)
-app.get('/styles.css', requireAuth, (req, res) => {
+app.get('/styles.css', /* requireAuth, */ (req, res) => {
     res.sendFile(path.join(__dirname, 'styles.css'));
 });
 
-app.get('/script.js', requireAuth, (req, res) => {
+app.get('/script.js', /* requireAuth, */ (req, res) => {
     res.sendFile(path.join(__dirname, 'script.js'));
 });
 
-app.get('/index.html', requireAuth, (req, res) => {
+app.get('/index.html', /* requireAuth, */ (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
@@ -1065,7 +1068,7 @@ class GDACSProxy {
 
 const gdacsProxy = new GDACSProxy();
 
-app.get('/api/disasters', requireAuth, async (req, res) => {
+app.get('/api/disasters', /* requireAuth, */ async (req, res) => {
     try {
         const { source = 'ALL', alertLevel = '', from = '', to = '' } = req.query;
         
@@ -1129,7 +1132,7 @@ app.get('/api/disasters', requireAuth, async (req, res) => {
     }
 });
 
-app.get('/api/health', requireAuth, (req, res) => {
+app.get('/api/health', /* requireAuth, */ (req, res) => {
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
@@ -1146,7 +1149,7 @@ app.get('/api/health', requireAuth, (req, res) => {
 });
 
 // Emergency Response Units endpoint
-app.get('/api/emergency-response-units', requireAuth, async (req, res) => {
+app.get('/api/emergency-response-units', /* requireAuth, */ async (req, res) => {
     try {
         const emergencyResponseHandler = require('./api/emergency-response-units');
         await emergencyResponseHandler(req, res);
@@ -1161,7 +1164,7 @@ app.get('/api/emergency-response-units', requireAuth, async (req, res) => {
 });
 
 // Rapid Response Personnel endpoint
-app.get('/api/rapid-response-personnel', requireAuth, async (req, res) => {
+app.get('/api/rapid-response-personnel', /* requireAuth, */ async (req, res) => {
     try {
         const rapidResponseHandler = require('./api/rapid-response-personnel');
         await rapidResponseHandler(req, res);
@@ -1176,7 +1179,7 @@ app.get('/api/rapid-response-personnel', requireAuth, async (req, res) => {
 });
 
 // GDACS Events endpoint - combines API (Orange/Red) and RSS (all levels including Green)
-app.get('/api/gdacs-events', requireAuth, async (req, res) => {
+app.get('/api/gdacs-events', /* requireAuth, */ async (req, res) => {
     try {
         const { source = 'ALL', alertLevel = '', from = '', to = '' } = req.query;
 
@@ -1238,7 +1241,7 @@ app.get('/api/gdacs-events', requireAuth, async (req, res) => {
 });
 
 // Impact Zones endpoint (placeholder - returns empty array for now)
-app.get('/api/impact-zones', requireAuth, async (req, res) => {
+app.get('/api/impact-zones', /* requireAuth, */ async (req, res) => {
     try {
         res.json({
             success: true,
@@ -1256,7 +1259,7 @@ app.get('/api/impact-zones', requireAuth, async (req, res) => {
 });
 
 // GDACS-CAP API endpoint
-app.get('/api/gdacs-cap', requireAuth, async (req, res) => {
+app.get('/api/gdacs-cap', /* requireAuth, */ async (req, res) => {
     try {
         const gdacsCapHandler = require('./api/gdacs-cap');
         await gdacsCapHandler(req, res);
@@ -1267,7 +1270,7 @@ app.get('/api/gdacs-cap', requireAuth, async (req, res) => {
 });
 
 // Health facilities endpoint
-app.get('/api/health-facilities', requireAuth, async (req, res) => {
+app.get('/api/health-facilities', /* requireAuth, */ async (req, res) => {
     try {
         const { facility_type } = req.query;
 
@@ -1488,7 +1491,7 @@ function mapFacilityTypeToDisplayName(facilityType) {
     return 'Other';
 }
 
-app.get('/api/disasters/sample', requireAuth, (req, res) => {
+app.get('/api/disasters/sample', /* requireAuth, */ (req, res) => {
     try {
         const { alertLevel = '' } = req.query;
         let events = gdacsProxy.getSampleData();
@@ -1569,7 +1572,7 @@ async function fetchFromIfrcGo(endpoint, params = {}) {
 }
 
 // Get IFRC documents by country
-app.get('/api/ifrc-documents', requireAuth, async (req, res) => {
+app.get('/api/ifrc-documents', /* requireAuth, */ async (req, res) => {
     try {
         // Check if IFRC API is configured
         if (!IFRC_GO_API_TOKEN || IFRC_GO_API_TOKEN === 'your_token_here') {
@@ -1643,7 +1646,7 @@ app.get('/api/ifrc-documents', requireAuth, async (req, res) => {
 });
 
 // Get IFRC countries list
-app.get('/api/ifrc-countries', requireAuth, async (req, res) => {
+app.get('/api/ifrc-countries', /* requireAuth, */ async (req, res) => {
     try {
         // Check if IFRC API is configured
         if (!IFRC_GO_API_TOKEN || IFRC_GO_API_TOKEN === 'your_token_here') {
@@ -1673,7 +1676,7 @@ app.get('/api/ifrc-countries', requireAuth, async (req, res) => {
 
 
 
-app.get('/', requireAuth, (req, res) => {
+app.get('/', /* requireAuth, */ (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
