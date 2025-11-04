@@ -1143,7 +1143,8 @@ app.get('/api/health', /* requireAuth, */ (req, res) => {
             '/api/health-facilities - Get health facilities data',
             '/api/health - Health check',
             '/api/gdacs-cap - Get GDACS impact zones',
-            '/api/emergency-response-units - Get emergency response units'
+            '/api/emergency-response-units - Get emergency response units',
+            '/api/emergency-appeals - Get active emergency appeals'
         ]
     });
 });
@@ -1174,6 +1175,21 @@ app.get('/api/rapid-response-personnel', /* requireAuth, */ async (req, res) => 
             success: false,
             error: 'Failed to load Rapid Response Personnel handler: ' + error.message,
             personnel: []
+        });
+    }
+});
+
+// Emergency Appeals endpoint
+app.get('/api/emergency-appeals', /* requireAuth, */ async (req, res) => {
+    try {
+        const emergencyAppealsHandler = require('./api/emergency-appeals');
+        await emergencyAppealsHandler(req, res);
+    } catch (error) {
+        console.error('Error loading Emergency Appeals handler:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load Emergency Appeals handler: ' + error.message,
+            appeals: []
         });
     }
 });

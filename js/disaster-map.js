@@ -4,6 +4,7 @@ import { DisasterEvents } from './disaster-events.js';
 import { HealthFacilities } from './health-facilities.js';
 import { ERUManager } from './eru-manager.js';
 import { RapidResponseManager } from './rapid-response-manager.js';
+import { EmergencyAppeals } from './emergency-appeals.js';
 import { UIControls } from './ui-controls.js';
 import { Utils } from './utils.js';
 
@@ -29,6 +30,7 @@ export class DisasterMap {
         this.healthFacilities = null;
         this.eruManager = null;
         this.rapidResponseManager = null;
+        this.emergencyAppeals = null;
         this.uiControls = null;
 
         this.init();
@@ -43,6 +45,7 @@ export class DisasterMap {
         this.healthFacilities = new HealthFacilities(this.map, this.config);
         this.eruManager = new ERUManager(this.map, this.config);
         this.rapidResponseManager = new RapidResponseManager(this.map, this.config);
+        this.emergencyAppeals = new EmergencyAppeals(this.map, this.config);
         this.uiControls = new UIControls(this);
 
         // Set callback for when health facilities finish loading
@@ -63,7 +66,8 @@ export class DisasterMap {
             this.disasterEvents.loadDisasterData(),
             this.loadImpactZones(),
             this.eruManager.loadActiveERUs(),
-            this.rapidResponseManager.loadRapidResponsePersonnel()
+            this.rapidResponseManager.loadRapidResponsePersonnel(),
+            this.emergencyAppeals.loadActiveAppeals()
         ]);
     }
 
