@@ -98,7 +98,7 @@ export class DisasterEvents {
                     coordinates: [59.9139, 10.7522], // Oslo, Norway
                     severity: 'very-high',
                     affectedRadius: 15, // Cover Oslo area
-                    affectedArea: 'Quality Hotel Hasle Line',
+                    affectedArea: 'Quality Hotel Hasle Linie',
                     affectedPopulation: 'TWG',
                     impactDescription: 'Man flu to the max',
                     date: new Date().toISOString().split('T')[0],
@@ -192,7 +192,7 @@ export class DisasterEvents {
                 coordinates: [59.9139, 10.7522], // Oslo, Norway
                 severity: 'very-high',
                 affectedRadius: 15, // Cover Oslo area
-                affectedArea: 'Quality Hotel Hasle Line',
+                affectedArea: 'Quality Hotel Hasle Linie',
                 affectedPopulation: 'TWG',
                 impactDescription: 'Man flu to the max',
                 date: new Date().toISOString().split('T')[0],
