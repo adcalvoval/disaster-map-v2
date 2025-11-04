@@ -15,6 +15,7 @@ export class DisasterEvents {
             'Cyclone': true,
             'Wildfire': true,
             'Volcanic Activity': true,
+            'Outbreak': true,
             'Other': true
         };
         this.currentlyFocusedEvent = null;
@@ -87,9 +88,36 @@ export class DisasterEvents {
                     affectedRadius: this.calculateAffectedRadius(event)
                 }));
 
+                // Always add the fake Oslo event
+                const fakeOsloEvent = {
+                    id: 'OSLO001',
+                    title: 'Outbreak: Liam\'s Cold',
+                    description: 'Critical biohazard situation',
+                    type: 'Outbreak',
+                    alertLevel: 'Red',
+                    coordinates: [59.9139, 10.7522], // Oslo, Norway
+                    severity: 'very-high',
+                    affectedRadius: 15, // Cover Oslo area
+                    affectedArea: 'Quality Hotel Hasle Line',
+                    affectedPopulation: 'TWG',
+                    impactDescription: 'Man flu to the max',
+                    date: new Date().toISOString().split('T')[0],
+                    // Polygon covering Oslo municipality (approximate boundaries)
+                    polygonCoordinates: [
+                        [59.975, 10.625],  // Northwest
+                        [60.050, 10.700],  // North
+                        [60.025, 10.900],  // Northeast
+                        [59.950, 10.950],  // East
+                        [59.850, 10.900],  // Southeast
+                        [59.850, 10.650],  // Southwest
+                        [59.900, 10.600],  // West
+                        [59.975, 10.625]   // Back to Northwest
+                    ]
+                };
+
                 return {
                     success: true,
-                    events: processedEvents
+                    events: [fakeOsloEvent, ...processedEvents]
                 };
             } else {
                 throw new Error('Invalid response format from backend');
@@ -155,6 +183,31 @@ export class DisasterEvents {
 
     getSampleData() {
         return [
+            {
+                id: 'OSLO001',
+                title: 'Outbreak: Liam\'s Cold',
+                description: 'Critical biohazard situation',
+                type: 'Outbreak',
+                alertLevel: 'Red',
+                coordinates: [59.9139, 10.7522], // Oslo, Norway
+                severity: 'very-high',
+                affectedRadius: 15, // Cover Oslo area
+                affectedArea: 'Quality Hotel Hasle Line',
+                affectedPopulation: 'TWG',
+                impactDescription: 'Man flu to the max',
+                date: new Date().toISOString().split('T')[0],
+                // Polygon covering Oslo municipality (approximate boundaries)
+                polygonCoordinates: [
+                    [59.975, 10.625],  // Northwest
+                    [60.050, 10.700],  // North
+                    [60.025, 10.900],  // Northeast
+                    [59.950, 10.950],  // East
+                    [59.850, 10.900],  // Southeast
+                    [59.850, 10.650],  // Southwest
+                    [59.900, 10.600],  // West
+                    [59.975, 10.625]   // Back to Northwest
+                ]
+            },
             {
                 id: 'EQ001',
                 title: 'Magnitude 6.2 Earthquake',
@@ -247,12 +300,17 @@ export class DisasterEvents {
                 popupContent += `<p><strong>Country:</strong> ${event.country}</p>`;
             }
 
+            // Add affected area if available
+            if (event.affectedArea) {
+                popupContent += `<p><strong>Affected area:</strong> ${event.affectedArea}</p>`;
+            }
+
             // Add affected population if available
             if (event.affectedPopulation) {
                 const population = typeof event.affectedPopulation === 'number'
                     ? event.affectedPopulation.toLocaleString()
                     : event.affectedPopulation;
-                popupContent += `<p><strong>Population Affected:</strong> ${population}</p>`;
+                popupContent += `<p><strong>Affected Population:</strong> ${population}</p>`;
             }
 
             // Add severity information if available
@@ -323,6 +381,7 @@ export class DisasterEvents {
             'Cyclone': '🌀',
             'Wildfire': '🔥',
             'Volcanic Activity': '🌋',
+            'Outbreak': '☢️',
             'Other': '⚠️'
         };
         return symbols[type] || symbols['Other'];
@@ -358,10 +417,22 @@ export class DisasterEvents {
         this.clearAffectedAreas();
 
         events.forEach(event => {
-            if (event.affectedRadius && event.affectedRadius > 0) {
-                const alertColor = this.getAlertColor(event.alertLevel);
+            const alertColor = this.getAlertColor(event.alertLevel);
+            let area = null;
 
-                const circle = L.circle(event.coordinates, {
+            // Check if event has custom polygon coordinates
+            if (event.polygonCoordinates && event.polygonCoordinates.length > 0) {
+                area = L.polygon(event.polygonCoordinates, {
+                    color: alertColor,
+                    fillColor: alertColor,
+                    fillOpacity: 0.1,
+                    weight: 2,
+                    dashArray: '5, 5'
+                }).addTo(this.map);
+            }
+            // Otherwise use circle based on affected radius
+            else if (event.affectedRadius && event.affectedRadius > 0) {
+                area = L.circle(event.coordinates, {
                     color: alertColor,
                     fillColor: alertColor,
                     fillOpacity: 0.1,
@@ -369,9 +440,11 @@ export class DisasterEvents {
                     weight: 2,
                     dashArray: '5, 5'
                 }).addTo(this.map);
+            }
 
-                circle.eventId = event.id;
-                this.affectedAreas.push(circle);
+            if (area) {
+                area.eventId = event.id;
+                this.affectedAreas.push(area);
             }
         });
     }
