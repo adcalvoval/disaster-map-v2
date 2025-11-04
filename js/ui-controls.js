@@ -65,6 +65,26 @@ export class UIControls {
             });
         }
 
+        // Refresh data button
+        const refreshDataBtn = document.getElementById('refreshData');
+        if (refreshDataBtn) {
+            refreshDataBtn.addEventListener('click', async () => {
+                console.log('🔄 Refreshing all data...');
+                refreshDataBtn.disabled = true;
+                refreshDataBtn.textContent = 'Refreshing...';
+
+                try {
+                    await this.disasterMap.loadData();
+                    console.log('✅ All data refreshed successfully');
+                } catch (error) {
+                    console.error('❌ Error refreshing data:', error);
+                } finally {
+                    refreshDataBtn.disabled = false;
+                    refreshDataBtn.textContent = 'Refresh Data';
+                }
+            });
+        }
+
         // Keyboard event listeners
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isFullscreen) {
