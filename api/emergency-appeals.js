@@ -215,6 +215,16 @@ module.exports = async (req, res) => {
             let allAppeals = [];
 
             apiData.results.forEach(appeal => {
+                // Check if appeal is still ongoing (no end_date or end_date in future)
+                const now = new Date();
+                const endDate = appeal.end_date ? new Date(appeal.end_date) : null;
+                const isOngoing = !endDate || endDate > now;
+
+                if (!isOngoing) {
+                    console.log(`Filtered out Appeal ${appeal.id}: ended on ${appeal.end_date}`);
+                    return;
+                }
+
                 // Get country coordinates
                 const countryISO3 = appeal.country?.iso3 || appeal.country?.iso;
                 const coords = countryISO3 ? getCountryCoordinates(countryISO3) : null;
