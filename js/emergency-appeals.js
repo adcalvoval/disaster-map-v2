@@ -115,25 +115,16 @@ export class EmergencyAppeals {
                 const startDate = Utils.formatDate(appeal.start_date);
                 const endDate = appeal.end_date ? Utils.formatDate(appeal.end_date) : 'Ongoing';
 
-                let tooltipContent = `
+                const tooltipContent = `
                     <div class="appeal-tooltip">
                         <strong>Emergency Appeal</strong><br>
-                        <strong>Name:</strong> ${appeal.name}<br>
                         <strong>Country:</strong> ${appeal.country}<br>
+                        <strong>Appeal:</strong> ${appeal.name}<br>
                         <strong>Disaster Type:</strong> ${appeal.disaster_type}<br>
                         <strong>Start Date:</strong> ${startDate}<br>
                         <strong>End Date:</strong> ${endDate}
+                    </div>
                 `;
-
-                // Add funding information if available
-                if (appeal.amount_requested) {
-                    tooltipContent += `<br><strong>Amount Requested:</strong> ${appeal.amount_requested.toLocaleString()} CHF`;
-                }
-                if (appeal.amount_funded) {
-                    tooltipContent += `<br><strong>Amount Funded:</strong> ${appeal.amount_funded.toLocaleString()} CHF`;
-                }
-
-                tooltipContent += `</div>`;
 
                 const marker = L.marker([lat, lng], { icon: blueCrossIcon })
                     .bindTooltip(tooltipContent, {

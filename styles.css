@@ -282,6 +282,23 @@ body.fullscreen-mode .sidebar-drawer {
     color: #ffed4e !important;
 }
 
+/* Appeal tooltip styling */
+.appeal-tooltip {
+    background: rgba(37, 99, 235, 0.95) !important;
+    color: white !important;
+    border: 2px solid #2563eb !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4) !important;
+    line-height: 1.4 !important;
+}
+
+.appeal-tooltip strong {
+    color: #ffed4e !important;
+}
+
 /* Personnel tooltip styling */
 .personnel-tooltip {
     background: rgba(30, 58, 138, 0.95) !important;
