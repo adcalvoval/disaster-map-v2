@@ -88,36 +88,9 @@ export class DisasterEvents {
                     affectedRadius: this.calculateAffectedRadius(event)
                 }));
 
-                // Always add the fake Oslo event
-                const fakeOsloEvent = {
-                    id: 'OSLO001',
-                    title: 'Outbreak: Liam\'s Cold',
-                    description: 'Critical biohazard situation',
-                    type: 'Outbreak',
-                    alertLevel: 'Red',
-                    coordinates: [59.9139, 10.7522], // Oslo, Norway
-                    severity: 'very-high',
-                    affectedRadius: 15, // Cover Oslo area
-                    affectedArea: 'Quality Hotel Hasle Linie',
-                    affectedPopulation: 'TWG',
-                    impactDescription: 'Man flu to the max',
-                    date: new Date().toISOString().split('T')[0],
-                    // Polygon covering Oslo municipality (approximate boundaries)
-                    polygonCoordinates: [
-                        [59.975, 10.625],  // Northwest
-                        [60.050, 10.700],  // North
-                        [60.025, 10.900],  // Northeast
-                        [59.950, 10.950],  // East
-                        [59.850, 10.900],  // Southeast
-                        [59.850, 10.650],  // Southwest
-                        [59.900, 10.600],  // West
-                        [59.975, 10.625]   // Back to Northwest
-                    ]
-                };
-
                 return {
                     success: true,
-                    events: [fakeOsloEvent, ...processedEvents]
+                    events: processedEvents
                 };
             } else {
                 throw new Error('Invalid response format from backend');
@@ -183,31 +156,6 @@ export class DisasterEvents {
 
     getSampleData() {
         return [
-            {
-                id: 'OSLO001',
-                title: 'Outbreak: Liam\'s Cold',
-                description: 'Critical biohazard situation',
-                type: 'Outbreak',
-                alertLevel: 'Red',
-                coordinates: [59.9139, 10.7522], // Oslo, Norway
-                severity: 'very-high',
-                affectedRadius: 15, // Cover Oslo area
-                affectedArea: 'Quality Hotel Hasle Linie',
-                affectedPopulation: 'TWG',
-                impactDescription: 'Man flu to the max',
-                date: new Date().toISOString().split('T')[0],
-                // Polygon covering Oslo municipality (approximate boundaries)
-                polygonCoordinates: [
-                    [59.975, 10.625],  // Northwest
-                    [60.050, 10.700],  // North
-                    [60.025, 10.900],  // Northeast
-                    [59.950, 10.950],  // East
-                    [59.850, 10.900],  // Southeast
-                    [59.850, 10.650],  // Southwest
-                    [59.900, 10.600],  // West
-                    [59.975, 10.625]   // Back to Northwest
-                ]
-            },
             {
                 id: 'EQ001',
                 title: 'Magnitude 6.2 Earthquake',
