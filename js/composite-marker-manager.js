@@ -68,7 +68,11 @@ export class CompositeMarkerManager {
 
         this.locationData.forEach((location, key) => {
             const categories = Object.keys(location.categories);
-            console.log(`📍 Location ${key} has categories:`, categories);
+            const itemCounts = {};
+            categories.forEach(cat => {
+                itemCounts[cat] = location.categories[cat].length;
+            });
+            console.log(`📍 Location ${key} has categories:`, categories, 'with counts:', itemCounts);
 
             if (categories.length === 0) return;
 
@@ -111,9 +115,22 @@ export class CompositeMarkerManager {
         // Add the marker to the map first so we can attach click handlers
         marker.addTo(this.map);
 
+        // Wait for marker to be rendered in DOM
+        const markerElement = marker.getElement();
+        if (!markerElement) {
+            console.error('Marker element not found after adding to map');
+            return marker;
+        }
+
+        const iconContainer = markerElement.querySelector('.composite-marker-icon');
+        if (!iconContainer) {
+            console.error('Icon container not found in marker element');
+            return marker;
+        }
+
         // Create the icon HTML with clickable badges
         const iconHtml = this.createClickableBadges(marker, categories);
-        marker.getElement().querySelector('.composite-marker-icon').innerHTML = iconHtml;
+        iconContainer.innerHTML = iconHtml;
 
         // Attach click handlers to each badge
         this.attachBadgeClickHandlers(marker, categories);
