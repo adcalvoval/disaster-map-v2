@@ -2,9 +2,10 @@
 import { Utils } from './utils.js';
 
 export class ERUManager {
-    constructor(map, config) {
+    constructor(map, config, compositeMarkerManager) {
         this.map = map;
         this.config = config;
+        this.compositeMarkerManager = compositeMarkerManager;
         this.activeERUs = [];
         this.eruMarkers = [];
         this.showActiveERUs = false;
@@ -57,90 +58,33 @@ export class ERUManager {
     }
 
     addActiveERUsToMap() {
-        console.log(`Adding ${this.activeERUs.length} active ERUs to map`);
+        console.log(`Adding ${this.activeERUs.length} active ERUs to map using composite markers`);
 
         // Clear existing markers
         this.clearERUMarkers();
 
-        let addedCount = 0;
-        const existingCoordinates = new Map();
-
+        // Add ERU data to composite marker manager
         this.activeERUs.forEach(eru => {
             try {
-                let lat = eru.latitude;
-                let lng = eru.longitude;
+                const lat = eru.latitude;
+                const lng = eru.longitude;
 
                 if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
                     console.log(`Filtered out ERU ${eru.id}: invalid coordinates`);
                     return;
                 }
 
-                // Handle overlapping coordinates by offsetting markers in a circular pattern
-                const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-                const existingMarkersAtCoord = existingCoordinates.get(coordKey) || 0;
-                existingCoordinates.set(coordKey, existingMarkersAtCoord + 1);
-
-                if (existingMarkersAtCoord > 0) {
-                    // Create tight circular pattern to keep markers within country borders
-                    const baseDistance = 0.05; // Small offset to stay within country borders
-                    const offsetDistance = baseDistance * (1 + existingMarkersAtCoord * 0.2);
-                    const angle = (existingMarkersAtCoord * 60) * (Math.PI / 180); // 60° = 360°/6 for tighter spacing
-                    lat += Math.sin(angle) * offsetDistance;
-                    lng += Math.cos(angle) * offsetDistance;
-                    console.log(`📍 Offsetting ERU ${eru.id} by ${offsetDistance.toFixed(4)} degrees at angle ${existingMarkersAtCoord * 60}°`);
-                }
-
-                // Create red cross icon (square shape)
-                const redCrossIcon = L.divIcon({
-                    html: `<div style="
-                        background-color: white;
-                        color: #dc2626;
-                        width: 24px;
-                        height: 24px;
-                        border-radius: 3px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-size: 16px;
-                        font-weight: bold;
-                        border: 2px solid #dc2626;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    ">✚</div>`,
-                    className: 'eru-marker',
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
-                });
-
-                // Create tooltip content
-                const startDate = Utils.formatDate(eru.start_date);
-                const tooltipContent = `
-                    <div class="eru-tooltip">
-                        <strong>Emergency Response Unit</strong><br>
-                        <strong>Country:</strong> ${eru.country_deployment}<br>
-                        <strong>Deploying Society:</strong> ${eru.deploying_society}<br>
-                        <strong>ERU Type:</strong> ${eru.eru_types}<br>
-                        <strong>Start Date:</strong> ${startDate}<br>
-                        <strong>Event:</strong> ${eru.event_name}
-                    </div>
-                `;
-
-                const marker = L.marker([lat, lng], { icon: redCrossIcon })
-                    .bindTooltip(tooltipContent, {
-                        permanent: false,
-                        direction: 'top',
-                        offset: [0, -10]
-                    })
-                    .addTo(this.map);
-
-                this.eruMarkers.push(marker);
-                addedCount++;
+                this.compositeMarkerManager.addLocationData(lat, lng, 'eru', eru);
 
             } catch (error) {
-                console.error('Error adding ERU marker:', error, eru);
+                console.error('Error processing ERU data:', error, eru);
             }
         });
 
-        console.log(`✅ Added ${addedCount} ERU markers to map`);
+        // Trigger composite marker rendering (will combine with personnel if both are active)
+        this.compositeMarkerManager.renderCompositeMarkers();
+
+        console.log(`✅ Added ${this.activeERUs.length} ERUs to composite marker system`);
     }
 
     clearERUMarkers() {

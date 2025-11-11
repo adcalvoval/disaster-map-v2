@@ -1544,3 +1544,111 @@ body.fullscreen-mode .sidebar-drawer {
     opacity: 0.6;
 }
 
+/* Composite Marker Styles */
+.composite-marker-icon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.composite-marker {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: white;
+    border-radius: 4px;
+    padding: 3px 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    position: relative;
+    min-width: 32px;
+}
+
+.eru-indicator {
+    border: 2px solid #dc2626;
+    color: #dc2626;
+}
+
+.personnel-indicator {
+    border: 2px solid #1e3a8a;
+    color: #1e3a8a;
+}
+
+.indicator-icon {
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.indicator-count {
+    font-size: 10px;
+    font-weight: bold;
+    background: currentColor;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 2px;
+}
+
+/* Composite Tooltip Styles */
+.composite-tooltip {
+    max-width: 320px !important;
+}
+
+.composite-tooltip-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tooltip-section {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.tooltip-category-header {
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffed4e;
+}
+
+.tooltip-divider {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    margin: 6px 0;
+}
+
+.tooltip-section-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.3);
+    margin: 4px 0;
+}
+
+/* Override default tooltip styling for composite tooltips */
+.leaflet-tooltip.composite-tooltip {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%) !important;
+    color: white !important;
+    border: 2px solid #dc2626 !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    padding: 10px 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    line-height: 1.4 !important;
+}
+
