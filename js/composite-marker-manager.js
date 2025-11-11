@@ -102,38 +102,26 @@ export class CompositeMarkerManager {
             return marker;
         }
 
-        // Create composite marker with clickable badges
+        // Create the icon HTML with clickable badges first
+        const iconHtml = this.createClickableBadgesHTML(categories);
+
+        // Create composite marker with the HTML included
         const marker = L.marker([lat, lng], {
             icon: L.divIcon({
-                html: '',
+                html: iconHtml,
                 className: 'composite-marker-icon',
                 iconSize: [60, 28],
                 iconAnchor: [30, 14]
             })
         });
 
-        // Add the marker to the map first so we can attach click handlers
+        // Add the marker to the map
         marker.addTo(this.map);
 
-        // Wait for marker to be rendered in DOM
-        const markerElement = marker.getElement();
-        if (!markerElement) {
-            console.error('Marker element not found after adding to map');
-            return marker;
-        }
-
-        const iconContainer = markerElement.querySelector('.composite-marker-icon');
-        if (!iconContainer) {
-            console.error('Icon container not found in marker element');
-            return marker;
-        }
-
-        // Create the icon HTML with clickable badges
-        const iconHtml = this.createClickableBadges(marker, categories);
-        iconContainer.innerHTML = iconHtml;
-
-        // Attach click handlers to each badge
-        this.attachBadgeClickHandlers(marker, categories);
+        // Attach click handlers to each badge after marker is in DOM
+        setTimeout(() => {
+            this.attachBadgeClickHandlers(marker, categories);
+        }, 0);
 
         return marker;
     }
@@ -169,12 +157,11 @@ export class CompositeMarkerManager {
     }
 
     /**
-     * Create clickable badges for composite marker
-     * @param {L.Marker} marker - The Leaflet marker
+     * Create clickable badges HTML for composite marker
      * @param {object} categories - Object with category arrays
      * @returns {string} HTML string for badges
      */
-    createClickableBadges(marker, categories) {
+    createClickableBadgesHTML(categories) {
         const eruCount = categories.eru ? categories.eru.length : 0;
         const personnelCount = categories.personnel ? categories.personnel.length : 0;
 
