@@ -93,7 +93,9 @@ export class CompositeMarkerManager {
 
         // If only one category with one item, use simple marker
         if (categoryKeys.length === 1 && categories[categoryKeys[0]].length === 1) {
-            return this.createSingleMarker(lat, lng, categoryKeys[0], categories[categoryKeys[0]][0]);
+            const marker = this.createSingleMarker(lat, lng, categoryKeys[0], categories[categoryKeys[0]][0]);
+            marker.addTo(this.map);
+            return marker;
         }
 
         // Create composite marker with clickable badges
