@@ -1567,11 +1567,17 @@ body.fullscreen-mode .sidebar-drawer {
     font-weight: bold;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s;
+    pointer-events: all;
 }
 
 .count-badge:hover {
-    transform: scale(1.1);
+    transform: scale(1.15);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+}
+
+.count-badge:active {
+    transform: scale(1.05);
 }
 
 .eru-badge {
@@ -1607,7 +1613,6 @@ body.fullscreen-mode .sidebar-drawer {
 }
 
 .popup-header {
-    background: linear-gradient(135deg, #dc2626 0%, #1e3a8a 100%);
     color: white;
     padding: 12px 15px;
     font-weight: bold;
@@ -1616,6 +1621,23 @@ body.fullscreen-mode .sidebar-drawer {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+/* Default gradient for mixed popups */
+.composite-popup-content .popup-header {
+    background: linear-gradient(135deg, #dc2626 0%, #1e3a8a 100%);
+}
+
+/* ERU-specific header */
+.eru-item ~ * .popup-header,
+.composite-popup-content:has(.eru-item:first-child) .popup-header {
+    background: #dc2626;
+}
+
+/* Personnel-specific header */
+.personnel-item ~ * .popup-header,
+.composite-popup-content:has(.personnel-item:first-child) .popup-header {
+    background: #1e3a8a;
 }
 
 .popup-total {

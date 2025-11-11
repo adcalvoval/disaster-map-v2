@@ -72,10 +72,9 @@ export class CompositeMarkerManager {
 
             if (categories.length === 0) return;
 
-            // Create composite marker
+            // Create composite marker (it adds itself to the map)
             const marker = this.createCompositeMarker(location);
             if (marker) {
-                marker.addTo(this.map);
                 this.compositeMarkers.push(marker);
             }
         });
@@ -97,16 +96,25 @@ export class CompositeMarkerManager {
             return this.createSingleMarker(lat, lng, categoryKeys[0], categories[categoryKeys[0]][0]);
         }
 
-        // Create composite marker with indicators for multiple categories/items
-        const icon = this.createCompositeIcon(categories);
-        const popupContent = this.createPopupList(categories);
+        // Create composite marker with clickable badges
+        const marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                html: '',
+                className: 'composite-marker-icon',
+                iconSize: [60, 28],
+                iconAnchor: [30, 14]
+            })
+        });
 
-        const marker = L.marker([lat, lng], { icon })
-            .bindPopup(popupContent, {
-                maxWidth: 400,
-                maxHeight: 400,
-                className: 'composite-popup'
-            });
+        // Add the marker to the map first so we can attach click handlers
+        marker.addTo(this.map);
+
+        // Create the icon HTML with clickable badges
+        const iconHtml = this.createClickableBadges(marker, categories);
+        marker.getElement().querySelector('.composite-marker-icon').innerHTML = iconHtml;
+
+        // Attach click handlers to each badge
+        this.attachBadgeClickHandlers(marker, categories);
 
         return marker;
     }
@@ -141,41 +149,105 @@ export class CompositeMarkerManager {
     }
 
     /**
-     * Create a composite icon showing multiple category indicators
+     * Create clickable badges for composite marker
+     * @param {L.Marker} marker - The Leaflet marker
      * @param {object} categories - Object with category arrays
-     * @returns {L.DivIcon} Leaflet div icon
+     * @returns {string} HTML string for badges
      */
-    createCompositeIcon(categories) {
+    createClickableBadges(marker, categories) {
         const eruCount = categories.eru ? categories.eru.length : 0;
         const personnelCount = categories.personnel ? categories.personnel.length : 0;
 
-        // Calculate total size based on number of indicators
-        const hasERU = eruCount > 0;
-        const hasPersonnel = personnelCount > 0;
-
-        // Build compact horizontal badge
         let badges = '';
 
-        if (hasERU) {
-            badges += `<span class="count-badge eru-badge">✚ ${eruCount}</span>`;
+        if (eruCount > 0) {
+            badges += `<span class="count-badge eru-badge" data-category="eru">✚ ${eruCount}</span>`;
         }
 
-        if (hasPersonnel) {
-            badges += `<span class="count-badge personnel-badge">👤 ${personnelCount}</span>`;
+        if (personnelCount > 0) {
+            badges += `<span class="count-badge personnel-badge" data-category="personnel">👤 ${personnelCount}</span>`;
         }
 
-        const html = `
-            <div class="composite-marker-compact">
-                ${badges}
-            </div>
-        `;
+        return `<div class="composite-marker-compact">${badges}</div>`;
+    }
 
-        return L.divIcon({
-            html: html,
-            className: 'composite-marker-icon',
-            iconSize: [60, 28],
-            iconAnchor: [30, 14]
+    /**
+     * Attach click handlers to each badge
+     * @param {L.Marker} marker - The Leaflet marker
+     * @param {object} categories - Object with category arrays
+     */
+    attachBadgeClickHandlers(marker, categories) {
+        const markerElement = marker.getElement();
+
+        // Find all badges
+        const badges = markerElement.querySelectorAll('.count-badge');
+
+        badges.forEach(badge => {
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent event bubbling
+
+                const category = badge.getAttribute('data-category');
+                const popupContent = this.createCategoryPopup(category, categories[category]);
+
+                // Create and open popup
+                const popup = L.popup({
+                    maxWidth: 400,
+                    maxHeight: 400,
+                    className: 'composite-popup'
+                })
+                .setLatLng(marker.getLatLng())
+                .setContent(popupContent)
+                .openOn(this.map);
+            });
         });
+    }
+
+    /**
+     * Create popup content for a specific category
+     * @param {string} category - Category name ('eru' or 'personnel')
+     * @param {Array} items - Array of items for this category
+     * @returns {string} HTML string for popup
+     */
+    createCategoryPopup(category, items) {
+        let content = '<div class="composite-popup-content">';
+
+        if (category === 'eru') {
+            content += `<div class="popup-header">Emergency Response Units <span class="popup-total">(${items.length})</span></div>`;
+            content += '<div class="popup-scroll-container">';
+
+            items.forEach((eru) => {
+                const startDate = this.formatDate(eru.start_date);
+                content += `
+                    <div class="popup-item eru-item">
+                        <div class="popup-item-title">${eru.eru_types}</div>
+                        <div class="popup-item-detail"><strong>Country:</strong> ${eru.country_deployment}</div>
+                        <div class="popup-item-detail"><strong>Deploying Society:</strong> ${eru.deploying_society}</div>
+                        <div class="popup-item-detail"><strong>Start Date:</strong> ${startDate}</div>
+                        <div class="popup-item-detail"><strong>Event:</strong> ${eru.event_name}</div>
+                    </div>
+                `;
+            });
+        } else if (category === 'personnel') {
+            content += `<div class="popup-header">Deployed Personnel <span class="popup-total">(${items.length})</span></div>`;
+            content += '<div class="popup-scroll-container">';
+
+            items.forEach((person) => {
+                const startDate = this.formatDate(person.startDate);
+                const endDate = person.endDate ? this.formatDate(person.endDate) : 'Ongoing';
+                content += `
+                    <div class="popup-item personnel-item">
+                        <div class="popup-item-title">${person.jobTitle}</div>
+                        <div class="popup-item-detail"><strong>Crisis:</strong> ${person.crisis}</div>
+                        <div class="popup-item-detail"><strong>Deploying Society:</strong> ${person.deployingNationalSociety}</div>
+                        <div class="popup-item-detail"><strong>Deployed To:</strong> ${person.deployedToCountry}</div>
+                        <div class="popup-item-detail"><strong>Period:</strong> ${startDate} - ${endDate}</div>
+                    </div>
+                `;
+            });
+        }
+
+        content += '</div></div>';
+        return content;
     }
 
     /**
