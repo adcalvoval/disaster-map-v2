@@ -2,10 +2,9 @@
 import { Utils } from './utils.js';
 
 export class RapidResponseManager {
-    constructor(map, config, compositeMarkerManager) {
+    constructor(map, config) {
         this.map = map;
         this.config = config;
-        this.compositeMarkerManager = compositeMarkerManager;
         this.activePersonnel = [];
         this.personnelMarkers = [];
         this.showRapidResponse = false;
@@ -58,46 +57,97 @@ export class RapidResponseManager {
     }
 
     addPersonnelToMap() {
-        console.log(`Adding ${this.activePersonnel.length} rapid response personnel to map using composite markers`);
+        console.log(`Adding ${this.activePersonnel.length} rapid response personnel to map`);
 
-        // Clear existing personnel data from composite system first
-        this.activePersonnel.forEach(person => {
-            const lat = person.latitude;
-            const lng = person.longitude;
-            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-                const key = this.compositeMarkerManager.getLocationKey(lat, lng);
-                const location = this.compositeMarkerManager.locationData.get(key);
-                if (location && location.categories.personnel) {
-                    delete location.categories.personnel;
-                    if (Object.keys(location.categories).length === 0) {
-                        this.compositeMarkerManager.locationData.delete(key);
-                    }
-                }
-            }
-        });
+        // Clear existing markers
+        this.clearPersonnelMarkers();
 
-        // Add personnel data to composite marker manager
+        let addedCount = 0;
+        const existingCoordinates = new Map();
+
         this.activePersonnel.forEach(person => {
             try {
-                const lat = person.latitude;
-                const lng = person.longitude;
+                let lat = person.latitude;
+                let lng = person.longitude;
 
                 if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
                     console.log(`Filtered out personnel ${person.id}: invalid coordinates`);
                     return;
                 }
 
-                this.compositeMarkerManager.addLocationData(lat, lng, 'personnel', person);
+                // Handle overlapping coordinates by offsetting markers in a circular pattern
+                const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+                const existingMarkersAtCoord = existingCoordinates.get(coordKey) || 0;
+                existingCoordinates.set(coordKey, existingMarkersAtCoord + 1);
+
+                if (existingMarkersAtCoord > 0) {
+                    // Create tight circular pattern to keep markers within country borders
+                    const baseDistance = 0.05; // Small offset to stay within country borders
+                    const offsetDistance = baseDistance * (1 + existingMarkersAtCoord * 0.2);
+                    const angle = (existingMarkersAtCoord * 60) * (Math.PI / 180); // 60° = 360°/6 for tighter spacing
+                    lat += Math.sin(angle) * offsetDistance;
+                    lng += Math.cos(angle) * offsetDistance;
+                    console.log(`📍 Offsetting personnel ${person.id} by ${offsetDistance.toFixed(4)} degrees at angle ${existingMarkersAtCoord * 60}°`);
+                }
+
+                // Create person icon with red jacket
+                const personIcon = L.divIcon({
+                    html: `<div style="
+                        background-color: white;
+                        width: 26px;
+                        height: 26px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: 2px solid #dc2626;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        position: relative;
+                    ">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+                            <path d="M12 14c-3.5 0-6 1.5-6 3v4h12v-4c0-1.5-2.5-3-6-3z" fill="#dc2626"/>
+                            <circle cx="12" cy="8" r="4" fill="#f9d8b4"/>
+                            <path d="M8 14.5c1-0.5 2.5-0.5 4-0.5s3 0 4 0.5" stroke="#991b1b" stroke-width="0.5" fill="none"/>
+                        </svg>
+                    </div>`,
+                    className: 'personnel-marker',
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+
+                // Create tooltip content
+                const startDate = Utils.formatDate(person.startDate);
+                const endDate = person.endDate ? Utils.formatDate(person.endDate) : 'Ongoing';
+
+                const tooltipContent = `
+                    <div class="personnel-tooltip">
+                        <div class="tooltip-header">${person.jobTitle}</div>
+                        <div><strong>Crisis:</strong> ${person.crisis}</div>
+                        <div><strong>Deploying Society:</strong> ${person.deployingNationalSociety}</div>
+                        <div><strong>Deployed To:</strong> ${person.deployedToCountry}</div>
+                        <div><strong>Start Date:</strong> ${startDate}</div>
+                        <div><strong>End Date:</strong> ${endDate}</div>
+                    </div>
+                `;
+
+                const marker = L.marker([lat, lng], { icon: personIcon })
+                    .bindTooltip(tooltipContent, {
+                        permanent: false,
+                        direction: 'top',
+                        offset: [0, -10],
+                        className: 'personnel-tooltip-wrapper'
+                    })
+                    .addTo(this.map);
+
+                this.personnelMarkers.push(marker);
+                addedCount++;
 
             } catch (error) {
-                console.error('Error processing personnel data:', error, person);
+                console.error('Error adding personnel marker:', error, person);
             }
         });
 
-        // Trigger composite marker rendering (will combine with ERUs if both are active)
-        this.compositeMarkerManager.renderCompositeMarkers();
-
-        console.log(`✅ Added ${this.activePersonnel.length} personnel to composite marker system`);
+        console.log(`✅ Added ${addedCount} rapid response personnel markers to map`);
     }
 
     clearPersonnelMarkers() {
@@ -106,23 +156,5 @@ export class RapidResponseManager {
             this.map.removeLayer(marker);
         });
         this.personnelMarkers = [];
-
-        // Clear personnel data from composite marker system and re-render
-        this.activePersonnel.forEach(person => {
-            const lat = person.latitude;
-            const lng = person.longitude;
-            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-                const key = this.compositeMarkerManager.getLocationKey(lat, lng);
-                const location = this.compositeMarkerManager.locationData.get(key);
-                if (location && location.categories.personnel) {
-                    delete location.categories.personnel;
-                    // If no categories left, remove the location entirely
-                    if (Object.keys(location.categories).length === 0) {
-                        this.compositeMarkerManager.locationData.delete(key);
-                    }
-                }
-            }
-        });
-        this.compositeMarkerManager.renderCompositeMarkers();
     }
 }

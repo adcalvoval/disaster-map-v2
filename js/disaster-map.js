@@ -7,7 +7,6 @@ import { RapidResponseManager } from './rapid-response-manager.js';
 import { EmergencyAppeals } from './emergency-appeals.js';
 import { UIControls } from './ui-controls.js';
 import { Utils } from './utils.js';
-import { CompositeMarkerManager } from './composite-marker-manager.js';
 
 export class DisasterMap {
     constructor() {
@@ -33,7 +32,6 @@ export class DisasterMap {
         this.rapidResponseManager = null;
         this.emergencyAppeals = null;
         this.uiControls = null;
-        this.compositeMarkerManager = null;
 
         this.init();
     }
@@ -42,14 +40,11 @@ export class DisasterMap {
         // Initialize map first
         this.map = this.mapManager.initMap();
 
-        // Initialize composite marker manager
-        this.compositeMarkerManager = new CompositeMarkerManager(this.map);
-
         // Initialize other modules with map reference
         this.disasterEvents = new DisasterEvents(this.map, this.config);
         this.healthFacilities = new HealthFacilities(this.map, this.config);
-        this.eruManager = new ERUManager(this.map, this.config, this.compositeMarkerManager);
-        this.rapidResponseManager = new RapidResponseManager(this.map, this.config, this.compositeMarkerManager);
+        this.eruManager = new ERUManager(this.map, this.config);
+        this.rapidResponseManager = new RapidResponseManager(this.map, this.config);
         this.emergencyAppeals = new EmergencyAppeals(this.map, this.config);
         this.uiControls = new UIControls(this);
 
