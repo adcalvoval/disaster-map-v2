@@ -58,10 +58,17 @@ export class CompositeMarkerManager {
      * Create and display all composite markers based on collected data
      */
     renderCompositeMarkers() {
-        this.clear();
+        // Clear only the markers, not the location data
+        this.compositeMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.compositeMarkers = [];
+
+        console.log(`📊 Location data has ${this.locationData.size} locations`);
 
         this.locationData.forEach((location, key) => {
             const categories = Object.keys(location.categories);
+            console.log(`📍 Location ${key} has categories:`, categories);
 
             if (categories.length === 0) return;
 

@@ -60,8 +60,21 @@ export class RapidResponseManager {
     addPersonnelToMap() {
         console.log(`Adding ${this.activePersonnel.length} rapid response personnel to map using composite markers`);
 
-        // Clear existing markers
-        this.clearPersonnelMarkers();
+        // Clear existing personnel data from composite system first
+        this.activePersonnel.forEach(person => {
+            const lat = person.latitude;
+            const lng = person.longitude;
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                const key = this.compositeMarkerManager.getLocationKey(lat, lng);
+                const location = this.compositeMarkerManager.locationData.get(key);
+                if (location && location.categories.personnel) {
+                    delete location.categories.personnel;
+                    if (Object.keys(location.categories).length === 0) {
+                        this.compositeMarkerManager.locationData.delete(key);
+                    }
+                }
+            }
+        });
 
         // Add personnel data to composite marker manager
         this.activePersonnel.forEach(person => {
@@ -93,5 +106,23 @@ export class RapidResponseManager {
             this.map.removeLayer(marker);
         });
         this.personnelMarkers = [];
+
+        // Clear personnel data from composite marker system and re-render
+        this.activePersonnel.forEach(person => {
+            const lat = person.latitude;
+            const lng = person.longitude;
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                const key = this.compositeMarkerManager.getLocationKey(lat, lng);
+                const location = this.compositeMarkerManager.locationData.get(key);
+                if (location && location.categories.personnel) {
+                    delete location.categories.personnel;
+                    // If no categories left, remove the location entirely
+                    if (Object.keys(location.categories).length === 0) {
+                        this.compositeMarkerManager.locationData.delete(key);
+                    }
+                }
+            }
+        });
+        this.compositeMarkerManager.renderCompositeMarkers();
     }
 }

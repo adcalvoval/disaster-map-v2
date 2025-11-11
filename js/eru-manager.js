@@ -60,8 +60,21 @@ export class ERUManager {
     addActiveERUsToMap() {
         console.log(`Adding ${this.activeERUs.length} active ERUs to map using composite markers`);
 
-        // Clear existing markers
-        this.clearERUMarkers();
+        // Clear existing ERU data from composite system first
+        this.activeERUs.forEach(eru => {
+            const lat = eru.latitude;
+            const lng = eru.longitude;
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                const key = this.compositeMarkerManager.getLocationKey(lat, lng);
+                const location = this.compositeMarkerManager.locationData.get(key);
+                if (location && location.categories.eru) {
+                    delete location.categories.eru;
+                    if (Object.keys(location.categories).length === 0) {
+                        this.compositeMarkerManager.locationData.delete(key);
+                    }
+                }
+            }
+        });
 
         // Add ERU data to composite marker manager
         this.activeERUs.forEach(eru => {
@@ -93,5 +106,23 @@ export class ERUManager {
             this.map.removeLayer(marker);
         });
         this.eruMarkers = [];
+
+        // Clear ERU data from composite marker system and re-render
+        this.activeERUs.forEach(eru => {
+            const lat = eru.latitude;
+            const lng = eru.longitude;
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                const key = this.compositeMarkerManager.getLocationKey(lat, lng);
+                const location = this.compositeMarkerManager.locationData.get(key);
+                if (location && location.categories.eru) {
+                    delete location.categories.eru;
+                    // If no categories left, remove the location entirely
+                    if (Object.keys(location.categories).length === 0) {
+                        this.compositeMarkerManager.locationData.delete(key);
+                    }
+                }
+            }
+        });
+        this.compositeMarkerManager.renderCompositeMarkers();
     }
 }
