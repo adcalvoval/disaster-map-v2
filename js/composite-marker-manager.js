@@ -99,14 +99,13 @@ export class CompositeMarkerManager {
 
         // Create composite marker with indicators for multiple categories/items
         const icon = this.createCompositeIcon(categories);
-        const tooltipContent = this.createCompositeTooltip(categories);
+        const popupContent = this.createPopupList(categories);
 
         const marker = L.marker([lat, lng], { icon })
-            .bindTooltip(tooltipContent, {
-                permanent: false,
-                direction: 'top',
-                offset: [0, -20],
-                className: 'composite-tooltip'
+            .bindPopup(popupContent, {
+                maxWidth: 400,
+                maxHeight: 400,
+                className: 'composite-popup'
             });
 
         return marker;
@@ -153,43 +152,29 @@ export class CompositeMarkerManager {
         // Calculate total size based on number of indicators
         const hasERU = eruCount > 0;
         const hasPersonnel = personnelCount > 0;
-        const indicatorCount = (hasERU ? 1 : 0) + (hasPersonnel ? 1 : 0);
 
-        // Main container size
-        const containerSize = 36;
-
-        // Build indicator badges
-        let indicators = '';
+        // Build compact horizontal badge
+        let badges = '';
 
         if (hasERU) {
-            indicators += `
-                <div class="category-indicator eru-indicator" title="ERUs: ${eruCount}">
-                    <span class="indicator-icon">✚</span>
-                    ${eruCount > 1 ? `<span class="indicator-count">${eruCount}</span>` : ''}
-                </div>
-            `;
+            badges += `<span class="count-badge eru-badge">✚ ${eruCount}</span>`;
         }
 
         if (hasPersonnel) {
-            indicators += `
-                <div class="category-indicator personnel-indicator" title="Personnel: ${personnelCount}">
-                    <span class="indicator-icon">👤</span>
-                    ${personnelCount > 1 ? `<span class="indicator-count">${personnelCount}</span>` : ''}
-                </div>
-            `;
+            badges += `<span class="count-badge personnel-badge">👤 ${personnelCount}</span>`;
         }
 
         const html = `
-            <div class="composite-marker">
-                ${indicators}
+            <div class="composite-marker-compact">
+                ${badges}
             </div>
         `;
 
         return L.divIcon({
             html: html,
             className: 'composite-marker-icon',
-            iconSize: [containerSize, containerSize],
-            iconAnchor: [containerSize / 2, containerSize / 2]
+            iconSize: [60, 28],
+            iconAnchor: [30, 14]
         });
     }
 
@@ -248,35 +233,62 @@ export class CompositeMarkerManager {
     }
 
     /**
-     * Create tooltip content for composite markers
+     * Create popup list for composite markers (replaces tooltip)
      */
-    createCompositeTooltip(categories) {
-        let content = '<div class="composite-tooltip-content">';
+    createPopupList(categories) {
+        const eruCount = categories.eru ? categories.eru.length : 0;
+        const personnelCount = categories.personnel ? categories.personnel.length : 0;
+        const totalCount = eruCount + personnelCount;
+
+        let content = '<div class="composite-popup-content">';
+        content += `<div class="popup-header">Location Details <span class="popup-total">(${totalCount} items)</span></div>`;
+        content += '<div class="popup-scroll-container">';
 
         if (categories.eru && categories.eru.length > 0) {
-            content += '<div class="tooltip-section">';
-            content += `<div class="tooltip-category-header">Emergency Response Units (${categories.eru.length})</div>`;
+            content += '<div class="popup-section">';
+            content += `<div class="popup-category-header eru-header">
+                <span class="category-icon">✚</span> Emergency Response Units (${categories.eru.length})
+            </div>`;
+
             categories.eru.forEach((eru, index) => {
-                if (index > 0) content += '<hr class="tooltip-divider">';
-                content += this.createERUTooltipContent(eru);
+                const startDate = this.formatDate(eru.start_date);
+                content += `
+                    <div class="popup-item eru-item">
+                        <div class="popup-item-title">${eru.eru_types}</div>
+                        <div class="popup-item-detail"><strong>Country:</strong> ${eru.country_deployment}</div>
+                        <div class="popup-item-detail"><strong>Deploying Society:</strong> ${eru.deploying_society}</div>
+                        <div class="popup-item-detail"><strong>Start Date:</strong> ${startDate}</div>
+                        <div class="popup-item-detail"><strong>Event:</strong> ${eru.event_name}</div>
+                    </div>
+                `;
             });
             content += '</div>';
         }
 
         if (categories.personnel && categories.personnel.length > 0) {
-            if (categories.eru && categories.eru.length > 0) {
-                content += '<div class="tooltip-section-divider"></div>';
-            }
-            content += '<div class="tooltip-section">';
-            content += `<div class="tooltip-category-header">Deployed Personnel (${categories.personnel.length})</div>`;
+            content += '<div class="popup-section">';
+            content += `<div class="popup-category-header personnel-header">
+                <span class="category-icon">👤</span> Deployed Personnel (${categories.personnel.length})
+            </div>`;
+
             categories.personnel.forEach((person, index) => {
-                if (index > 0) content += '<hr class="tooltip-divider">';
-                content += this.createPersonnelTooltipContent(person);
+                const startDate = this.formatDate(person.startDate);
+                const endDate = person.endDate ? this.formatDate(person.endDate) : 'Ongoing';
+                content += `
+                    <div class="popup-item personnel-item">
+                        <div class="popup-item-title">${person.jobTitle}</div>
+                        <div class="popup-item-detail"><strong>Crisis:</strong> ${person.crisis}</div>
+                        <div class="popup-item-detail"><strong>Deploying Society:</strong> ${person.deployingNationalSociety}</div>
+                        <div class="popup-item-detail"><strong>Deployed To:</strong> ${person.deployedToCountry}</div>
+                        <div class="popup-item-detail"><strong>Period:</strong> ${startDate} - ${endDate}</div>
+                    </div>
+                `;
             });
             content += '</div>';
         }
 
-        content += '</div>';
+        content += '</div>'; // close scroll-container
+        content += '</div>'; // close popup-content
         return content;
     }
 
