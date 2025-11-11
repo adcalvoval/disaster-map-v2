@@ -128,23 +128,24 @@ export class CompositeMarkerManager {
      * @returns {L.Marker} Leaflet marker
      */
     createSingleMarker(lat, lng, category, data) {
-        let icon, tooltipContent;
+        let icon, popupContent;
 
         if (category === 'eru') {
             icon = this.createERUIcon();
-            tooltipContent = this.createERUTooltip(data);
+            popupContent = this.createCategoryPopup('eru', [data]);
         } else if (category === 'personnel') {
             icon = this.createPersonnelIcon();
-            tooltipContent = this.createPersonnelTooltip(data);
+            popupContent = this.createCategoryPopup('personnel', [data]);
         } else {
             return null;
         }
 
         return L.marker([lat, lng], { icon })
-            .bindTooltip(tooltipContent, {
-                permanent: false,
-                direction: 'top',
-                offset: [0, -10]
+            .bindPopup(popupContent, {
+                maxWidth: 500,
+                minWidth: 350,
+                maxHeight: 450,
+                className: 'composite-popup'
             });
     }
 
@@ -191,8 +192,9 @@ export class CompositeMarkerManager {
 
                 // Create and open popup
                 const popup = L.popup({
-                    maxWidth: 400,
-                    maxHeight: 400,
+                    maxWidth: 500,
+                    minWidth: 350,
+                    maxHeight: 450,
                     className: 'composite-popup'
                 })
                 .setLatLng(marker.getLatLng())
