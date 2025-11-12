@@ -199,91 +199,13 @@ module.exports = async (req, res) => {
         
     } catch (error) {
         console.error('Error fetching GDACS CAP data:', error.message);
-        
-        // Return sample impact zones as fallback
-        const sampleImpactZones = [
-            {
-                id: 'sample_impact_1',
-                title: 'Green earthquake alert (Magnitude 5.2M, Depth:10km) in Japan',
-                eventType: 'Earthquake',
-                severity: 'Minor',
-                urgency: 'Past',
-                certainty: 'Observed',
-                areaDescription: 'Honshu, Japan',
-                geometry: {
-                    type: 'Circle',
-                    center: [140.5, 38.5],
-                    radius: 50000
-                },
-                centerPoint: [140.5, 38.5],
-                radius: 50,
-                populationAffected: 250000,
-                populationDescription: '250 thousand people in 100km',
-                magnitude: 5.2,
-                depth: 10,
-                summary: 'Green earthquake alert (Magnitude 5.2M, Depth:10km) in Japan. 250 thousand people affected in 100km radius.',
-                updated: new Date().toISOString(),
-                source: 'GDACS-CAP'
-            },
-            {
-                id: 'sample_impact_2',
-                title: 'Orange earthquake alert (Magnitude 6.1M, Depth:25km) in Philippines',
-                eventType: 'Earthquake',
-                severity: 'Moderate',
-                urgency: 'Expected',
-                certainty: 'Observed',
-                areaDescription: 'Luzon, Philippines',
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[
-                        [120.5, 14.0],
-                        [121.5, 14.0],
-                        [121.5, 15.0],
-                        [120.5, 15.0],
-                        [120.5, 14.0]
-                    ]]
-                },
-                centerPoint: [121.0, 14.5],
-                radius: null,
-                populationAffected: 2500000,
-                populationDescription: '2.5 million people in 100km',
-                magnitude: 6.1,
-                depth: 25,
-                summary: 'Orange earthquake alert (Magnitude 6.1M, Depth:25km) in Philippines. 2.5 million people affected in 100km radius.',
-                updated: new Date().toISOString(),
-                source: 'GDACS-CAP'
-            },
-            {
-                id: 'sample_impact_3',
-                title: 'Green tropical cyclone alert in Pacific Ocean',
-                eventType: 'Tropical Cyclone',
-                severity: 'Minor',
-                urgency: 'Future',
-                certainty: 'Possible',
-                areaDescription: 'Western Pacific Ocean',
-                geometry: {
-                    type: 'Circle',
-                    center: [145.0, 20.0],
-                    radius: 100000
-                },
-                centerPoint: [145.0, 20.0],
-                radius: 100,
-                populationAffected: 50000,
-                populationDescription: '50 thousand people at risk',
-                magnitude: null,
-                depth: null,
-                summary: 'Green tropical cyclone alert in Pacific Ocean. 50 thousand people at risk in coastal areas.',
-                updated: new Date().toISOString(),
-                source: 'GDACS-CAP'
-            }
-        ];
-        
-        res.status(200).json({
-            success: true,
-            count: sampleImpactZones.length,
-            impactZones: sampleImpactZones,
-            note: 'Using sample data - GDACS CAP XML temporarily unavailable',
-            error: error.message
+
+        // Return empty array if API fails - no fallback data
+        res.status(500).json({
+            success: false,
+            count: 0,
+            impactZones: [],
+            error: 'Failed to fetch GDACS CAP data: ' + error.message
         });
     }
 };

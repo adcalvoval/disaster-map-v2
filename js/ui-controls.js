@@ -351,11 +351,22 @@ export class UIControls {
             const facilityPoint = L.latLng(facility.latitude, facility.longitude);
 
             for (const zone of impactZones) {
-                if (zone.geometry && zone.geometry.coordinates) {
-                    if (this.isPointInPolygon(facilityPoint, zone.geometry.coordinates)) {
-                        facilitiesInImpact.push(facility);
-                        break;
-                    }
+                if (!zone.geometry) continue;
+
+                let isInZone = false;
+
+                // Handle Polygon geometry
+                if (zone.geometry.type === 'Polygon' && zone.geometry.coordinates) {
+                    isInZone = this.isPointInPolygon(facilityPoint, zone.geometry.coordinates);
+                }
+                // Handle Circle geometry
+                else if (zone.geometry.type === 'Circle' && zone.geometry.center && zone.geometry.radius) {
+                    isInZone = this.isPointInCircle(facilityPoint, zone.geometry.center, zone.geometry.radius);
+                }
+
+                if (isInZone) {
+                    facilitiesInImpact.push(facility);
+                    break;
                 }
             }
         });
@@ -387,6 +398,25 @@ export class UIControls {
         }
 
         return inside;
+    }
+
+    isPointInCircle(point, center, radius) {
+        // center is [longitude, latitude] in GeoJSON format
+        // radius is in meters
+        // Calculate distance using Haversine formula
+        const R = 6371e3; // Earth's radius in meters
+        const lat1 = point.lat * Math.PI / 180;
+        const lat2 = center[1] * Math.PI / 180;
+        const deltaLat = (center[1] - point.lat) * Math.PI / 180;
+        const deltaLon = (center[0] - point.lng) * Math.PI / 180;
+
+        const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c; // Distance in meters
+
+        return distance <= radius;
     }
 
     displayImpactFacilities(facilities, facilitiesInImpactZones = []) {
