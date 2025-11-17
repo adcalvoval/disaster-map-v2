@@ -57,6 +57,12 @@ module.exports = async (req, res) => {
                 const severity = capInfo['cap:severity']?.[0] || 'Unknown';
                 const urgency = capInfo['cap:urgency']?.[0] || 'Unknown';
                 const certainty = capInfo['cap:certainty']?.[0] || 'Unknown';
+
+                // Skip drought events to match the behavior of /api/gdacs-events
+                if (eventType === 'Drought area' || eventType === 'Drought' ||
+                    title.toLowerCase().includes('drought')) {
+                    return;
+                }
                 
                 // Extract geographic data
                 const areaDesc = capArea['cap:areaDesc']?.[0] || 'Unknown Area';
