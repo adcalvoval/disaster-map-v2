@@ -1285,6 +1285,11 @@ app.get('/api/gdacs-cap', requireAuth, async (req, res) => {
 });
 
 // Health facilities endpoint
+// In-memory cache for health facilities (TTL: 10 minutes)
+let healthFacilitiesCache = null;
+let healthFacilitiesCacheTime = 0;
+const HEALTH_FACILITIES_CACHE_TTL = 10 * 60 * 1000;
+
 app.get('/api/health-facilities', requireAuth, async (req, res) => {
     try {
         const { facility_type } = req.query;
@@ -1300,30 +1305,65 @@ app.get('/api/health-facilities', requireAuth, async (req, res) => {
             });
         }
 
-        const apiUrl = `${apiBaseUrl}/local-units/`;
+        // Return cached data if still fresh
+        const now = Date.now();
+        if (healthFacilitiesCache && (now - healthFacilitiesCacheTime) < HEALTH_FACILITIES_CACHE_TTL) {
+            console.log(`Returning cached health facilities (${healthFacilitiesCache.length} facilities)`);
+            return res.json({
+                success: true,
+                count: healthFacilitiesCache.length,
+                facilities: healthFacilitiesCache,
+                source: 'cache'
+            });
+        }
 
-        // Fetch all health facilities by requesting a large limit
-        // The IFRC API has ~5600 health facilities
-        const params = {
-            limit: 10000, // Request all facilities at once
-            offset: 0,
-            validated: true // Only validated facilities
+        const apiUrl = `${apiBaseUrl}/local-units/`;
+        const PAGE_SIZE = 1000;
+        const headers = {
+            'Authorization': `Token ${apiToken}`,
+            'User-Agent': 'IFRC-Health-Emergency-Response-Tool/1.0',
+            'Accept': 'application/json'
         };
 
-        console.log(`Fetching all IFRC facilities: ${apiUrl}`, params);
-
-        const response = await axios.get(apiUrl, {
-            params,
-            timeout: 60000, // Increased timeout for large request
-            headers: {
-                'Authorization': `Token ${apiToken}`,
-                'User-Agent': 'IFRC-Health-Emergency-Response-Tool/1.0',
-                'Accept': 'application/json'
-            }
+        // Fetch first page to get total count
+        console.log(`Fetching IFRC facilities page 1 (limit=${PAGE_SIZE})...`);
+        const firstResponse = await axios.get(apiUrl, {
+            params: { limit: PAGE_SIZE, offset: 0, validated: true },
+            timeout: 30000,
+            headers
         });
 
-        const data = response.data;
-        console.log(`Received ${data.results.length} facilities from IFRC API`);
+        const firstData = firstResponse.data;
+        const totalCount = firstData.count;
+        let allResults = [...firstData.results];
+        console.log(`Page 1: got ${firstData.results.length} of ${totalCount} total facilities`);
+
+        // Fetch remaining pages in parallel (up to 10 pages = 10,000 facilities)
+        const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+        const remainingPages = Math.min(totalPages - 1, 9); // safety cap
+
+        if (remainingPages > 0) {
+            const pagePromises = [];
+            for (let page = 1; page <= remainingPages; page++) {
+                pagePromises.push(
+                    axios.get(apiUrl, {
+                        params: { limit: PAGE_SIZE, offset: page * PAGE_SIZE, validated: true },
+                        timeout: 30000,
+                        headers
+                    }).then(r => {
+                        console.log(`Page ${page + 1}: got ${r.data.results.length} facilities`);
+                        return r.data.results;
+                    }).catch(err => {
+                        console.warn(`Page ${page + 1} failed: ${err.message}`);
+                        return [];
+                    })
+                );
+            }
+            const pageResults = await Promise.all(pagePromises);
+            pageResults.forEach(results => allResults.push(...results));
+        }
+
+        console.log(`Fetched ${allResults.length} total facilities from IFRC API`);
 
         // Filter out non-health facility types more comprehensively
         const excludedTypes = [
@@ -1362,35 +1402,15 @@ app.get('/api/health-facilities', requireAuth, async (req, res) => {
             'Emergency Medical Services'
         ];
 
-        // Debug: log the first facility structure to understand the data
-        if (data.results && data.results.length > 0) {
-            console.log('First facility structure:', JSON.stringify(data.results[0], null, 2));
-        }
+        const healthKeywords = /\b(health|hospital|clinic|medical|ambulance|blood|pharmacy|dispensary|maternity|rehabilitation|centro|clinica|salud|santé|gesundheit|cruz roja|red cross|croix rouge|rotes kreuz)\b/i;
+        const healthTypeKeywords = /\b(health|medical|hospital|clinic|ambulance|blood|pharmacy)\b/i;
 
-        const healthOnlyResults = data.results.filter(facility => {
+        const healthOnlyResults = allResults.filter(facility => {
             const facilityName = String(facility.local_branch_name || facility.english_branch_name || '');
             const typeName = facility.type_details?.name || '';
-
-            // Debug: log facility details for first few
-            if (data.results.indexOf(facility) < 5) {
-                console.log(`Facility ${facility.id}: name="${facilityName}", type_name="${typeName}", has_health="${!!facility.health}"`);
-            }
-
-            // Based on the original sample JSON data you provided,
-            // health facilities should have health information or be specifically health-related
-
-            // Check if facility has health-related data
             const hasHealthInfo = facility.health !== null || facility.health_details !== null;
-
-            // Check if the facility name contains health-related keywords
-            const healthKeywords = /\b(health|hospital|clinic|medical|ambulance|blood|pharmacy|dispensary|maternity|rehabilitation|centro|clinica|salud|santé|gesundheit|cruz roja|red cross|croix rouge|rotes kreuz)\b/i;
             const hasHealthName = healthKeywords.test(facilityName);
-
-            // Check if type name suggests health facility
-            const healthTypeKeywords = /\b(health|medical|hospital|clinic|ambulance|blood|pharmacy)\b/i;
             const isHealthType = healthTypeKeywords.test(typeName);
-
-            // For now, include facilities that match health criteria
             return hasHealthInfo || hasHealthName || isHealthType;
         });
 
@@ -1418,25 +1438,15 @@ app.get('/api/health-facilities', requireAuth, async (req, res) => {
             functionality: mapFunctionalityLevel(facility.health_details?.functionality || 'fully')
         }));
 
+        // Cache results
+        healthFacilitiesCache = transformedFacilities;
+        healthFacilitiesCacheTime = Date.now();
+        console.log(`Cached ${transformedFacilities.length} health facilities`);
+
         res.json({
             success: true,
             count: transformedFacilities.length,
-            total: data.count, // Note: This is the original API total, actual health facilities may be less due to filtering
-            next: data.next,
-            previous: data.previous,
-            facilities: transformedFacilities,
-            pagination: {
-                limit: params.limit,
-                offset: params.offset,
-                has_next: !!data.next,
-                has_previous: !!data.previous,
-                total_pages: Math.ceil(data.count / params.limit)
-            },
-            filtered_info: {
-                original_count: data.results.length,
-                health_only_count: transformedFacilities.length,
-                excluded_types: excludedTypes
-            }
+            facilities: transformedFacilities
         });
 
     } catch (error) {

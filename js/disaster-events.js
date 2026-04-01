@@ -477,4 +477,31 @@ export class DisasterEvents {
         this.addMarkersToMap(filteredEvents);
         this.addAffectedAreasToMap(filteredEvents);
     }
+
+    updateDisasterEventsDisplay() {
+        const typeMap = {
+            'earthquake': 'Earthquake',
+            'flood': 'Flood',
+            'cyclone': 'Cyclone',
+            'wildfire': 'Wildfire',
+            'drought': 'Drought',
+            'volcanic': 'Volcanic Activity',
+            'other': 'Other'
+        };
+
+        const activeTypes = new Set();
+        Object.entries(typeMap).forEach(([checkboxKey, typeName]) => {
+            const checkbox = document.getElementById(`show-${checkboxKey}`);
+            if (!checkbox || checkbox.checked) {
+                activeTypes.add(typeName.toLowerCase());
+            }
+        });
+
+        const filtered = this.disasters.filter(event =>
+            activeTypes.has(event.type.toLowerCase())
+        );
+
+        this.displayEvents(filtered);
+        this.displayFilteredMarkers(filtered);
+    }
 }

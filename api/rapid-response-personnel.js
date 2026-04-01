@@ -223,8 +223,21 @@ module.exports = async (req, res) => {
         const url = `${IFRC_GO_API_BASE_URL}/aggregated-eru-and-rapid-response/`;
         console.log(`Fetching Rapid Response data from: ${url}`);
 
-        const response = await axios.get(url, { headers, timeout: 30000 });
+        const response = await axios.get(url, {
+            headers,
+            timeout: 30000,
+            params: { limit: 50, offset: 0 }
+        });
         const apiData = response.data;
+
+        if (!apiData || !apiData.results) {
+            console.error('Unexpected API response structure:', JSON.stringify(apiData).slice(0, 200));
+            return res.status(200).json({
+                success: false,
+                personnel: [],
+                error: 'Unexpected API response structure'
+            });
+        }
 
         if (apiData && apiData.results) {
             console.log(`Retrieved ${apiData.results.length} events with rapid response data from IFRC API`);
@@ -302,21 +315,23 @@ module.exports = async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Error loading Rapid Response Personnel:', error.message);
-        console.error('API Error details:', {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            url: error.config?.url
-        });
+        const httpStatus = error.response?.status;
+        const httpStatusText = error.response?.statusText;
+        const responseBody = error.response?.data;
+        console.error('❌ Rapid Response Personnel API failed:');
+        console.error('  Message:', error.message);
+        console.error('  HTTP Status:', httpStatus, httpStatusText);
+        console.error('  URL:', error.config?.url);
+        console.error('  Response body:', JSON.stringify(responseBody).slice(0, 300));
 
-        // Return empty array on error
         res.status(200).json({
             success: false,
             count: 0,
             total: 0,
             personnel: [],
             note: 'IFRC API temporarily unavailable',
-            error: error.message
+            error: error.message,
+            httpStatus
         });
     }
 };
